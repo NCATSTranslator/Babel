@@ -56,3 +56,76 @@ UBERON:0003691 FMA:71228
 # because config.yaml: anatomy_xref_prefixes renames SCTID before this filter applies. Once UBERON's
 # SNOMED xrefs join, this merged UMLS:C0460042 into the nerve trunk clique.
 UBERON:0002464 SNOMEDCT:281248001
+
+# UMLS concepts that lump a second anatomical entity's SNOMED CT or FMA code under their own. UBERON's
+# xref to that code is right, but it joins the UBERON term to the lumping concept, so the pair dropped is
+# the UMLS one: the code then reaches only the UBERON term it names. Found by
+# anatomy.find_uberon_snomed_xrefs_to_review() ("UMLS concept holds other SNOMED codes"); see
+# docs/sources/UBERON/umls-joins/README.md.
+#
+# UMLS:C0040426 "Tooth structure" holds "Structure of dentition" and FMA:75150 "Dentition", which joined
+# UBERON:0003672 "dentition" (the set of teeth) to the UBERON:0001091 "calcareous tooth" clique.
+UMLS:C0040426 SNOMEDCT:245543004
+UMLS:C0040426 FMA:75150
+# UMLS:C0231106 "Optic vesicle" holds "Structure of lens vesicle", the surface-ectoderm vesicle that forms
+# the lens -- not the optic vesicle, which is UBERON:0004128.
+UMLS:C0231106 SNOMEDCT:361510002
+# UMLS:C0459036 "Proximal epiphysis of phalanx of finger" (UBERON:0004414) also holds "Structure of
+# epiphysis of proximal phalanx of finger", which is UBERON:0011977 -- the epiphysis of one phalanx, not
+# the proximal epiphysis of any.
+UMLS:C0459036 SNOMEDCT:280044004
+# UMLS:C1288305 "Entire eyelash" (UBERON:0001702 "eyelash", a single hair) also holds "Entire eyelashes",
+# which UBERON:0010168 xrefs for the collection of eyelashes on an eyelid.
+UMLS:C1288305 SNOMEDCT:367575006
+# UMLS:C0740258 "Lamina propria of urinary bladder" also holds "Structure of submucosa of urinary bladder",
+# the layer beneath it (UBERON:0004943).
+UMLS:C0740258 SNOMEDCT:88384001
+# UMLS:C0085872 "Basal lamina" also holds "Structure of basement membrane"; the basal lamina is one layer of
+# the basement membrane (UBERON:0005769), and its own clique is the GO:0005605 cellular component.
+UMLS:C0085872 SNOMEDCT:68989006
+
+# UBERON terms that xref a narrower or broader SNOMED CT concept besides their own. Each such term joins
+# every SNOMED concept it xrefs into one clique, so the wrong xref merges two different structures. Listed
+# with Babel's SNOMEDCT spelling, since config.yaml: anatomy_xref_prefixes renames SCTID before this filter.
+# Found by anatomy.find_uberon_snomed_xrefs_to_review() ("UBERON term reaches several UMLS concepts"); the
+# ones judged correct are in docs/sources/UBERON/umls-joins/snomed-xref-review.csv.
+#
+# UBERON:0000064 "organ part" -> "Body organ structure", which is the organ (UBERON:0000062) or any part of it.
+UBERON:0000064 SNOMEDCT:113343008
+# UBERON:0001021 "nerve" -> "Entire peripheral nerve", a narrower term (it also xrefs "Entire nerve").
+UBERON:0001021 SNOMEDCT:244457007
+# UBERON:0003682 "palatal muscle" -> "Entire muscle of palate AND/OR fauces", a broader grouping (it also
+# xrefs "Entire muscle of palate").
+UBERON:0003682 SNOMEDCT:73711005
+# UBERON:0003888 "extraembryonic coelomic cavity" -> "Entire exocelomic membrane", a membrane lining the
+# cavity, not the cavity (it also xrefs "Entire chorionic cavity").
+UBERON:0003888 SNOMEDCT:296586008
+# UBERON:0004319, 0004327 and 0004336, the distal, middle and proximal phalanges of pedal digit 5 -> the
+# phalanx of "lesser toe", which in SNOMED CT is any of toes 2-5 (each also xrefs its "little toe" concept).
+UBERON:0004319 SNOMEDCT:244674003
+UBERON:0004327 SNOMEDCT:244673009
+UBERON:0004336 SNOMEDCT:244672004
+# UBERON:0004917 "urethral sphincter" -> "Entire sphincter urethrae muscle", the external urethral sphincter
+# only (UBERON:0004919); it also xrefs "Structure of urethral sphincter".
+UBERON:0004917 SNOMEDCT:277857004
+# UBERON:0005294 "gonadal ridge" -> "Entire urogenital ridge", which also gives rise to the mesonephros (it
+# also xrefs "Entire genital ridge").
+UBERON:0005294 SNOMEDCT:308801004
+# UBERON:0006650 "tunica vaginalis testis" -> "Entire processus vaginalis testis", the embryonic peritoneal
+# outpouching the tunica vaginalis forms from (it also xrefs "Entire tunica vaginalis").
+UBERON:0006650 SNOMEDCT:367713008
+# UBERON:0008593 "zygomaticus major muscle" -> "Entire zygomaticus muscle", which includes zygomaticus minor
+# (it also xrefs "Entire zygomaticus major muscle").
+UBERON:0008593 SNOMEDCT:244739005
+# UBERON:0011877 "margin of tongue" -> the right margin and the left margin, both narrower; it has no xref to
+# the margin as a whole.
+UBERON:0011877 SNOMEDCT:368572007
+UBERON:0011877 SNOMEDCT:368594004
+# UBERON:0018398 "superior alveolar nerve" -> "Entire posterior superior alveolar nerve", one of its branches
+# (it also xrefs "Structure of superior alveolar nerve").
+UBERON:0018398 SNOMEDCT:280239000
+
+# UBERON:0010168 "collection of eyelashes" hasDbXref MESH:D002923, which is "Cilia", the cell organelle
+# (cilia is Latin for eyelashes). It merged the eyelashes with MeSH "Cilia", NCIT:C32318 "Cilium" and
+# FMA:67181 "Cilium" in a main build of 2026-11-18; found while reviewing the UBERON/UMLS joins.
+UBERON:0010168 MESH:D002923

@@ -1,0 +1,78 @@
+uberon_id,uberon_label,snomed_id,snomed_fsn,umls_ids,umls_names,reasons
+UBERON:0000161,orifice,SNOMEDCT:91837002,Structure of anatomical orifice (body structure),UMLS:C0444567,Ostium,UMLS concept holds other SNOMED codes
+UBERON:0000332,yellow bone marrow,SNOMEDCT:328639002,All yellow bone marrow (body structure),UMLS:C1282727,Entire yellow bone marrow,UBERON term reaches several UMLS concepts
+UBERON:0000332,yellow bone marrow,SNOMEDCT:5023006,Structure of yellow bone marrow (body structure),UMLS:C0229625,Structure of yellow bone marrow,UBERON term reaches several UMLS concepts
+UBERON:0000361,red bone marrow,SNOMEDCT:328538003,All red bone marrow (body structure),UMLS:C1282726,Entire red bone marrow,UBERON term reaches several UMLS concepts
+UBERON:0000361,red bone marrow,SNOMEDCT:75330005,Structure of red bone marrow (body structure),UMLS:C0229624,Structure of red bone marrow,UBERON term reaches several UMLS concepts
+UBERON:0000365,urothelium,SNOMEDCT:30117005,Structure of transitional epithelium (body structure),UMLS:C0225339,Transitional epithelium,UBERON term reaches several UMLS concepts
+UBERON:0000365,urothelium,SNOMEDCT:57789003,Structure of urothelium (body structure),UMLS:C0227598,Urothelium,UBERON term reaches several UMLS concepts
+UBERON:0000935,anterior commissure,SNOMEDCT:279313001,Structure of anterior cerebral commissure (body structure),UMLS:C0458373,Anterior cerebral commissure,UBERON term reaches several UMLS concepts
+UBERON:0000935,anterior commissure,SNOMEDCT:369119009,Entire anterior commissure (body structure),UMLS:C1289546,Entire anterior commissure,UBERON term reaches several UMLS concepts
+UBERON:0000983,metatarsus region,SNOMEDCT:280711000,Structure of region of metatarsal (body structure),UMLS:C0025590,Region of metatarsal,UMLS concept holds other SNOMED codes
+UBERON:0001013,adipose tissue,SNOMEDCT:55603005,Structure of adipose tissue (body structure),UMLS:C0001527,Adipose tissue,UMLS concept holds other SNOMED codes
+UBERON:0001075,bony vertebral centrum,SNOMEDCT:361745008,Entire body of vertebra (body structure),UMLS:C1284165,Entire body of vertebra,UBERON term reaches several UMLS concepts
+UBERON:0001075,bony vertebral centrum,SNOMEDCT:362867001,Entire centrum of vertebra (body structure),UMLS:C1285075,Entire centrum of vertebra,UBERON term reaches several UMLS concepts
+UBERON:0001252,adventitia of ureter,SNOMEDCT:392273001,Entire adventitia of ureter (body structure),UMLS:C1271342,Entire adventitia of ureter,UBERON term reaches several UMLS concepts
+UBERON:0001252,adventitia of ureter,SNOMEDCT:47879001,Structure of adventitia of ureter (body structure),UMLS:C0227687,Adventitia of ureter,UBERON term reaches several UMLS concepts
+UBERON:0001282,intralobular bile duct,SNOMEDCT:227002,Structure of Canal of Hering (body structure),UMLS:C0227517,Canal of Hering,UBERON term reaches several UMLS concepts
+UBERON:0001282,intralobular bile duct,SNOMEDCT:269922006,Entire intralobular bile duct (body structure),UMLS:C1280796,Entire intralobular bile duct,UBERON term reaches several UMLS concepts
+UBERON:0001384,primary motor cortex,SNOMEDCT:11931008,Structure of motor cortex (body structure),UMLS:C0026607,Motor Cortex,UMLS concept holds other SNOMED codes
+UBERON:0001414,median basilic vein,SNOMEDCT:181392003,Entire median cubital vein (body structure),UMLS:C1278971,Entire median cubital vein,UBERON term reaches several UMLS concepts
+UBERON:0001414,median basilic vein,SNOMEDCT:368496000,Entire median basilic vein (body structure),UMLS:C1288974,Entire median basilic vein,UBERON term reaches several UMLS concepts
+UBERON:0001630,muscle organ,SNOMEDCT:71616004,Skeletal and/or smooth muscle structure (body structure),UMLS:C1305763;UMLS:C4083049,Skeletal and/or smooth muscle structure;Muscle (organ),UBERON term reaches several UMLS concepts
+UBERON:0001846,internal ear,SNOMEDCT:181189006,Entire inner ear (body structure),UMLS:C1268973,Entire inner ear,UBERON term reaches several UMLS concepts
+UBERON:0001846,internal ear,SNOMEDCT:304982002,Entire labyrinth (body structure),UMLS:C1281690,Entire labyrinth,UBERON term reaches several UMLS concepts
+UBERON:0001983,crypt of Lieberkuhn,SNOMEDCT:118652008,Structure of crypt of Lieberkühn (body structure),UMLS:C1621887,Crypt of Lieberkuhn,UMLS concept holds other SNOMED codes
+UBERON:0002133,atrioventricular valve,SNOMEDCT:11124005,Structure of atrioventricular valve (body structure),UMLS:C0225924,Atrioventricular valve,UMLS concept holds other SNOMED codes
+UBERON:0002153,fastigial nucleus,SNOMEDCT:279224002,Structure of nucleus fastigii (body structure),UMLS:C0175490,Nucleus fastigii,UMLS concept holds other SNOMED codes
+UBERON:0002234,proximal phalanx of manus,SNOMEDCT:181986000,Entire proximal phalanx of finger (body structure),UMLS:C0223794,Entire proximal phalanx of finger,UBERON term reaches several UMLS concepts
+UBERON:0002234,proximal phalanx of manus,SNOMEDCT:361325003,Entire proximal phalanx of hand (body structure),UMLS:C1283871,Entire proximal phalanx of hand,UBERON term reaches several UMLS concepts
+UBERON:0002292,costovertebral joint,SNOMEDCT:263315000,Entire costocorporeal joint (body structure),UMLS:C1305094,Entire costocorporeal joint,UMLS concept holds other SNOMED codes
+UBERON:0002374,metacarpal bone,SNOMEDCT:181977005,Entire metacarpal bone (body structure),UMLS:C1269064,Entire metacarpal,UBERON term reaches several UMLS concepts
+UBERON:0002374,metacarpal bone,SNOMEDCT:425761003,Entire metacarpal of finger (body structure),UMLS:C1959755,Entire metacarpal of finger,UBERON term reaches several UMLS concepts
+UBERON:0002520,submandibular lymph node,SNOMEDCT:245319003,Entire submandibular lymph node (body structure),UMLS:C1280307,Entire submandibular lymph node,UMLS concept holds other SNOMED codes
+UBERON:0002815,horizontal fissure of cerebellum,SNOMEDCT:314173004,Structure of horizontal cerebellar fissure (body structure),UMLS:C0228495,Horizontal fissure of cerebellum,UMLS concept holds other SNOMED codes
+UBERON:0002817,secondary fissure of cerebellum,SNOMEDCT:314169002,Structure of secondary cerebellar fissure (body structure),UMLS:C0262328,Secondary cerebellar fissure,UMLS concept holds other SNOMED codes
+UBERON:0002819,apex of cochlea,SNOMEDCT:279776002,Structure of cupula of cochlear canal (body structure),UMLS:C0458764,Cupula of cochlear canal,UBERON term reaches several UMLS concepts
+UBERON:0002819,apex of cochlea,SNOMEDCT:279777006,Structure of apex of cochlear canal (body structure),UMLS:C0458765,Apex of the cochlear canal,UBERON term reaches several UMLS concepts
+UBERON:0003396,mesentery of colon,SNOMEDCT:245457004,Structure of large intestine mesentery (body structure),UMLS:C0025483,Mesentery of colon,UMLS concept holds other SNOMED codes
+UBERON:0004074,cerebellum vermis lobule I,SNOMEDCT:279380005,Structure of lingula of vermis (body structure),UMLS:C0458405,Lingula of vermis,UBERON term reaches several UMLS concepts
+UBERON:0004074,cerebellum vermis lobule I,SNOMEDCT:77232000,Structure of lingula of cerebellum (body structure),UMLS:C0228475,Lingula of cerebellum,UBERON term reaches several UMLS concepts
+UBERON:0004407,distal epiphysis of radius,SNOMEDCT:280013008,Entire distal epiphysis of radius (body structure),UMLS:C1304902,Entire distal end of radius,UMLS concept holds other SNOMED codes
+UBERON:0004410,distal epiphysis of fibula,SNOMEDCT:129111008,Structure of distal fibular epiphysis (body structure),UMLS:C1267084,Distal epiphysis of fibula,UBERON term reaches several UMLS concepts
+UBERON:0004410,distal epiphysis of fibula,SNOMEDCT:280018004,Entire distal fibular epiphysis (body structure),UMLS:C0459013,Entire distal fibular epiphysis (body structure),UBERON term reaches several UMLS concepts
+UBERON:0004411,proximal epiphysis of humerus,SNOMEDCT:280028008,Structure of proximal humeral epiphysis (body structure),UMLS:C0588209,Bone structure of proximal humerus,UMLS concept holds other SNOMED codes
+UBERON:0004444,proximal epiphysis of distal phalanx of manual digit 1,SNOMEDCT:182008001,Structure of base of distal phalanx of thumb (body structure),UMLS:C0459035,Base of distal phalanx of thumb,UMLS concept holds other SNOMED codes
+UBERON:0004445,proximal epiphysis of proximal phalanx of manual digit 1,SNOMEDCT:181993001,Structure of base of proximal phalanx of thumb (body structure),UMLS:C0459034,Epiphysis of proximal phalanx of thumb,UMLS concept holds other SNOMED codes
+UBERON:0004867,orbital cavity,SNOMEDCT:280541000,Structure of orbital cavity (body structure),UMLS:C0029180,Ocular orbit,UMLS concept holds other SNOMED codes
+UBERON:0004918,internal urethral sphincter,SNOMEDCT:277856008,Structure of internal urethral sphincter (body structure),UMLS:C0227720,Structure of internal sphincter of urinary bladder,UMLS concept holds other SNOMED codes
+UBERON:0005244,lobar bronchus of right lung cranial lobe,SNOMEDCT:181806003,Entire eparterial bronchus (body structure),UMLS:C1279058,Entire eparterial bronchus,UBERON term reaches several UMLS concepts
+UBERON:0005244,lobar bronchus of right lung cranial lobe,SNOMEDCT:361956001,Entire bronchus of right upper lobe (body structure),UMLS:C1305290,Entire bronchus of right upper lobe,UBERON term reaches several UMLS concepts
+UBERON:0005351,paraflocculus,SNOMEDCT:314174005,Entire cerebellar tonsil (body structure),UMLS:C1281984,Entire cerebellar tonsil,UBERON term reaches several UMLS concepts
+UBERON:0005351,paraflocculus,SNOMEDCT:51969002,Structure of paraflocculus (body structure),UMLS:C0228503,Paraflocculus,UBERON term reaches several UMLS concepts
+UBERON:0005396,carotid artery segment,SNOMEDCT:362040006,Entire carotid artery (body structure),UMLS:C1305384,Entire carotid artery,UBERON term reaches several UMLS concepts
+UBERON:0005396,carotid artery segment,SNOMEDCT:69105007,Carotid artery structure (body structure),UMLS:C0007272,Carotid Arteries,UBERON term reaches several UMLS concepts
+UBERON:0005451,segment of manus,SNOMEDCT:127950000,Structure of region of hand (body structure),UMLS:C1268224,Region of hand (body structure),UMLS concept holds other SNOMED codes
+UBERON:0005459,left umbilical vein,SNOMEDCT:308833008,Structure of left umbilical vein (body structure),UMLS:C0221313,Left umbilical vein,UMLS concept holds other SNOMED codes
+UBERON:0005487,vitelline vein,SNOMEDCT:2730004,Entire vitelline vein of placenta (body structure),UMLS:C1268512,Entire vitelline vein of placenta,UBERON term reaches several UMLS concepts
+UBERON:0005487,vitelline vein,SNOMEDCT:308832003,Entire omphalomesenteric vein (body structure),UMLS:C1281785,Entire omphalomesenteric vein,UBERON term reaches several UMLS concepts
+UBERON:0005922,inferior nasal concha,SNOMEDCT:361932000,Entire inferior nasal turbinate (body structure),UMLS:C1284263,Entire inferior nasal turbinate,UBERON term reaches several UMLS concepts
+UBERON:0005922,inferior nasal concha,SNOMEDCT:362882006,Entire inferior nasal turbinate bone (body structure),UMLS:C1285090,Entire inferior nasal turbinate bone,UBERON term reaches several UMLS concepts
+UBERON:0007738,metacarpophalangeal joint of manual digit 2,SNOMEDCT:361845000,Entire metacarpophalangeal joint of index finger (body structure),UMLS:C0224629,Entire metacarpophalangeal joint of index finger,UMLS concept holds other SNOMED codes
+UBERON:0007763,cerebellum vermis culmen,SNOMEDCT:279384001,Entire culmen (body structure),UMLS:C1281092,Entire culmen,UBERON term reaches several UMLS concepts
+UBERON:0007763,cerebellum vermis culmen,SNOMEDCT:89649002,Structure of culmen (body structure),UMLS:C0152384,Structure of culmen,UBERON term reaches several UMLS concepts
+UBERON:0009006,deep inguinal lymph node,SNOMEDCT:65266007,Structure of deep inguinal lymph node (body structure),UMLS:C0229850,Deep inguinal lymph node group,UMLS concept holds other SNOMED codes
+UBERON:0009007,superficial inguinal lymph node,SNOMEDCT:113340006,Structure of superficial inguinal lymph node (body structure),UMLS:C0229852,Structure of superficial inguinal lymph node,UMLS concept holds other SNOMED codes
+UBERON:0011124,xiphisternal joint,SNOMEDCT:118923007,Structure of xiphisternal symphysis (body structure),UMLS:C0447790,Xiphisternal symphysis,UBERON term reaches several UMLS concepts
+UBERON:0011124,xiphisternal joint,SNOMEDCT:118924001,Structure of xiphisternal synostosis (body structure),UMLS:C0504220,Xiphisternal synostosis,UBERON term reaches several UMLS concepts
+UBERON:0013685,foramen of skull,SNOMEDCT:276742007,Structure of skull foramen (body structure),UMLS:C0222689,Skull foramen,UMLS concept holds other SNOMED codes
+UBERON:0015472,tracheobronchial lymph node,SNOMEDCT:245341003,Structure of tracheobronchial lymph node (body structure),UMLS:C0229751,Tracheobronchial lymph node located near carina,UMLS concept holds other SNOMED codes
+UBERON:0015881,internal iliac lymph node,SNOMEDCT:245357003,Structure of internal iliac node (body structure),UMLS:C0447192,Internal iliac lymph node,UMLS concept holds other SNOMED codes
+UBERON:0016392,mastoid lymph node,SNOMEDCT:245328002,Structure of postauricular lymph node (body structure),UMLS:C0229712,Postauricular lymph node,UBERON term reaches several UMLS concepts;UMLS concept holds other SNOMED codes
+UBERON:0016392,mastoid lymph node,SNOMEDCT:279143009,Structure of mastoid lymph node (body structure),UMLS:C0458296,Mastoid lymph node,UBERON term reaches several UMLS concepts
+UBERON:0016416,anterior chest,SNOMEDCT:182331006,Structure of surface region of front of chest (body structure),UMLS:C0230132,Anterior chest wall structure,UMLS concept holds other SNOMED codes
+UBERON:0016925,juxtaductal region of aortic arch,SNOMEDCT:197677000,Entire aortic isthmus (body structure),UMLS:C1279406,Entire aortic isthmus,UBERON term reaches several UMLS concepts
+UBERON:0016925,juxtaductal region of aortic arch,SNOMEDCT:197932000,Entire juxtaductal region of aortic arch (body structure),UMLS:C1279410,Entire juxtaductal region of aortic arch,UBERON term reaches several UMLS concepts
+UBERON:0035162,infraclavicular lymph node,SNOMEDCT:9659009,Structure of infraclavicular lymph node (body structure),UMLS:C0229743,Infraclavicular lymph node group,UMLS concept holds other SNOMED codes
+UBERON:0035803,extrapyramidal tract system,SNOMEDCT:362288003,Entire extrapyramidal system (body structure),UMLS:C1284551,Entire extrapyramidal system,UBERON term reaches several UMLS concepts
+UBERON:0035803,extrapyramidal tract system,SNOMEDCT:362400005,Entire extrapyramidal tract (body structure),UMLS:C1284659,Entire extrapyramidal tract,UBERON term reaches several UMLS concepts
