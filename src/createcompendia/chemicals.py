@@ -216,8 +216,8 @@ def read_untyped_compendium(path):
             if stripped.startswith("{"):
                 raise RuntimeError(
                     f"{path} line {line_number} is in the pre-JSONL `repr(set)` format written by "
-                    f"an older Babel. Delete it and partials/types alongside it so Snakemake "
-                    f"regenerates both: rm {path}"
+                    f"an older Babel. Delete it and Snakemake will rerun untyped_chemical_compendia, "
+                    f"which rewrites it along with that rule's other outputs: rm {path}"
                 )
             cliques.add(frozenset(json.loads(stripped)))
     return cliques
