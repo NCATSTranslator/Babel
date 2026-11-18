@@ -126,8 +126,6 @@ rule get_anatomy_umls_relationships:
 
 rule anatomy_compendia:
     input:
-        labels=os.path.join(config["download_directory"], "common", config["common"]["labels"][0]),
-        synonyms=os.path.join(config["download_directory"], "common", config["common"]["synonyms"][0]),
         concords=expand(
             "{dd}/anatomy/concords/{ap}", dd=config["intermediate_directory"], ap=config["anatomy_concords"]
         ),
@@ -141,6 +139,7 @@ rule anatomy_compendia:
         # constant rather than repeating the literal: the impact report resolves the same file via
         # ANATOMY_BAD_XREFS, and if the two drifted the report would stop matching the build.
         badxrefs=anatomy.ANATOMY_BAD_XREFS,
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:

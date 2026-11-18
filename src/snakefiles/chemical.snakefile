@@ -428,6 +428,7 @@ rule chemical_compendia:
         untyped_file=config["intermediate_directory"] + "/chemicals/partials/untyped_compendium",
         metadata_yamls=[config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml"],
         properties_jsonl_gz=[config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz"],
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         # Every source contributing food/extract evidence to the clique type vote adds one
         # CURIE->biolink:Type file here; today that is only the DRUGBANK food-and-extract retype

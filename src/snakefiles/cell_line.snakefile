@@ -30,6 +30,7 @@ rule cell_line_compendia:
         labelfile=config["download_directory"] + "/CLO/labels",
         synonymfile=config["download_directory"] + "/CLO/synonyms",
         metadatafile=config["download_directory"] + "/CLO/metadata.yaml",
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         config["output_directory"] + "/compendia/CellLine.txt",

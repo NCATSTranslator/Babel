@@ -101,6 +101,7 @@ rule taxon_compendia:
             "{dd}/taxon/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["taxon_concords"]
         ),
         idlists=expand("{dd}/taxon/ids/{ap}", dd=config["intermediate_directory"], ap=config["taxon_ids"]),
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:

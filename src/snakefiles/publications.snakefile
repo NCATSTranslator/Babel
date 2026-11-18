@@ -104,6 +104,7 @@ rule generate_pubmed_compendia:
         doi_repairs_file=publications.PUBMED_DOI_REPAIRS,
         shared_ids_file=config["intermediate_directory"] + "/publications/concords/shared_identifiers.tsv",
         metadata_yaml=config["intermediate_directory"] + "/publications/concords/metadata.yaml",
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         publication_compendium=config["output_directory"] + "/compendia/Publication.txt",
