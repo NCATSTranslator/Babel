@@ -39,6 +39,7 @@ from src.model.glom_diff import (
     cliques_from_compendia,
     diff_cliques,
 )
+from src.model.intermediates import is_metadata_sidecar
 from src.model.source import SourceContribution, discover_source, scan_concords_for_curies, summarize_xref_groups
 from src.reports.source_impact import (
     EXPANDED_SAMPLE_LIMIT,
@@ -109,14 +110,10 @@ PIPELINE_CONFIG: dict[str, dict] = {
 
 
 def _list_source_files(directory: pathlib.Path) -> list[pathlib.Path]:
-    """Return non-metadata files in a `concords/` or `ids/` directory."""
+    """Return the non-metadata files in a `concords/` or `ids/` directory (see `is_metadata_sidecar()`)."""
     if not directory.exists():
         return []
-    return sorted(
-        p
-        for p in directory.iterdir()
-        if p.is_file() and not p.name.startswith("metadata-") and not p.name.endswith(".yaml")
-    )
+    return sorted(p for p in directory.iterdir() if p.is_file() and not is_metadata_sidecar(p.name))
 
 
 def _compute_synthetic_diff(
@@ -140,8 +137,14 @@ def _compute_synthetic_diff(
 
     logger.info("synthetic diff for %s: %d ids files, %d concord files", pipeline, len(identifiers), len(concordances))
 
-    after_dicts, after_types = compute_fn(concordances, identifiers)
-    before_dicts, _ = compute_fn(concordances, identifiers, excluded_sources={source_name})
+    # The build skips concord pairs naming a CUI another pipeline owns (umls.read_cuis_owned_elsewhere); an
+    # intermediate directory from before the umls_mesh_ownership rule has no such file and skips nothing.
+    mesh_ownership = intermediate_root / "umls" / "mesh_ownership.tsv"
+    mesh_ownership = str(mesh_ownership) if mesh_ownership.exists() else None
+    after_dicts, after_types = compute_fn(concordances, identifiers, mesh_ownership=mesh_ownership)
+    before_dicts, _ = compute_fn(
+        concordances, identifiers, excluded_sources={source_name}, mesh_ownership=mesh_ownership
+    )
 
     diff = diff_cliques(before_dicts, after_dicts, source_curies, babel_pipeline=pipeline)
     return diff, after_types

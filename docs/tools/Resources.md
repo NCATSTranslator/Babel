@@ -254,7 +254,7 @@ it, and those two can describe different worlds.
   (`git worktree add ../babel-2026jul22 2026jul22`) whenever the declarations have moved since,
   which is exactly the case when comparing two sizing passes. A path holding no `*.snakefile` is a
   hard error rather than an empty result: silently reading nothing would make every rule inherit the
-  cluster default, so `generate_pubmed_concords` (`runtime="24h"`) would read as a 1000% overrun and
+  cluster default, so a rule with a 24h `runtime` would read as a 1000% overrun and
   every genuinely trimmable rule would vanish from the report.
 - **A `mem=lambda wildcards: ...` rule is summarised by its largest branch.** The report is per
   rule (see "One row per rule" above), and a rule whose request *varies* per wildcard has no single
@@ -277,13 +277,24 @@ it, and those two can describe different worlds.
    whole cluster's reservation upward, which is exactly the over-provisioning we lowered the default
    to escape. The known heavy rules and the current defaults are documented in
    [`slurm/README.md`](../../slurm/README.md).
+
+   That bias is for limits sized from a measurement. A rule sized from an *estimate* before its
+   first run is rounded **up** instead, because an estimate that runs out of memory leaves no
+   benchmark to size the retry from (see
+   [Turning an estimate into a rule's `mem=`](Memory.md#turning-an-estimate-into-a-rules-mem)).
+   Such a rule already has a `resources:` block, so the override list reports it as
+   `ran on default = no` and never asks you to revisit it. Find those rules by their marker
+   instead: `grep -rn "mem estimate" src/snakefiles/`. For each one the run benchmarked, replace
+   the estimate with a measured limit as above and delete the marker. A rule with no benchmark
+   (it failed, or didn't run) keeps its estimate until a run measures it.
 4. Work the **Runtime fit** section the same way: give every `at-risk` rule an explicit `runtime`
    (or raise the one it has), and trim the `over` rules that declare their own. Check each against a
    second run's benchmarks first — see the two traps above.
 5. Re-run the analyzer to confirm the override list is empty (modulo rules that already carry a
    block) and that every rule left `at-risk` on either axis is one you *decided* to leave. A
-   deliberate exception is fine — `generate_pubmed_concords` sits at 83% of its 24h limit because
-   that limit is known to work and the real fix is to make the rule cheaper — but it belongs in
+   deliberate exception is fine — `generate_pubmed_concords` sat at 83% of its 24h limit in
+   2026jul22 because that limit was known to work and the real fix was to make the rule cheaper —
+   but it belongs in
    [`slurm/README.md`](../../slurm/README.md) with the reasoning, or the next sizing pass will
    "fix" it by reserving wall time nobody needed.
 6. On later runs, re-check the *existing* override rules against the "req mem" vs "actual RSS"

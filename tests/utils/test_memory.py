@@ -1,21 +1,21 @@
 import pytest
 
-from src.memory import (
-    _bytes_to_gib,
+from src.utils.memory import (
     _parse_cgroup_memory_value,
     _parse_kv_kb_bytes,
     _parse_proc_cgroup,
+    bytes_to_gib,
     log_memory_snapshot,
     process_peak_rss_bytes,
 )
 
 
 @pytest.mark.unit
-def test_bytes_to_gib_formats_and_handles_none():
-    assert _bytes_to_gib(None) == "unknown"
-    assert _bytes_to_gib(0) == "0.0 GiB"
-    assert _bytes_to_gib(1024**3) == "1.0 GiB"
-    assert _bytes_to_gib(int(1.5 * 1024**3)) == "1.5 GiB"
+def testbytes_to_gib_formats_and_handles_none():
+    assert bytes_to_gib(None) == "unknown"
+    assert bytes_to_gib(0) == "0.0 GiB"
+    assert bytes_to_gib(1024**3) == "1.0 GiB"
+    assert bytes_to_gib(int(1.5 * 1024**3)) == "1.5 GiB"
 
 
 @pytest.mark.unit

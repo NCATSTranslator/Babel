@@ -3,10 +3,11 @@ from collections import Counter, defaultdict
 import src.datahandlers.mesh as mesh
 import src.datahandlers.ncbitaxon as ncbitaxon
 import src.datahandlers.umls as umls
-from src.babel_utils import glom, read_identifier_file, write_compendium
+from src.babel_utils import glom, read_identifier_file, unique_prefixes_from_config, write_compendium
 from src.categories import ORGANISM_TAXON
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import MESH, NCBITAXON, UMLS
+from src.model.intermediates import read_concord_pairs, read_concords
+from src.prefixes import MESH, NCBITAXON
 from src.util import get_logger
 
 logger = get_logger(__name__)
@@ -30,7 +31,14 @@ def write_mesh_ids(outfile):
     mesh.write_ids(meshmap, outfile, order=[ORGANISM_TAXON], extra_vocab={"SCR_Organism": ORGANISM_TAXON})
 
 
-def write_umls_ids(mrsty, outfile):
+def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
+    """Select the UMLS CUIs the taxon pipeline claims by semantic type.
+
+    ``mesh_ownership`` (the umls_mesh_ownership rule's output) makes a CUI follow its MeSH descriptor
+    (umls.apply_mesh_ownership): a CUI another pipeline owns is dropped here and a CUI this pipeline owns is added.
+    A plant or virus CUI whose descriptor is an anatomy A-tree or SCR_Chemical record leaves taxon this way
+    (https://github.com/NCATSTranslator/Babel/issues/1123).
+    """
     # UMLS categories that should be classified as taxa:
     # - A1.1.3: Eukaryote (https://uts.nlm.nih.gov/uts/umls/semantic-network/T204)
     # - A1.1.2: Bacterium (https://uts.nlm.nih.gov/uts/umls/semantic-network/T007)
@@ -70,7 +78,13 @@ def write_umls_ids(mrsty, outfile):
             "A1.1.3.1.1",
         ]
     }
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        mesh_ownership=mesh_ownership,
+        pipeline="taxon",
+    )
 
 
 # Name classes in NCBI Taxonomy's names.dmp that say a name is only part of a taxon, not the taxon itself:
@@ -111,21 +125,6 @@ TAXON_CONCORD_METADATA = {
         ],
     },
 }
-
-
-def read_concord(concord_file):
-    """Read a concord file as a list of (CURIE1, predicate, CURIE2) tuples, raising on any malformed line."""
-    rows = []
-    with open(concord_file) as inf:
-        for lineno, line in enumerate(inf, start=1):
-            row = tuple(line.rstrip("\n").split("\t"))
-            if len(row) != 3:
-                raise ValueError(
-                    f"{concord_file}:{lineno}: expected 3 tab-separated fields (CURIE1, predicate, CURIE2), "
-                    f"found {len(row)}: {line!r}"
-                )
-            rows.append(row)
-    return rows
 
 
 def ncbitaxon_link(row):
@@ -195,7 +194,7 @@ def resolve_obsolete_ncbitaxon_ids(concords, merged, deleted, record_names, taxo
 
     Rows with a deleted NCBITaxon ID are dropped (DROPPED_DELETED).
 
-    :param concords: A dict mapping each concord name to its rows, as returned by read_concord().
+    :param concords: A dict mapping each concord name to its (subject, predicate, object) rows.
     :param merged: A dict mapping merged NCBITaxon CURIEs to their replacements (read_obsolete_taxa()).
     :param deleted: A set of deleted NCBITaxon CURIEs (read_obsolete_taxa()).
     :param record_names: A dict mapping MeSH/UMLS CURIEs to casefolded names (read_record_names()). It must
@@ -350,7 +349,7 @@ def update_obsolete_ncbitaxon_ids(concords, taxdump, label_files, synonym_files)
         resolve_obsolete_ncbitaxon_ids()).
     """
     merged, deleted = ncbitaxon.read_obsolete_taxa(taxdump)
-    rows = {name: read_concord(infile) for name, (infile, _) in concords.items()}
+    rows = {name: list(read_concords(infile)) for name, (infile, _) in concords.items()}
 
     partners = partner_map(rows)
     obsolete_records = set()
@@ -453,26 +452,29 @@ def build_relationships(outfile, mesh_ids):
         # eutil.lookup(left)
 
 
-def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
+def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, mesh_ownership=None):
     """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
+    :identifiers: a list of files from which to read identifiers and optional categories
+    :mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another pipeline owns are
+        skipped (umls.read_cuis_owned_elsewhere). None skips nothing."""
+    owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "taxon")
     dicts = {}
     types = {}
-    uniques = [NCBITAXON, MESH, UMLS]
+    unique_prefixes = unique_prefixes_from_config("taxon_unique_prefixes")
     for ifile in identifiers:
         print("loading", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=uniques)
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append(set([x[0], x[2]]))
-        glom(dicts, pairs, unique_prefixes=uniques)
+        # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
+        glom(
+            dicts,
+            umls.skip_pairs_owned_elsewhere(read_concord_pairs(infile), owned_elsewhere),
+            unique_prefixes=unique_prefixes,
+        )
     gene_sets = set([frozenset(x) for x in dicts.values()])
     baretype = ORGANISM_TAXON.split(":")[-1]
     # We need to use extra_prefixes since UMLS is not listed as an identifier prefix at

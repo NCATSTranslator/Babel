@@ -10,7 +10,7 @@ from src.util import get_logger
 logger = get_logger(__name__)
 
 
-def _bytes_to_gib(num_bytes):
+def bytes_to_gib(num_bytes):
     """Format a byte count as a human-readable GiB string, or 'unknown' for None."""
     if num_bytes is None:
         return "unknown"
@@ -249,12 +249,12 @@ def log_memory_snapshot(db, context):
         "Memory snapshot (%s): process peak RSS=%s; cgroup current=%s; cgroup peak=%s; "
         "cgroup hard limit=%s; DuckDB tracked=%s; untracked (cgroup current - DuckDB tracked)=%s",
         context,
-        _bytes_to_gib(proc_peak),
-        _bytes_to_gib(cgroup_current),
-        _bytes_to_gib(cgroup_peak),
-        _bytes_to_gib(cgroup_limit),
-        _bytes_to_gib(duckdb_tracked),
-        _bytes_to_gib(untracked),
+        bytes_to_gib(proc_peak),
+        bytes_to_gib(cgroup_current),
+        bytes_to_gib(cgroup_peak),
+        bytes_to_gib(cgroup_limit),
+        bytes_to_gib(duckdb_tracked),
+        bytes_to_gib(untracked),
     )
 
     # A second line for the address-space limits that cause a `bad allocation` even with free RAM.
@@ -266,15 +266,15 @@ def log_memory_snapshot(db, context):
             "Address-space snapshot (%s): VmSize=%s; VmPeak=%s; mappings=%s/max_map_count=%s; "
             "RLIMIT_AS=%s; overcommit_memory=%s; Committed_AS=%s/CommitLimit=%s; MemAvailable=%s",
             context,
-            _bytes_to_gib(_read_proc_status_bytes("VmSize")),
-            _bytes_to_gib(_read_proc_status_bytes("VmPeak")),
+            bytes_to_gib(_read_proc_status_bytes("VmSize")),
+            bytes_to_gib(_read_proc_status_bytes("VmPeak")),
             mappings if mappings is not None else "unknown",
             max_map_count if max_map_count is not None else "unknown",
-            _bytes_to_gib(_rlimit_as_bytes()),
+            bytes_to_gib(_rlimit_as_bytes()),
             overcommit if overcommit is not None else "unknown",
-            _bytes_to_gib(_read_meminfo_bytes("Committed_AS")),
-            _bytes_to_gib(_read_meminfo_bytes("CommitLimit")),
-            _bytes_to_gib(_read_meminfo_bytes("MemAvailable")),
+            bytes_to_gib(_read_meminfo_bytes("Committed_AS")),
+            bytes_to_gib(_read_meminfo_bytes("CommitLimit")),
+            bytes_to_gib(_read_meminfo_bytes("MemAvailable")),
         )
     except Exception:
         pass

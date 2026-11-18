@@ -13,6 +13,7 @@ from src.createcompendia.taxon import (
     write_taxon_concords,
 )
 from src.datahandlers.ncbitaxon import read_obsolete_taxa, read_taxon_names
+from src.model.intermediates import MalformedConcordRowError
 from src.predicates import HAS_EXACT_SYNONYM
 from tests.conftest import assert_concordance_file_valid, read_tsv
 
@@ -374,8 +375,8 @@ def test_update_obsolete_ncbitaxon_ids_counts_already_linked_rows(tmp_path, taxd
 
 @pytest.mark.unit
 def test_update_obsolete_ncbitaxon_ids_rejects_malformed_rows(tmp_path, taxdump, name_files):
-    """A concord line without exactly three tab-separated fields should raise, naming the file and line."""
-    with pytest.raises(ValueError, match=r"NCBI_MESH\.raw:2: expected 3 tab-separated fields"):
+    """A malformed concord line should raise before anything is written, naming the file and line."""
+    with pytest.raises(MalformedConcordRowError, match=r"NCBI_MESH\.raw:2 is not a valid concord row"):
         update_concords(tmp_path, taxdump, name_files, NCBI_MESH="MESH:D003445\txref\tNCBITaxon:6657\n\n")
 
 
