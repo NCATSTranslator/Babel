@@ -427,6 +427,18 @@ def validate_xref_prefix_map(mapping, config_path):
     return dict(mapping)
 
 
+def get_extra_prefixes(config_key, biolink_class):
+    """Return the prefixes to ship for one Biolink class beyond those Biolink registers for it.
+
+    Reads `config.yaml: <config_key>` (e.g. `disease_extra_prefixes_by_biolink_class`), a mapping from
+    Biolink class to prefixes, for the `extra_prefixes` argument of `write_compendium()`. The mapping is
+    looked up per class rather than passed whole because `extra_prefixes` is a per-class allowlist and a
+    pipeline writes several classes: an exemption argued for one class must not be granted to the rest.
+    A class with no entry gets nothing.
+    """
+    return list(get_config()[config_key].get(biolink_class, []))
+
+
 _GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 

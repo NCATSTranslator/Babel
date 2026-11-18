@@ -38,7 +38,7 @@ from src.prefixes import (
     UMLS,
 )
 from src.ubergraph import build_sets
-from src.util import Text, get_config, get_logger, get_repo_root, validate_xref_prefix_map
+from src.util import Text, get_config, get_extra_prefixes, get_logger, get_repo_root, validate_xref_prefix_map
 
 logger = get_logger(__name__)
 
@@ -888,12 +888,8 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     # Prefixes Biolink does not register for a clique's class but that we ship anyway; without this
     # write_compendium() drops them silently, after they have already merged cliques in glom(). See
-    # config.yaml: disease_extra_prefixes_by_biolink_class for which, and why each one is there.
-    #
-    # extra_prefixes is a per-class allowlist and this loop writes several classes, so the list is
-    # looked up per class rather than passed whole: an exemption argued for one class must not be
-    # granted to the rest. A class with no entry gets nothing.
-    extra_prefixes_by_class = get_config()["disease_extra_prefixes_by_biolink_class"]
+    # config.yaml: disease_extra_prefixes_by_biolink_class for which, and why each one is there, and
+    # get_extra_prefixes() for why the lookup is per class.
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
         write_compendium(
@@ -902,7 +898,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
             f"{baretype}.txt",
             biotype,
             {},
-            extra_prefixes=extra_prefixes_by_class.get(biotype, []),
+            extra_prefixes=get_extra_prefixes("disease_extra_prefixes_by_biolink_class", biotype),
             icrdf_filename=icrdf_filename,
         )
 

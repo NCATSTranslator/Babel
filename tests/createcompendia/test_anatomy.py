@@ -8,11 +8,10 @@ from src.createcompendia.anatomy import (
     ANATOMY_OBO_SOURCES,
     UBERON_OBO_IGNORE_LIST,
     build_wikidata_cell_relationships,
-    get_anatomy_extra_prefixes,
     get_anatomy_xref_prefix_map,
 )
 from src.prefixes import CL, EMAPA, FMA, GO, SNOMEDCT, UBERON, UMLS, WIKIDATA
-from src.util import get_biolink_model_toolkit, get_config
+from src.util import get_biolink_model_toolkit, get_config, get_extra_prefixes
 
 # XREF PREFIX RENAMES AND IGNORE LISTS
 
@@ -46,6 +45,8 @@ def test_fma_xrefs_are_allowed_for_uberon_only():
 
 # EXTRA PREFIXES
 
+ANATOMY_EXTRA_PREFIXES = "anatomy_extra_prefixes_by_biolink_class"
+
 
 @pytest.mark.unit
 def test_fma_is_shipped_as_an_extra_prefix_for_gross_anatomical_structure_only():
@@ -54,10 +55,10 @@ def test_fma_is_shipped_as_an_extra_prefix_for_gross_anatomical_structure_only()
     Biolink registers FMA for AnatomicalEntity but not GrossAnatomicalStructure, so without the extra
     prefix an FMA CURIE in a clique that joins an UBERON gross anatomy term is dropped (#1134). The
     allowlist overrides Biolink, so pin it: update this test alongside the config, not instead of it."""
-    assert get_config()["anatomy_extra_prefixes_by_biolink_class"] == {GROSS_ANATOMICAL_STRUCTURE: [FMA]}
-    assert get_anatomy_extra_prefixes(GROSS_ANATOMICAL_STRUCTURE) == [FMA]
+    assert get_config()[ANATOMY_EXTRA_PREFIXES] == {GROSS_ANATOMICAL_STRUCTURE: [FMA]}
+    assert get_extra_prefixes(ANATOMY_EXTRA_PREFIXES, GROSS_ANATOMICAL_STRUCTURE) == [FMA]
     for biotype in (ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT):
-        assert get_anatomy_extra_prefixes(biotype) == []
+        assert get_extra_prefixes(ANATOMY_EXTRA_PREFIXES, biotype) == []
 
 
 @pytest.mark.network

@@ -11,7 +11,7 @@ from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
-from src.util import Text, get_config, get_logger, get_repo_root, validate_xref_prefix_map
+from src.util import Text, get_config, get_extra_prefixes, get_logger, get_repo_root, validate_xref_prefix_map
 
 logger = get_logger(__name__)
 
@@ -463,19 +463,11 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, b
             f"{baretype}.txt",
             biotype,
             {},
-            extra_prefixes=get_anatomy_extra_prefixes(biotype),
+            # FMA for GrossAnatomicalStructure, until Biolink registers it (#1134); see get_extra_prefixes().
+            extra_prefixes=get_extra_prefixes("anatomy_extra_prefixes_by_biolink_class", biotype),
             icrdf_filename=icrdf_filename,
         )
 
-
-def get_anatomy_extra_prefixes(biotype):
-    """Return the prefixes to ship for one Biolink class beyond those Biolink registers for it.
-
-    Read per class from `config.yaml: anatomy_extra_prefixes_by_biolink_class`: extra_prefixes is a
-    per-class allowlist, so an exemption argued for one class must not be granted to the others. A class
-    with no entry gets nothing.
-    """
-    return list(get_config()["anatomy_extra_prefixes_by_biolink_class"].get(biotype, []))
 
 
 def classify_anatomy_clique(equivalent_ids, types):
