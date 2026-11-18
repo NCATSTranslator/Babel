@@ -16,6 +16,8 @@ loads the nearest one automatically when you edit files there; **other agents sh
   `src/tools/source_impact_report/`) — the "thin CLI frontend" convention and per-tool notes.
 - `docs/sources/` — cross-cutting xref / source-data conventions.
 - `docs/sources/DRUGBANK/` — DrugBank ingest gotchas (CC-0 vocabulary only, the UNII typing bridge).
+- `input_data/manual_concords/` — how each manual concord file is read, and what a row really
+  merges.
 
 (Agents that merge nested `AGENTS.md` up the tree won't see these `CLAUDE.md` files — only this
 root file. If per-directory cross-agent context ever matters, pair each with an `AGENTS.md` holding

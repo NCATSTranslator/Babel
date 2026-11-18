@@ -13,6 +13,8 @@ Babel currently generates two conflations:
    [ChemicalEntity Biolink type](https://biolink.github.io/biolink-model/ChemicalEntity/#valid-id-prefixes),
    followed by (2) within each prefix group: lower information content first, larger cliques first,
    and finally from the numerically smallest suffix to the numerically largest suffix.
+   `input_data/manual_concords/drugchemical.tsv` adds pairs no source links; how to write a row is
+   in [`input_data/manual_concords/CLAUDE.md`](../input_data/manual_concords/CLAUDE.md).
 
 ## How are conflations generated in Babel and used in NodeNorm?
 
