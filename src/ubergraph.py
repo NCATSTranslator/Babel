@@ -434,7 +434,9 @@ class UberGraph:
         for why the get_subclasses_* family keeps this name rather than being renamed to
         get_descendants_*.
 
-        If descendent_prefix is given, only terms from that OBO ontology are returned. Filtering in the
+        If descendent_prefix is given, only terms from that OBO ontology are returned; it is matched
+        case-sensitively against the OBO PURL, so pass the ontology's own spelling ("NCBITaxon", not
+        "NCBITAXON"). Filtering in the
         query rather than afterwards matters: UberGraph infers every NCBITaxon class to be a subclass of
         UBERON:0000465 "material anatomical entity", so an unfiltered query from an UBERON root returns
         ~860k taxa with all their xrefs, times out server-side, and fails to parse."""
@@ -707,8 +709,12 @@ def build_sets(
     uber = UberGraph()
     if set_type == "xref":
         # Descendents from other ontologies are dropped below unless hop_ontologies, so filter them in the query.
+        # The filter matches the OBO PURL, which is case-sensitive (NCBITaxon_, FBbt_), so it takes the root's
+        # prefix as written rather than the upper-cased `prefix` the post-filter below compares with.
         uberres = uber.get_subclasses_and_xrefs(
-            iri, hierarchy_predicate=hierarchy_predicate, descendent_prefix=None if hop_ontologies else prefix
+            iri,
+            hierarchy_predicate=hierarchy_predicate,
+            descendent_prefix=None if hop_ontologies else Text.get_prefix(iri),
         )
     elif set_type == "exact":
         uberres = uber.get_subclasses_and_exacts(iri)

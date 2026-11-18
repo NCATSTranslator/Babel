@@ -121,6 +121,18 @@ def test_build_sets_asks_the_query_for_the_root_ontology_only(monkeypatch):
     assert stub.descendent_prefixes == ["UBERON"]
 
 
+def test_build_sets_filters_descendents_by_the_roots_prefix_as_written(monkeypatch):
+    """The descendent filter should keep the root prefix's case, because OBO PURLs are case-sensitive.
+
+    Text.get_prefix_or_none() upper-cases, which would ask for http://purl.obolibrary.org/obo/NCBITAXON_
+    and match nothing; the post-filter is unaffected because it upper-cases both sides.
+    """
+    stub = _StubUberGraph({})
+    monkeypatch.setattr("src.ubergraph.UberGraph", lambda: stub)
+    build_sets("NCBITaxon:1", {"NCBITAXON": io.StringIO()}, set_type="xref")
+    assert stub.descendent_prefixes == ["NCBITaxon"]
+
+
 def test_build_sets_does_not_filter_descendents_when_hopping_ontologies(monkeypatch):
     """With hop_ontologies=True, build_sets() should ask for descendents from every ontology."""
     stub = _StubUberGraph({})
