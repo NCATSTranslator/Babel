@@ -273,12 +273,15 @@ def chemicals_concords_dir(pipeline_output):
 
 @pytest.fixture(scope="session")
 def mesh_nt():
-    """Download babel_downloads/MESH/mesh.nt, or skip if unavailable."""
+    """Download babel_downloads/MESH/mesh.nt and its rdf_source.json, as rule get_mesh does, if either is missing;
+    fail if the download does. write_mesh_registry() needs rdf_source.json to check the XML is the same year."""
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
 
+    rdf_source = make_local_name("rdf_source.json", subpath="MESH")
+    _download_or_fail("MESH mesh.nt", lambda: pull_mesh(get_config()["mesh_year"], rdf_source), rdf_source)
     return _download_or_fail(
         "MESH mesh.nt",
-        lambda: pull_mesh(get_config()["mesh_year"], make_local_name("rdf_source.json", subpath="MESH")),
+        lambda: pull_mesh(get_config()["mesh_year"], rdf_source),
         make_local_name("mesh.nt", subpath="MESH"),
     )
 
@@ -293,9 +296,15 @@ def mesh_registry(mesh_nt, regenerate):
     xml_sources = make_local_name("xml_sources.json", subpath="MESH")
     _download_or_fail("MeSH XML", lambda: pull_mesh_xml(get_config()["mesh_year"], xml_sources), xml_sources)
     labels = _maybe_run(make_local_name("labels", subpath="MESH"), pull_mesh_labels, regenerate, inputs=[mesh_nt])
+    rdf_source = make_local_name("rdf_source.json", subpath="MESH")
     registry = make_local_name("registry.tsv", subpath="MESH")
     return _maybe_run(
-        registry, lambda: write_mesh_registry(desc, supp, labels, registry), regenerate, inputs=[desc, supp, labels]
+        registry,
+        lambda: write_mesh_registry(
+            desc, supp, labels, registry, rdf_source_file=rdf_source, xml_sources_file=xml_sources
+        ),
+        regenerate,
+        inputs=[desc, supp, labels, rdf_source, xml_sources],
     )
 
 

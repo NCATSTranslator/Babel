@@ -6,7 +6,7 @@ Tests cover:
   - Mesh.get_scr_terms_mapped_to_trees() (inline pyoxigraph store)
   - normalize_mesh_nt() on per-year MeSH RDF (fixture copied from mesh2026.nt)
   - read_mesh_xml_registry() and pull_mesh_registry() on MeSH XML (fixtures copied from desc2026.gz / supp2026.gz)
-  - write_mesh_registry() / read_mesh_registry() and mesh_registry_sources()
+  - write_mesh_registry() / read_mesh_registry() and mesh_registry_sources(), and their same-year check
   - fetch_mesh_nt()'s checksum handling and atomic writes, and fetch_mesh_xml_dir()'s choice (mocked FTP)
   - that the configured mesh_year is published on the NLM FTP site (network)
 """
@@ -412,7 +412,8 @@ def test_mesh_registry_round_trips_through_tsv(tmp_path):
     desc = _gzip_fixture(MESH_TEST_DATA / "desc2026_sample.xml", tmp_path)
     supp = _gzip_fixture(MESH_TEST_DATA / "supp2026_sample.xml", tmp_path)
     registry = tmp_path / "registry.tsv"
-    write_mesh_registry(desc, supp, labels_file, registry)
+    rdf_source, xml_sources = _source_files(tmp_path)
+    write_mesh_registry(desc, supp, labels_file, registry, rdf_source_file=rdf_source, xml_sources_file=xml_sources)
     assert read_mesh_registry(registry) == pull_mesh_registry(desc, supp, labels_file)
 
 
@@ -454,6 +455,21 @@ def _source_files(tmp_path, rdf_year="2026", xml_year="2026"):
         )
     )
     return rdf, xml
+
+
+@pytest.mark.unit
+def test_write_mesh_registry_rejects_mismatched_years(tmp_path):
+    """XML from one MeSH year filtered against another year's RDF labels should raise before registry.tsv is
+    written, since the taxon and chemical ids/MESH are built from it."""
+    labels_file = tmp_path / "labels"
+    labels_file.write_text(IMATINIB_MESYLATE_LABEL + UR2_SARCOMA_VIRUS_LABEL)
+    desc = _gzip_fixture(MESH_TEST_DATA / "desc2026_sample.xml", tmp_path)
+    supp = _gzip_fixture(MESH_TEST_DATA / "supp2026_sample.xml", tmp_path)
+    registry = tmp_path / "registry.tsv"
+    rdf_source, xml_sources = _source_files(tmp_path, rdf_year="2025", xml_year="2026")
+    with pytest.raises(ValueError, match="same mesh_year"):
+        write_mesh_registry(desc, supp, labels_file, registry, rdf_source_file=rdf_source, xml_sources_file=xml_sources)
+    assert not registry.exists()
 
 
 @pytest.mark.unit

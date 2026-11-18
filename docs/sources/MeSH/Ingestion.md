@@ -101,7 +101,12 @@ already in the dump can still change from one day's XML to the next, so two down
 SHA-1s in each build's `xml_sources.json` (also in the concords' `metadata-*.yaml`) to tell.
 
 Rule `get_mesh_registry` parses the XML once and writes `babel_downloads/MESH/registry.tsv`
-(`MESH:ID<tab>registry number`), which the chemical and taxon `ids/MESH` and concord rules read.
+(`MESH:ID<tab>registry number`), which every MeSH-owning pipeline's `ids/MESH` rule, rule
+`umls_mesh_ownership` and the chemical and taxon concord rules read. It first checks that
+`rdf_source.json` and `xml_sources.json` are for the same MeSH year and fails if they are not
+(`read_mesh_downloads()`), since the XML is filtered against the dump's labels; a `mesh.nt` kept
+from another year, or `--rerun-triggers mtime`, would otherwise give `ids/MESH` files built from a
+mixed-year registry that Snakemake then takes for up to date.
 
 ### A record with an NCBI Taxon registry number is taxon's
 

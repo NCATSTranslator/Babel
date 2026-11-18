@@ -509,12 +509,18 @@ def pull_mesh_registry(desc_xml, supp_xml, mesh_labels):
     return sorted(registry)
 
 
-def write_mesh_registry(desc_xml, supp_xml, mesh_labels, outfile):
+def write_mesh_registry(desc_xml, supp_xml, mesh_labels, outfile, *, rdf_source_file, xml_sources_file):
     """Write pull_mesh_registry()'s pairs to outfile as "MESH:ID<tab>registry number" lines.
 
     The MeSH XML is parsed once here (rule get_mesh_registry) rather than in each rule that needs registry
     numbers, and the TSV lets anyone check which registry numbers a build used.
+
+    rdf_source_file and xml_sources_file are the download records; this raises ValueError if they are for
+    different MeSH years (read_mesh_downloads()), before anything is written. The check belongs here, where the
+    XML is filtered against the dump's labels, because the taxon and chemical ids/MESH are written from this
+    file: a mixed-year registry.tsv would make them wrong while Snakemake took them for up to date.
     """
+    read_mesh_downloads(rdf_source_file, xml_sources_file)
     registry = pull_mesh_registry(desc_xml, supp_xml, mesh_labels)
     with open(outfile, "w", encoding="utf-8") as outf:
         outf.writelines(f"{meshid}\t{regnum}\n" for meshid, regnum in registry)
@@ -550,15 +556,16 @@ def read_mesh_ids_with_ncbitaxon(registry_file) -> set[str]:
     return {meshid for meshid, regnum in read_mesh_registry(registry_file) if regnum.startswith("txid")}
 
 
-def mesh_registry_sources(rdf_source_file, xml_sources_file) -> list[dict]:
-    """Return write_concord_metadata() sources for a concord built from the MeSH registry.
+def read_mesh_downloads(rdf_source_file, xml_sources_file) -> tuple[dict, list[dict]]:
+    """Return the download records pull_mesh() and pull_mesh_xml() wrote, checking that they are for one MeSH year.
 
-    Both files are written at download time: rdf_source_file by pull_mesh() and xml_sources_file by
-    pull_mesh_xml(). Reading them here, rather than config.yaml's mesh_year, means the sources name what was
-    actually downloaded even if mesh_year has changed since.
+    rdf_source_file and xml_sources_file are written at download time, so they name what was actually downloaded,
+    whatever config.yaml's mesh_year says now. Anything that reads the RDF dump and the XML together must call
+    this first: write_mesh_registry() filters the XML's registry numbers against the dump's records, and
+    mesh_registry_sources() describes both.
 
-    Raises ValueError if the two downloads are for different MeSH years, which would mean the registry numbers
-    were filtered against another year's records.
+    Raises ValueError if the two downloads are for different MeSH years, e.g. because one rule was rerun after
+    mesh_year changed and the other was not (--rerun-triggers mtime, or a mesh.nt kept from an earlier run).
     """
     with open(rdf_source_file, encoding="utf-8") as inf:
         rdf = json.load(inf)
@@ -570,6 +577,21 @@ def mesh_registry_sources(rdf_source_file, xml_sources_file) -> list[dict]:
             f"{xml_sources_file} is for MeSH {sorted(xml_years)} but {rdf_source_file} is for MeSH "
             f"{rdf['mesh_year']}; rerun rules get_mesh and get_mesh_xml with the same mesh_year."
         )
+    return rdf, xml
+
+
+def read_mesh_rdf_year(rdf_source_file) -> str:
+    """Return the MeSH year of the RDF dump pull_mesh() downloaded, from its record rather than config.yaml."""
+    with open(rdf_source_file, encoding="utf-8") as inf:
+        return json.load(inf)["mesh_year"]
+
+
+def mesh_registry_sources(rdf_source_file, xml_sources_file) -> list[dict]:
+    """Return write_concord_metadata() sources for a concord built from the MeSH registry.
+
+    Raises ValueError if the downloads are for different MeSH years (read_mesh_downloads()).
+    """
+    rdf, xml = read_mesh_downloads(rdf_source_file, xml_sources_file)
     return [
         {
             "type": "MeSH",
