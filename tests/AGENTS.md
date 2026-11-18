@@ -18,6 +18,13 @@ see [`README.md`](README.md) — this file only covers how to write one once you
   in tests: E741 (no single-letter ambiguous names like `l`/`O`/`I`) and F841 (no unread
   assignments).
 
+- **A `unit` test under `tests/pipeline/` never runs in CI** — `pytest_collection_modifyitems` in
+  `tests/conftest.py` skips any item with `"pipeline"` in its keywords, and pytest puts the package
+  name there, so everything in that directory needs `--pipeline` whatever its mark. A unit test
+  *about* the pipeline-test machinery belongs beside the code it guards instead: the checks that
+  `ec_pipeline_outputs` and `rhea_pipeline_outputs` still call the handlers' entry points correctly
+  are in `tests/datahandlers/test_ec.py` and `test_rhea.py`.
+
 - **Fixtures for a real-data bug must be copied verbatim** — when a test stands in for a specific
   record from a source file, paste that record's row exactly as it appears in the downloaded file
   and name the record's ID in a comment, so the next person can re-derive it. Never hand-compose a
