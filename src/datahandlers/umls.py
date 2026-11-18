@@ -592,6 +592,23 @@ def read_umls_priority():
     return prid
 
 
+def save_streamed_download(response, out_path):
+    """Write a streamed ``requests`` response to out_path in 1 MiB chunks, through out_path.part.
+
+    The .part file is renamed to out_path only once the transfer completes, and removed if it fails, so an
+    interrupted download (the UMLS full subset is ~5.5 GB) is never mistaken for a complete zip by a later run.
+    """
+    part_path = f"{out_path}.part"
+    try:
+        with open(part_path, "wb") as fd:
+            for chunk in response.iter_content(chunk_size=1 << 20):
+                fd.write(chunk)
+        os.replace(part_path, out_path)
+    finally:
+        if os.path.exists(part_path):
+            os.remove(part_path)
+
+
 def download_umls(umls_version, umls_subset, download_dir):
     """
     Download the latest UMLS into the specified download directory. In addition to downloading
@@ -624,21 +641,11 @@ def download_umls(umls_version, umls_subset, download_dir):
     if not req.ok:
         raise RuntimeError(f"Unable to download UMLS from {umls_full_url}: {req}")
 
-    # Write file to {download_dir}/umls-{umls_version}-metathesaurus-full.zip, through a .part file renamed only
-    # once the transfer completes: the full subset is ~5.5 GB, and an interrupted download must never be mistaken
-    # for a complete zip by a later run.
+    # Write file to {download_dir}/umls-{umls_version}-metathesaurus-full.zip
     logging.info(f"Downloading {filename} to {download_dir}")
     os.makedirs(download_dir, exist_ok=True)
     umls_download_zip = os.path.join(download_dir, filename)
-    part_path = f"{umls_download_zip}.part"
-    try:
-        with open(part_path, "wb") as fd:
-            for chunk in req.iter_content(chunk_size=1 << 20):
-                fd.write(chunk)
-        os.replace(part_path, umls_download_zip)
-    finally:
-        if os.path.exists(part_path):
-            os.remove(part_path)
+    save_streamed_download(req, umls_download_zip)
 
     # Unzip file.
     logging.info(f"Uncompressing {umls_download_zip}")
@@ -704,9 +711,7 @@ def download_rxnorm(rxnorm_version, download_dir):
     logging.info(f"Downloading RxNorm_full_{rxnorm_version}.zip to {download_dir}")
     os.makedirs(download_dir, exist_ok=True)
     rxnorm_download_zip = os.path.join(download_dir, f"RxNorm_full_{rxnorm_version}.zip")
-    with open(rxnorm_download_zip, "wb") as fd:
-        for chunk in req.iter_content(chunk_size=128):
-            fd.write(chunk)
+    save_streamed_download(req, rxnorm_download_zip)
 
     # Unzip file.
     logging.info(f"Uncompressing {rxnorm_download_zip}")

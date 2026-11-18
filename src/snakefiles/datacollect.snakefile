@@ -1109,8 +1109,11 @@ rule download_rxnorm:
     resources:
         mem="8G",
         cpus_per_task=1,
+    params:
+        # A param, so that changing rxnorm_version reruns the download rather than reusing the old release.
+        rxnorm_version=config["rxnorm_version"],
     run:
-        umls.download_rxnorm(config["rxnorm_version"], config["download_directory"] + "/RxNorm")
+        umls.download_rxnorm(params.rxnorm_version, config["download_directory"] + "/RxNorm")
 
 
 rule pubchem_rxnorm_annotations:

@@ -1,6 +1,6 @@
 """Unit tests for src/datahandlers/umls.py: the "a CUI follows its MeSH descriptor" rule that keeps a UMLS CUI,
 its MeSH descriptor and its DrugBank partners in one pipeline's ids (issues #276, #308, #1123), and
-download_umls() against a mocked UTS download API.
+download_umls() and download_rxnorm() against a mocked UTS download API.
 
 The MRSTY and MRCONSO rows are copied verbatim from UMLS 2026AA; each block names its CUI.
 """
@@ -529,5 +529,36 @@ def test_download_umls_interrupted_leaves_no_zip(tmp_path, monkeypatch):
 
     with pytest.raises(ConnectionError):
         umls.download_umls("2026AB", "full", str(tmp_path))
+
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.unit
+def test_download_rxnorm_copies_the_rrf_files(tmp_path, monkeypatch):
+    """download_rxnorm() should unzip the release and copy RXNCONSO and RXNREL beside it, leaving no .part file."""
+    monkeypatch.setenv("UMLS_API_KEY", "test-key")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for name in ("RXNCONSO.RRF", "RXNREL.RRF"):
+            zf.writestr(f"rrf/{name}", f"{name} of 07062026\n")
+    response = _FakeUTSResponse(buf.getvalue())
+    monkeypatch.setattr(umls.requests, "get", lambda *args, **kwargs: response)
+
+    umls.download_rxnorm("07062026", str(tmp_path))
+
+    assert (tmp_path / "RXNCONSO.RRF").read_text() == "RXNCONSO.RRF of 07062026\n"
+    assert (tmp_path / "RXNREL.RRF").exists()
+    assert not list(tmp_path.glob("*.part"))
+
+
+@pytest.mark.unit
+def test_download_rxnorm_interrupted_leaves_no_zip(tmp_path, monkeypatch):
+    """A transfer that fails part-way should leave neither the RxNorm zip nor its .part file."""
+    monkeypatch.setenv("UMLS_API_KEY", "test-key")
+    response = _FakeUTSResponse(b"x" * (3 << 20), fail_midway=True)
+    monkeypatch.setattr(umls.requests, "get", lambda *args, **kwargs: response)
+
+    with pytest.raises(ConnectionError):
+        umls.download_rxnorm("07062026", str(tmp_path))
 
     assert list(tmp_path.iterdir()) == []
