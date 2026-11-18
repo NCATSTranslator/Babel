@@ -38,7 +38,10 @@ configured year. To see whether NLM has published a newer year, open
 `ftp://ftp.nlm.nih.gov/online/mesh/` until 2026; it serves the same files under the same paths (the
 SHA-1s match), but HTTPS is the route NLM documents and has been the more reliable of the two. NLM
 answers a missing file with a redirect to an HTML error page that returns 200, not a 404, so
-`_mesh_url_exists()` counts a file as present only if it is served from its own URL.
+`_open_mesh_url()` raises `MeshFileMissing` for any response not served from the URL asked for.
+It checks the request that downloads the file, so an error page is never saved in its place, and
+every request times out after `MESH_HTTP_TIMEOUT` seconds so a stalled one fails and Snakemake
+retries it.
 
 - **RDF**: `rdf/{mesh_year}/mesh{mesh_year}.nt.gz`, checked against NLM's `.sha1` and
   decompressed to `babel_downloads/MESH/mesh.nt` (a few GB) by `fetch_mesh_nt()`, which hashes the

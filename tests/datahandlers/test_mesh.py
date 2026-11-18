@@ -7,7 +7,8 @@ Tests cover:
   - normalize_mesh_nt() on per-year MeSH RDF (fixture copied from mesh2026.nt)
   - read_mesh_xml_registry() and pull_mesh_registry() on MeSH XML (fixtures copied from desc2026.gz / supp2026.gz)
   - write_mesh_registry() / read_mesh_registry() and mesh_registry_sources(), and their same-year check
-  - fetch_mesh_nt()'s checksum handling and atomic writes, and fetch_mesh_xml_dir()'s choice (mocked HTTPS)
+  - fetch_mesh_nt()'s checksum handling and atomic writes, fetch_mesh_xml_dir()'s choice, and how a download
+    treats NLM's redirect for a missing file (mocked HTTPS)
   - that the configured mesh_year is published on NLM's download site (network)
 """
 
@@ -24,7 +25,9 @@ from src.categories import CHEMICAL_ENTITY, ORGANISM_TAXON, PROTEIN
 from src.datahandlers.mesh import (
     MESH_XML_FILES,
     Mesh,
-    _mesh_url_exists,
+    MeshFileMissing,
+    _open_mesh_url,
+    _retrieve_mesh_url,
     fetch_mesh_nt,
     fetch_mesh_xml_dir,
     mesh_rdf_location,
@@ -556,18 +559,21 @@ LAST_MODIFIED = "Wed, 12 Aug 2026 18:33:47 GMT"  # as NLM sends it for MESH_FILE
 class _FakeMeshResponse:
     """A urllib response for _FakeMeshSite: a context manager with read(), geturl() and headers."""
 
-    def __init__(self, url, data, content_length=None):
+    def __init__(self, url, data, content_length=None, last_modified=LAST_MODIFIED):
         self.url = url
         self.data = data
         self.pos = 0
         self.headers = {"Content-Length": str(len(data) if content_length is None else content_length)}
-        self.headers["Last-Modified"] = LAST_MODIFIED
+        self.headers["Last-Modified"] = last_modified
 
     def __enter__(self):
         return self
 
     def __exit__(self, *exc):
         return False
+
+    def close(self):
+        pass
 
     def geturl(self):
         return self.url
@@ -581,23 +587,25 @@ class _FakeMeshResponse:
 
 
 class _FakeMeshSite:
-    """Stands in for _open_mesh_url(), serving ``files`` (URL -> bytes). Like NLM, it answers any other URL by
-    redirecting to an HTML error page that returns 200, so the response's URL is not the one requested.
-    ``truncated`` names URLs whose body stops short of the Content-Length sent with it."""
+    """Stands in for urllib.request.urlopen(), serving ``files`` (URL -> bytes). Like NLM, it answers any other URL
+    by redirecting to an HTML error page that returns 200, so the response's URL is not the one requested.
+    ``truncated`` names URLs whose body stops short of the Content-Length sent with it. Every request must carry
+    a timeout, so a stalled connection fails for Snakemake to retry rather than hanging the job."""
 
-    def __init__(self, files, truncated=()):
+    def __init__(self, files, truncated=(), last_modified=LAST_MODIFIED):
         self.files = files
         self.truncated = set(truncated)
+        self.last_modified = last_modified
 
-    def __call__(self, url, method="GET"):
+    def __call__(self, request, timeout=None):
+        assert request.get_method() == "GET"
+        assert timeout is not None, "every MeSH request needs a timeout"
+        url = request.full_url
         if url not in self.files:
             return _FakeMeshResponse("https://www.nlm.nih.gov/cgi/archive/error.cgi", b"<html>Not found</html>")
         data = self.files[url]
-        if method == "HEAD":
-            return _FakeMeshResponse(url, b"", content_length=len(data))
-        if url in self.truncated:
-            return _FakeMeshResponse(url, data[: len(data) // 2], content_length=len(data))
-        return _FakeMeshResponse(url, data)
+        body = data[: len(data) // 2] if url in self.truncated else data
+        return _FakeMeshResponse(url, body, content_length=len(data), last_modified=self.last_modified)
 
 
 def _fake_mesh_site(sha1=None, with_sha1_file=True, truncated=()):
@@ -616,7 +624,7 @@ def _fake_mesh_site(sha1=None, with_sha1_file=True, truncated=()):
 def test_fetch_mesh_nt_verifies_and_normalizes(tmp_path):
     """A dump matching its .sha1 should be normalized into out_path, and the compressed download removed."""
     out = tmp_path / "mesh.nt"
-    with patch("src.datahandlers.mesh._open_mesh_url", _fake_mesh_site()):
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", _fake_mesh_site()):
         source = fetch_mesh_nt("2026", out)
     assert "<http://id.nlm.nih.gov/mesh/D002839>" in out.read_text()
     assert list(tmp_path.iterdir()) == [out]
@@ -628,7 +636,9 @@ def test_fetch_mesh_nt_verifies_and_normalizes(tmp_path):
 def test_fetch_mesh_nt_accepts_uppercase_checksum(tmp_path):
     """NLM's .sha1 digest should be compared case-insensitively."""
     gz = gzip.compress((MESH_TEST_DATA / "mesh2026_sample.nt").read_bytes())
-    with patch("src.datahandlers.mesh._open_mesh_url", _fake_mesh_site(sha1=hashlib.sha1(gz).hexdigest().upper())):
+    with patch(
+        "src.datahandlers.mesh.urllib.request.urlopen", _fake_mesh_site(sha1=hashlib.sha1(gz).hexdigest().upper())
+    ):
         fetch_mesh_nt("2026", tmp_path / "mesh.nt")
     assert (tmp_path / "mesh.nt").exists()
 
@@ -637,7 +647,7 @@ def test_fetch_mesh_nt_accepts_uppercase_checksum(tmp_path):
 def test_fetch_mesh_nt_rejects_truncated_download(tmp_path):
     """A body shorter than its Content-Length should raise and leave nothing behind, rather than be hashed,
     reported as a checksum mismatch, or reused."""
-    with patch("src.datahandlers.mesh._open_mesh_url", _fake_mesh_site(truncated=["mesh2026.nt.gz"])):
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", _fake_mesh_site(truncated=["mesh2026.nt.gz"])):
         with pytest.raises(RuntimeError, match="Content-Length"):
             fetch_mesh_nt("2026", tmp_path / "mesh.nt")
     assert list(tmp_path.iterdir()) == []
@@ -671,14 +681,14 @@ def _xml_files(directory, year):
 def test_fetch_mesh_xml_dir_prefers_the_archive():
     """A year whose archive exists should come from the archive, even if the current directory still has it."""
     site = _FakeMeshSite(_xml_files(f"{MESH_SITE}2025/xmlmesh/", "2025") | _xml_files(XML_CURRENT_DIR, "2025"))
-    with patch("src.datahandlers.mesh._open_mesh_url", site):
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", site):
         assert fetch_mesh_xml_dir("2025") == f"{MESH_SITE}2025/xmlmesh/"
 
 
 @pytest.mark.unit
 def test_fetch_mesh_xml_dir_falls_back_to_current():
     """The current year, which has no archive yet, should come from the current directory."""
-    with patch("src.datahandlers.mesh._open_mesh_url", _FakeMeshSite(_xml_files(XML_CURRENT_DIR, "2026"))):
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", _FakeMeshSite(_xml_files(XML_CURRENT_DIR, "2026"))):
         assert fetch_mesh_xml_dir("2026") == XML_CURRENT_DIR
 
 
@@ -686,7 +696,7 @@ def test_fetch_mesh_xml_dir_falls_back_to_current():
 def test_fetch_mesh_xml_dir_raises_mid_rollover():
     """A year in neither place (the current directory has moved on, the archive is not up yet) should raise
     an error that mentions the rollover as well as mesh_year."""
-    with patch("src.datahandlers.mesh._open_mesh_url", _FakeMeshSite(_xml_files(XML_CURRENT_DIR, "2027"))):
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", _FakeMeshSite(_xml_files(XML_CURRENT_DIR, "2027"))):
         with pytest.raises(RuntimeError, match="rollover"):
             fetch_mesh_xml_dir("2026")
 
@@ -694,7 +704,7 @@ def test_fetch_mesh_xml_dir_raises_mid_rollover():
 @pytest.mark.unit
 def test_fetch_mesh_nt_rejects_checksum_mismatch(tmp_path):
     """A dump whose SHA-1 differs from NLM's should raise, leaving neither the download nor a mesh.nt behind."""
-    with patch("src.datahandlers.mesh._open_mesh_url", _fake_mesh_site(sha1="0" * 40)):
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", _fake_mesh_site(sha1="0" * 40)):
         with pytest.raises(RuntimeError, match="but NLM publishes 0000"):
             fetch_mesh_nt("2026", tmp_path / "mesh.nt")
     assert list(tmp_path.iterdir()) == []
@@ -703,7 +713,7 @@ def test_fetch_mesh_nt_rejects_checksum_mismatch(tmp_path):
 @pytest.mark.unit
 def test_fetch_mesh_nt_unpublished_year_names_mesh_year(tmp_path):
     """A year NLM has not published should raise pointing at mesh_year in config.yaml."""
-    with patch("src.datahandlers.mesh._open_mesh_url", _fake_mesh_site()):
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", _fake_mesh_site()):
         with pytest.raises(RuntimeError, match="mesh_year in config.yaml"):
             fetch_mesh_nt("2027", tmp_path / "mesh.nt")
 
@@ -711,7 +721,7 @@ def test_fetch_mesh_nt_unpublished_year_names_mesh_year(tmp_path):
 @pytest.mark.unit
 def test_fetch_mesh_nt_missing_checksum_is_not_blamed_on_mesh_year(tmp_path):
     """A published dump without its .sha1 should raise about the checksum file, not about mesh_year."""
-    with patch("src.datahandlers.mesh._open_mesh_url", _fake_mesh_site(with_sha1_file=False)):
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", _fake_mesh_site(with_sha1_file=False)):
         with pytest.raises(RuntimeError, match="checksum file") as excinfo:
             fetch_mesh_nt("2026", tmp_path / "mesh.nt")
     assert "mesh_year" not in str(excinfo.value)
@@ -722,7 +732,7 @@ def test_pull_mesh_xml_records_what_it_downloaded(tmp_path):
     """pull_mesh_xml() should save both files and record each one's URL, SHA-1, size and NLM timestamp."""
     xml_sources = tmp_path / "xml_sources.json"
     with (
-        patch("src.datahandlers.mesh._open_mesh_url", _FakeMeshSite(_xml_files(XML_CURRENT_DIR, "2026"))),
+        patch("src.datahandlers.mesh.urllib.request.urlopen", _FakeMeshSite(_xml_files(XML_CURRENT_DIR, "2026"))),
         patch("src.datahandlers.mesh.make_local_name", lambda name, subpath: str(tmp_path / name)),
     ):
         pull_mesh_xml("2026", xml_sources)
@@ -737,6 +747,27 @@ def test_pull_mesh_xml_records_what_it_downloaded(tmp_path):
     assert not list(tmp_path.glob("*.part"))
 
 
+@pytest.mark.unit
+def test_retrieve_mesh_url_does_not_save_nlms_error_page(tmp_path):
+    """A file that has gone (NLM redirects it to a 200 HTML error page) should raise MeshFileMissing naming the
+    redirect, and leave nothing behind, however recently fetch_mesh_xml_dir() saw it."""
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", _FakeMeshSite({})):
+        with pytest.raises(MeshFileMissing, match="redirects to https://www.nlm.nih.gov/cgi/archive/error.cgi"):
+            _retrieve_mesh_url(f"{XML_CURRENT_DIR}desc2026.gz", tmp_path / "desc.xml.gz")
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("last_modified", [None, "", "yesterday"])
+def test_retrieve_mesh_url_records_no_time_for_a_bad_last_modified(tmp_path, last_modified):
+    """A missing or malformed Last-Modified header should be recorded as None, not fail a download that is fine."""
+    site = _FakeMeshSite(_xml_files(XML_CURRENT_DIR, "2026"), last_modified=last_modified)
+    with patch("src.datahandlers.mesh.urllib.request.urlopen", site):
+        _, modified = _retrieve_mesh_url(f"{XML_CURRENT_DIR}desc2026.gz", tmp_path / "desc.xml.gz")
+    assert modified is None
+    assert (tmp_path / "desc.xml.gz").read_bytes() == b"desc bytes"
+
+
 # ---------------------------------------------------------------------------
 # Group 7: the configured mesh_year is published
 # ---------------------------------------------------------------------------
@@ -748,19 +779,20 @@ def test_configured_mesh_year_is_published():
     so get_mesh and get_mesh_xml will not fail partway through a build."""
     mesh_year = get_config()["mesh_year"]
     rdf_dir, rdf_file = mesh_rdf_location(mesh_year)
-    assert _mesh_url_exists(f"{rdf_dir}{rdf_file}")
-    assert _mesh_url_exists(f"{rdf_dir}{rdf_file}.sha1")
+    _open_mesh_url(f"{rdf_dir}{rdf_file}").close()
+    _open_mesh_url(f"{rdf_dir}{rdf_file}.sha1").close()
     xml_dir = fetch_mesh_xml_dir(mesh_year)
     for prefix, _, _ in MESH_XML_FILES:
-        assert _mesh_url_exists(f"{xml_dir}{prefix}{mesh_year}.gz")
+        _open_mesh_url(f"{xml_dir}{prefix}{mesh_year}.gz").close()
 
 
 @pytest.mark.network
 def test_unpublished_mesh_year_is_reported_missing():
     """NLM redirects a missing file to an HTML error page that returns 200, so a check on the status code alone
-    would call any year published. _mesh_url_exists() must still say no, and fetch_mesh_xml_dir() must raise
-    for a year in neither XML directory."""
+    would call any year published. _open_mesh_url() must still raise MeshFileMissing, and fetch_mesh_xml_dir()
+    must raise for a year in neither XML directory."""
     rdf_dir, rdf_file = mesh_rdf_location("2099")
-    assert not _mesh_url_exists(f"{rdf_dir}{rdf_file}.sha1")
+    with pytest.raises(MeshFileMissing):
+        _open_mesh_url(f"{rdf_dir}{rdf_file}.sha1")
     with pytest.raises(RuntimeError, match="rollover"):
         fetch_mesh_xml_dir("2099")
