@@ -693,9 +693,10 @@ these in the `dropped` column is expected; a large number suggests an extraction
 
 ## Known limitations
 
-- **Only anatomy has a synthetic-mode hook.** Other pipelines produce empty section 4 unless
-  you first extract a `compute_cliques_for_impact_report` helper from that pipeline's
-  `build_compendia` and register it in `PIPELINE_CONFIG` (see `anatomy.py` for the template).
+- **Only anatomy, disease and process have a synthetic-mode hook.** Other pipelines produce empty
+  section 4 unless you first extract a `compute_cliques_for_impact_report` helper from that
+  pipeline's `build_compendia` and register it in `PIPELINE_CONFIG` (see `anatomy.py` for the
+  template).
 - **Synthetic mode needs the full intermediate set.** If only your new source's files are on
   disk, every after-clique is classified as pure-new. Build or download the full pipeline's
   intermediates first.
