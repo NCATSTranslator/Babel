@@ -12,7 +12,7 @@ pipeline. Each tool lives in `src/tools/<tool>/` and is installed as a console s
 | [Clique diff](CliqueDiff.md) | `uv run babel-clique-diff --before <dir> --after <dir> …` | "How did the cliques change between *build A* and *build B*?" |
 | [Overused xrefs](OverusedXrefs.md) | `uv run babel-overused-xrefs --concord <file> --out <csv>` | "Which xref targets in this concord will fuse unrelated cliques?" |
 | [InChIKey audit](InchikeyAudit.md) | `uv run babel-inchikey-audit --build <dir> --out <dir>` | "Which records were attached to a chemical structure they are not, and by which xref?" |
-| [Check concords](CheckConcords.md) | `uv run babel-check-concords <dir, file or URL> …` | "Would any row of these concords fail the build's concord parser?" |
+| [Check concords](CheckConcords.md) | `uv run babel-check-concords [--prefixes] <dir, file or URL> …` | "Would any row of these concords fail the build's concord parser?" With `--prefixes`: "Which concord prefixes does Babel not know?" |
 | [SLURM errors](Errors.md) | `uv run babel-slurm-errors <version>` | "Which rules failed in this cluster run, and why?" |
 | [SLURM resources](Resources.md) | `uv run babel-slurm-resources <run-dir>` | "How much `mem`/`cpus` should each rule actually request?" |
 | [RDF load memory](Memory.md) | `uv run python src/tools/memory/estimate_rdf_load_memory.py FILE` | "How much RAM will bulk-loading this RDF dump need?" |
