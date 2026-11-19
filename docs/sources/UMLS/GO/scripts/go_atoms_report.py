@@ -228,6 +228,8 @@ def main():
         return {s for _, _, s in go_atoms[cui]} - kept_by_shipped_rule(cui)
 
     cui_go = joined["preferred"]
+    # Strings the shipped rule drops although they name the CUI's clique's own GO term (see off_preferred below).
+    shipped_dropped_clique_names = []
     for rule_name, rule in (("drop every GO atom", drop_all), ("drop GO atoms of other GO terms", drop_other_go_terms)):
         counts = defaultdict(int)
         for cui in go_atoms:
@@ -237,11 +239,31 @@ def main():
                     counts["dropped from CUIs not in a GO clique (names lost)"] += 1
                 elif any(s.lower() in go_names[go] for go in cui_go[cui]):
                     counts["dropped from CUIs in a GO clique, already a name of that GO term"] += 1
+                    if rule is drop_other_go_terms:
+                        shipped_dropped_clique_names.append(
+                            f"UMLS:{cui} (in a clique with {', '.join(sorted(cui_go[cui]))}): {s!r}"
+                        )
                 elif is_go_name[s.lower()]:
                     counts["dropped from CUIs in a GO clique, a name of a different GO term"] += 1
                 else:
                     counts["dropped from CUIs in a GO clique, not a current GO name"] += 1
         report[f"synonyms, {rule_name}"] = dict(sorted(counts.items()))
+
+    # is_other_go_term_atom() takes a CUI's own GO terms to be its GO_PREFERRED_TTYS ones, which holds where the
+    # UMLS-GO concord joins through those atoms only (process). Anatomy's concord takes every GO atom, so there a
+    # CUI can join a GO term through an entry term or synonym alone; the rule then drops that term's names from the
+    # CUI and keeps its preferred term's. These are the CUIs that assumption fails for.
+    off_preferred = sorted(
+        cui for cui in go_atoms if cui in cui_go and own_go_codes(cui) and not own_go_codes(cui) & cui_go[cui]
+    )
+    report["synonyms, CUIs in a GO clique with none of their GO preferred terms"] = [
+        f"UMLS:{cui} (in a clique with {', '.join(sorted(cui_go[cui]))}; preferred terms "
+        f"{', '.join(sorted(own_go_codes(cui)))})"
+        for cui in off_preferred
+    ]
+    report["synonyms, drop GO atoms of other GO terms: dropped names of the clique's own GO term"] = sorted(
+        shipped_dropped_clique_names
+    )
 
     # Wrong-term strings the shipped rule keeps: MRCONSO files them under the CUI's own GO code, but current GO
     # names them only for another term, so nothing in MRCONSO alone can catch them.

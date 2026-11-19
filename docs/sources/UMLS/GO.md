@@ -96,6 +96,15 @@ It keeps the other 43, because MRCONSO alone can't identify them:
 - 22 are filed under the CUI's own GO code, but current GO gives that name only to another term.
   Catching them would need GO's current names in `pull_umls()`, which reads only MRCONSO.
 
+The rule assumes that a CUI joins a GO term it has a preferred-term atom for. The process concord
+guarantees this, but anatomy's concord still takes every GO atom, so an anatomy CUI could join a GO
+term through an entry term alone. It would then lose that term's names and keep the names of its own
+preferred term. No CUI does this in 2026jul22: the report lists any under "CUIs in a GO clique with
+none of their GO preferred terms", and that list is empty. Rerun the report before switching anatomy
+over ([#1137](https://github.com/NCATSTranslator/Babel/issues/1137)). The 4 strings the rule drops
+that already name the clique's GO term are on CUIs that did join their own GO term: UMLS files those
+strings under another GO code as well, and the report lists them.
+
 Labels need no such check. `input_data/umls_precedence.txt` ranks GO's `PT` above every other GO
 term type, so a CUI with a GO preferred term never takes its label from an atom this rule skips. The
 report confirms this: 0 such CUIs.

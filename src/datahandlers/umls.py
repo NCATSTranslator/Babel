@@ -834,6 +834,13 @@ def is_other_go_term_atom(go_code, own_go_codes):
     A CUI's own GO terms are the codes of its GO_PREFERRED_TTYS atoms; a CUI with none keeps all its GO atoms, since
     those are its own names.
 
+    This assumes the CUI joins a GO term it holds a preferred-term atom for. The process concord makes that so
+    (build_process_umls_relationships() takes GO_PREFERRED_TTYS atoms only), but anatomy's still takes every GO atom
+    (#1137), so an anatomy CUI could join a GO term through an entry term alone; it would then lose that term's names
+    and keep its preferred term's. Against the 2026jul22 build no CUI does; the report script
+    docs/sources/UMLS/GO/scripts/go_atoms_report.py lists any under "CUIs in a GO clique with none of their GO
+    preferred terms". Rerun it before switching anatomy over.
+
     Considered and rejected: dropping every GO atom, on the grounds that GO's own synonyms reach the clique from
     UberGraph. That only holds for CUIs that end up in a GO clique; against the 2026jul22 build it removed ~40,000
     strings from CUIs that never do (leftover CUIs, CUIs whose GO term is obsolete), to remove ~200 wrong-term

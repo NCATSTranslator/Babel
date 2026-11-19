@@ -32,6 +32,13 @@
     "dropped from CUIs in a GO clique, not a current GO name": 1,
     "dropped from CUIs not in a GO clique (names lost)": 18
   },
+  "synonyms, CUIs in a GO clique with none of their GO preferred terms": [],
+  "synonyms, drop GO atoms of other GO terms: dropped names of the clique's own GO term": [
+    "UMLS:C1150820 (in a clique with GO:0036468): 'L-DOPA decarboxylase activity'",
+    "UMLS:C1159794 (in a clique with GO:0015879): 'Carnitine transport'",
+    "UMLS:C1159794 (in a clique with GO:0015879): 'Vitamin BT transport'",
+    "UMLS:C1325725 (in a clique with GO:0000943): 'virus-like particle'"
+  ],
   "synonyms, drop GO atoms of other GO terms: kept on CUIs in a GO clique, a name of a different GO term": {
     "on CUIs with several GO preferred terms": 21,
     "on CUIs with one GO preferred term (GO has since moved the name)": 22
