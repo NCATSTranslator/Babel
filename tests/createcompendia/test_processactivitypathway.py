@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
+from src.categories import BIOLOGICAL_PROCESS, DISEASE, MOLECULAR_ACTIVITY, PATHWAY
 from src.createcompendia.processactivitypathway import (
     _process_concord_pair_drop_reason,
     classify_process_clique,
@@ -43,7 +43,7 @@ def test_compute_cliques_logs_dropped_pairs_and_skips_them(tmp_path, caplog):
     """The UMLS gate and BAD_CONCORDS should drop their pairs, with one log line per file and reason."""
     ids = tmp_path / "ids" / "GO"
     ids.parent.mkdir()
-    ids.write_text("GO:0034227\tbiolink:BiologicalProcess\nGO:0045943\tbiolink:BiologicalProcess\nUMLS:C1158785\n")
+    ids.write_text(f"GO:0034227\t{BIOLOGICAL_PROCESS}\nGO:0045943\t{BIOLOGICAL_PROCESS}\nUMLS:C1158785\n")
     concords = tmp_path / "concords"
     concords.mkdir()
     (concords / "RHEA").write_text("GO:0034227\txref\tEC:2.8.1.4\n")
@@ -80,8 +80,8 @@ def test_classify_process_clique():
         ),
         pytest.param(
             {"REACT:1", "UMLS:1"},
-            {"REACT:1": PATHWAY, "UMLS:1": "biolink:Disease"},
-            r"declared \['biolink:Disease'\]",
+            {"REACT:1": PATHWAY, "UMLS:1": DISEASE},
+            rf"declared \['{DISEASE}'\]",
             id="vote-with-unexpected-type",
         ),
     ],

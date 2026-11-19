@@ -8,7 +8,7 @@ The MRSTY and MRCONSO rows are copied verbatim from UMLS 2026AA; each block name
 import pytest
 import yaml
 
-from src.categories import ANATOMICAL_ENTITY, CHEMICAL_ENTITY, ORGANISM_TAXON, PROTEIN
+from src.categories import ANATOMICAL_ENTITY, BIOLOGICAL_PROCESS, CHEMICAL_ENTITY, ORGANISM_TAXON, PROTEIN
 from src.createcompendia import anatomy, chemicals, diseasephenotype, gene, processactivitypathway, protein, taxon
 from src.datahandlers import umls
 from src.datahandlers.umls import DEFAULT_ACCEPTABLE_TTYS, GO_PREFERRED_TTYS, build_sets, pull_umls
@@ -522,7 +522,7 @@ def test_build_sets_go_term_type_restriction(tmp_path):
     mrconso = write_mrconso(tmp_path, GO_0045943_ROWS + C0039066_ROWS + C0001811_ROWS)
     idfile = tmp_path / "ids"
     cuis = ["C1158785", "C2249862", "C2249863", "C0039066", "C0001811"]
-    idfile.write_text("".join(f"UMLS:{cui}\tbiolink:BiologicalProcess\n" for cui in cuis))
+    idfile.write_text("".join(f"UMLS:{cui}\t{BIOLOGICAL_PROCESS}\n" for cui in cuis))
     outfile = str(tmp_path / "concord")
     other_prefixes = {"GO": "GO", "MSH": "MESH"}
 
@@ -664,7 +664,7 @@ def test_build_sets_metadata_names_only_non_default_term_types(tmp_path):
     pipelines on the defaults keep the description they had before acceptable_ttys existed."""
     mrconso = write_mrconso(tmp_path, GO_0045943_ROWS)
     idfile = tmp_path / "ids"
-    idfile.write_text("UMLS:C1158785\tbiolink:BiologicalProcess\n")
+    idfile.write_text(f"UMLS:C1158785\t{BIOLOGICAL_PROCESS}\n")
 
     def description(**kwargs):
         metadata = tmp_path / "metadata.yaml"
