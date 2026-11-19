@@ -211,9 +211,10 @@ anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, Gross
 # as a `params:` value: that is how Snakemake sees an edit here and reruns the rule. Before adding a
 # prefix to any of them, check what it makes compete: docs/AddingNewSources.md, step 3.
 anatomy_unique_prefixes: [UBERON, GO]
-# Renames applied by norm() to each anatomy OBO source's xref targets, so they use the spelling the
-# other anatomy concords use (see docs/sources/AGENTS.md, "A missing prefix rename is the same bug,
-# spelled differently"). Every source built by build_anatomy_obo_relationships needs an entry, even
+# Renames applied by norm() to each anatomy OBO source's xref targets as its concord is written (rule
+# get_anatomy_obo_relationships), so the concord files already use the spelling the other anatomy
+# concords use (see docs/sources/AGENTS.md, "A missing prefix rename is the same bug, spelled
+# differently"). Every source built by build_anatomy_obo_relationships needs an entry, even
 # an empty one, so a missing source fails loudly instead of silently skipping its renames.
 anatomy_xref_prefixes:
   UBERON:
