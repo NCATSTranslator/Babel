@@ -126,6 +126,18 @@ def test_scan_tallies_rejects_by_reason():
     assert scan.rejected == 3
     assert dict(scan.rejects) == {"2 columns": 2, "empty column": 1}
     assert scan.examples["2 columns"] == (2, "A:2\teq\n")
+    assert not scan.prefixes  # only counted on request
+
+
+@pytest.mark.unit
+def test_scan_counts_prefixes_of_valid_rows_on_request():
+    """Should tally each valid row's subject and object prefix, skip rejected rows, and count a CURIE
+    with no colon under None."""
+    lines = ["A:1\teq\tB:1\n", "A:2\teq\tB:2\n", "A:3\teq\tnocolon\n", "C:4\teq\n"]
+    scan = scan_concord_lines(lines, "concord", count_prefixes=True)
+    assert dict(scan.prefixes) == {("subject", "A"): 3, ("object", "B"): 2, ("object", None): 1}
+    assert scan.prefix_examples[("object", "B")] == "B:1"
+    assert scan.prefix_examples[("object", None)] == "nocolon"
 
 
 # --- metadata sidecars ---

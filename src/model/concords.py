@@ -178,3 +178,59 @@ def load_mrconso_labels(
                     best[curie] = (rank, cols[_MRCONSO_STR])
     logger.info("resolved %d of %d CURIEs from %s", len(best), len(needed_curies), mrconso_path)
     return {curie: label for curie, (_rank, label) in best.items()}
+
+
+# Unknown prefixes
+
+
+def known_curie_prefixes(biolink_prefixes: Iterable[str]) -> frozenset[str]:
+    """Every prefix a concord CURIE may carry: ``biolink_prefixes`` plus every one in ``src/prefixes.py``.
+
+    Pass the Biolink Model's prefix map for the build's ``biolink_version``
+    (``get_biolink_prefix_map().prefix_map``). ``src/prefixes.py`` adds the few Babel uses that
+    Biolink's map lacks (``icd11``, ``ICD0``, ``ICD10CM``, ``GARD``). Matching is exact, because ``glom()``
+    compares CURIEs as strings: ``MEDGEN:C1`` and ``medgen:C1`` are two identifiers to it.
+    """
+    return frozenset(biolink_prefixes) | frozenset(Text.prefixmap.values())
+
+
+@dataclass
+class UnknownPrefix:
+    """A prefix in one column of a concord that neither Biolink nor ``src/prefixes.py`` defines."""
+
+    column: str  # "subject" or "object"
+    prefix: str | None  # None for a CURIE with no colon at all
+    rows: int
+    example: str
+    # The known prefix this one matches case-insensitively, if any. glom() compares CURIEs as
+    # strings, so the two spellings never join each other, although the compendium writer later
+    # fixes the case of a prefix Biolink registers for the clique's class (MONDO's 21,738 MEDGEN:
+    # xrefs ship as medgen: in 2026jul22).
+    case_variant_of: str | None = None
+
+
+def find_unknown_prefixes(scan, known: frozenset[str]) -> list[UnknownPrefix]:
+    """List the prefixes of ``scan`` (a ``ConcordRowScan`` made with ``count_prefixes=True``) not in ``known``.
+
+    A CURIE with an unknown prefix joins nothing: no ids file carries it, and ``write_compendium()``
+    drops it as unregistered. But it still reaches ``glom()``, so a target that two subjects cite
+    merges them. The usual causes are a missing rename (``SCTID``, ``MIM``,
+    ``SNOMEDCT_US_2025_09_01``), a mangled xref (``https``), and a vocabulary Babel doesn't use
+    (UBERON's ``ZFA``-style xrefs to other anatomy ontologies). See docs/tools/CheckConcords.md.
+
+    Sorted by column, then most rows first, then by prefix, so re-runs diff cleanly.
+    """
+    by_upper = {prefix.upper(): prefix for prefix in known}
+    found = [
+        UnknownPrefix(
+            column=column,
+            prefix=prefix,
+            rows=rows,
+            example=scan.prefix_examples[(column, prefix)],
+            case_variant_of=by_upper.get(prefix.upper()) if prefix is not None else None,
+        )
+        for (column, prefix), rows in scan.prefixes.items()
+        if prefix not in known
+    ]
+    found.sort(key=lambda u: (u.column != "subject", -u.rows, u.prefix or ""))
+    return found
