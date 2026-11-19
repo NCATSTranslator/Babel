@@ -84,6 +84,12 @@ def test_classify_process_clique():
             rf"declared \['{DISEASE}'\]",
             id="vote-with-unexpected-type",
         ),
+        pytest.param(
+            {"UMLS:1", "UMLS:2"},
+            {"UMLS:1": DISEASE, "UMLS:2": DISEASE},
+            rf"declared \['{DISEASE}'\]",
+            id="single-unexpected-type",
+        ),
     ],
 )
 def test_classify_process_clique_raises_on_untypable_input(clique, types, message):
