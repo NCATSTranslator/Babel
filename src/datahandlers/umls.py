@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import shutil
-from collections import defaultdict
+from collections import Counter, defaultdict
 from types import MappingProxyType
 from zipfile import ZipFile
 
@@ -854,6 +854,8 @@ def pull_umls(mrconso, umls_labels, umls_synonyms, snomed_labels, snomed_synonym
     # CUI -> GO codes of its GO preferred-term atoms; see is_other_go_term_atom().
     go_preferred_codes = defaultdict(set)
     priority = read_umls_priority()
+    # (SAB, TTY, SUPPRESS) keys missing from umls_precedence.txt -> number of atoms that defaulted to 1000000.
+    missing_priority = Counter()
     with open(mrconso) as inf, open(snomed_labels, "w") as snolabels, open(snomed_synonyms, "w") as snosyns:
         for line in inf:
             if not check_mrconso_line(line):
@@ -878,14 +880,16 @@ def pull_umls(mrconso, umls_labels, umls_synonyms, snomed_labels, snomed_synonym
             pkey = (source, termtype, suppress)
             try:
                 pri = priority[pkey]
-            except Exception:
-                logger.warning(f"Priority not found for key {pkey}. Defaulting to high priority (1000000).")
-                # print(pkey)
+            except KeyError:
+                # Counted and logged once per key after the loop: an unranked source can have millions of atoms.
+                missing_priority[pkey] += 1
                 pri = 1000000
             go_code = x[13] if source == "GO" else ""
             if go_code and termtype in GO_PREFERRED_TTYS:
                 go_preferred_codes[cui].add(go_code)
             rows[cui].append((pri, term, go_code))
+    for pkey, count in sorted(missing_priority.items()):
+        logger.warning("Priority not found for key %s (%d atoms). Defaulting to high priority (1000000).", pkey, count)
     re_numerical = re.compile(r"^\s*[+-]*[\d\.]+\s*$")
     with open(umls_labels, "w") as labels, open(umls_synonyms, "w") as synonyms:
         for cui, crows in rows.items():
