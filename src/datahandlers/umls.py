@@ -581,7 +581,7 @@ DEFAULT_ACCEPTABLE_TTYS = MappingProxyType(
 # join existing cliques that have not been reviewed yet; see docs/sources/UMLS/GO.md.
 #
 # Considered and rejected: falling back to a GO term's SY/ET atoms when none of its PT/MTH_PT atoms is in an
-# in-scope CUI. Against the 2026jul22 build that restores only 61 process joins: about a dozen close synonyms, but
+# in-scope CUI. Against UMLS 2026AB that restores only 60 process joins: about a dozen close synonyms, but
 # mostly narrow entry terms ("inhibition of X" for "negative regulation of X") and some plainly wrong ones ("growth
 # cone collapse" for GO:0070571 "negative regulation of neuron projection regeneration"), which a rule by term type
 # can't tell apart. docs/sources/UMLS/GO.md has the numbers, GO/fallback_joins.tsv the full list.
@@ -842,7 +842,7 @@ def is_other_go_term_atom(go_code, own_go_codes):
     preferred terms". Rerun it before switching anatomy over.
 
     Considered and rejected: dropping every GO atom, on the grounds that GO's own synonyms reach the clique from
-    UberGraph. That only holds for CUIs that end up in a GO clique; against the 2026jul22 build it removed ~40,000
+    UberGraph. That only holds for CUIs that end up in a GO clique; against UMLS 2026AB it removed ~32,000
     strings from CUIs that never do (leftover CUIs, CUIs whose GO term is obsolete), to remove ~200 wrong-term
     strings. See docs/sources/UMLS/GO.md.
 
