@@ -1295,11 +1295,16 @@ def create_typed_sets(eqsets, types, food_types):
                         else:
                             all_other_ids.add(eq_id)
 
-                    logger.info(
-                        "Found a clique that contains PUBCHEM types "
-                        + "({'biolink:SmallMolecule', 'biolink:MolecularMixture'}). This clique will be split "
-                        + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
-                        + f"a biolink:SmallMolecule ({all_other_ids})"
+                    # Debug, not info: this fires thousands of times per build (see the count above).
+                    logger.debug(
+                        "Found a clique that contains PUBCHEM types %s and %s. This clique will be split into a "
+                        "%s (%s) and a %s (%s)",
+                        SMALL_MOLECULE,
+                        MOLECULAR_MIXTURE,
+                        MOLECULAR_MIXTURE,
+                        molecular_mixture_ids,
+                        SMALL_MOLECULE,
+                        all_other_ids,
                     )
                     # Each half votes on its own evidence: an extract CURIE that lands in the small
                     # molecule half must not retype the mixture half to ComplexMolecularMixture.
