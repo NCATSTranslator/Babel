@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.snakefiles.util import duckdb_memory_limit_mb
+from src.snakefiles.util import duckdb_memory_limit_mb, get_shared_synonym_audit_filenames
 
 
 @pytest.mark.unit
@@ -24,3 +24,31 @@ def test_duckdb_memory_limit_mb(mem_mb, expected):
     the string "512 GB". mem_mb sidesteps that round-trip entirely.
     """
     assert duckdb_memory_limit_mb(mem_mb) == expected
+
+
+@pytest.mark.unit
+def test_get_shared_synonym_audit_filenames():
+    """Should expand an audit group's config output lists into extensionless synonym file names."""
+    config = {
+        "shared_synonym_audit_groups": {"disease": ["disease_outputs"], "both": ["disease_outputs", "other_outputs"]},
+        "disease_outputs": ["Disease.txt", "PhenotypicFeature.txt"],
+        "other_outputs": ["DrugChemicalConflated.txt"],
+    }
+    assert get_shared_synonym_audit_filenames(config, "disease") == ["Disease", "PhenotypicFeature"]
+    assert get_shared_synonym_audit_filenames(config, "both") == [
+        "Disease",
+        "PhenotypicFeature",
+        "DrugChemicalConflated",
+    ]
+
+
+@pytest.mark.unit
+def test_shared_synonym_audit_groups_in_config():
+    """Should cover disease, pre- and post-conflation chemicals, each resolving to files the build writes."""
+    from src.util import get_config
+
+    config = get_config()
+    assert set(config["shared_synonym_audit_groups"]) == {"disease", "chemical", "drugchemicalconflated"}
+    assert get_shared_synonym_audit_filenames(config, "drugchemicalconflated") == ["DrugChemicalConflated"]
+    assert "Drug" in get_shared_synonym_audit_filenames(config, "chemical")
+    assert "Disease" in get_shared_synonym_audit_filenames(config, "disease")

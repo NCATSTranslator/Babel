@@ -1,5 +1,6 @@
 # Shared code used by Snakemake files
 import gzip
+import os
 import shutil
 
 import src.util
@@ -44,6 +45,22 @@ def gzip_files(input_filenames):
             shutil.copyfileobj(f_in, f_out)
         logger.info(f"Compressed {filename} to {output_filename} using the gzip module.")
     logger.info(f"Done compressing: {input_filenames}")
+
+
+def get_shared_synonym_audit_filenames(config, audit_group):
+    """
+    The synonym files audited together by the `audit_group` entry of `shared_synonym_audit_groups`.
+
+    Each group names config.yaml output lists (e.g. `chemical_outputs`) rather than files, so the
+    audit follows those lists as they change.
+
+    :param config: The Babel config to use.
+    :param audit_group: A key of `shared_synonym_audit_groups`.
+    :return: The synonym file names without extension (e.g. `Disease`), as used in the
+        `duckdb/parquet/filename=<X>/` directories.
+    """
+    output_lists = config["shared_synonym_audit_groups"][audit_group]
+    return [os.path.splitext(filename)[0] for output_list in output_lists for filename in config[output_list]]
 
 
 # List of all the compendia files that need to be converted.
