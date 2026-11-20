@@ -236,7 +236,7 @@ rule get_mesh:
         rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_mesh.tsv"
-    retries: 3  # MeSH FTP download occasionally fails transiently.
+    retries: 3  # MeSH download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -257,7 +257,7 @@ rule get_mesh_xml:
         xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_mesh_xml.tsv"
-    retries: 3  # MeSH FTP download occasionally fails transiently.
+    retries: 3  # MeSH download occasionally fails transiently.
     params:
         # A param, so that changing mesh_year reruns the download.
         mesh_year=config["mesh_year"],
