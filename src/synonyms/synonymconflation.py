@@ -188,6 +188,8 @@ def merge_conflated_group(primary_id, conflation_order, synonyms_by_curie, cliqu
     every member of its compendium clique (an ID in no clique stands for itself), and a member already reached through
     an earlier ID is skipped. Names and types are concatenated in that order without repeats, so the lead clique's
     come first; the preferred name is the first one found, the shortest name length the minimum, and taxa the union.
+    Types are not filtered here: each record's types were chosen by synonym_record_types() when write_compendium() wrote
+    it, so a merged record lists the same kinds of type as an unconflated one, starting with the lead clique's own.
 
     `clique_identifier_count` is added once per *clique*, not once per record. A synonym file holds one record per
     clique, keyed on its leader, but a clique can have records under two of its identifiers (or the same CURIE in two
@@ -202,10 +204,6 @@ def merge_conflated_group(primary_id, conflation_order, synonyms_by_curie, cliqu
     :raises RuntimeError: If a record of this group is not reached by expanding `conflation_order`. Step 1.1 only
         gives a group the members of cliques its listed IDs belong to, so this means the two steps disagree.
     """
-    # BUG: set("OntologyClass") is the set of the string's letters, so this filter has never matched a type and every
-    # conflated record keeps OntologyClass. #1179 (stacked on #1176) makes it {"OntologyClass"}.
-    types_to_ignore = set("OntologyClass")
-
     preferred_name = None
     names = []
     names_included = set()
@@ -241,7 +239,7 @@ def merge_conflated_group(primary_id, conflation_order, synonyms_by_curie, cliqu
                         names.append(name)
                         names_included.add(name)
                 for typ in record["types"]:
-                    if typ not in types_included and typ not in types_to_ignore:
+                    if typ not in types_included:
                         types.append(typ)
                         types_included.add(typ)
                 if "shortest_name_length" in record and (

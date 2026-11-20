@@ -135,10 +135,11 @@ def test_synonyms_of_conflated_cliques_are_merged_into_the_lead_record(tmp_path)
     assert conflated["shortest_name_length"] == 13
     assert conflated["clique_identifier_count"] == 4
     assert conflated["taxon_specific"] is False
-    # Types are the union in order of first appearance. PINS CURRENT BEHAVIOR: OntologyClass is kept, because the
-    # filter meant to drop it is a set of single letters, set("OntologyClass"), so it matches nothing. #1179 fixes
-    # the filter; when it lands, invert this to assert OntologyClass is absent rather than deleting it.
+    # Types are the union in order of first appearance, with nothing left out: which types a record lists is decided
+    # once, by synonym_record_types() in write_compendium(). These fixtures come from a build before that, so they
+    # still carry OntologyClass, and the merge must keep it rather than filter on its own.
     assert conflated["types"] == SCAPULAR_LINE_SYNONYM["types"]
+    assert "OntologyClass" in conflated["types"]
 
 
 @pytest.mark.unit
