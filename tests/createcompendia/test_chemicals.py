@@ -694,3 +694,16 @@ def test_parse_smifile_raises_on_a_data_row_before_the_header(tmp_path):
 
     with pytest.raises(ValueError, match="Could not find ID column"):
         write_gtopdb_ids(str(infile), str(tmp_path / "ids"))
+
+
+@pytest.mark.unit
+def test_parse_smifile_raises_on_a_modified_header(tmp_path):
+    """A "Ligand ID" header that differs from the expected GtoPdb column list should raise ValueError (not an assert,
+    which `python -O` would skip). The header is synthetic: any deviation from the expected list will do."""
+    from src.createcompendia.chemicals import write_gtopdb_ids
+
+    infile = tmp_path / "ligands.tsv"
+    infile.write_text('"Ligand ID"\t"Name"\n')
+
+    with pytest.raises(ValueError, match="modified header"):
+        write_gtopdb_ids(str(infile), str(tmp_path / "ids"))

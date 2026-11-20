@@ -436,8 +436,7 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
             if line.startswith('"Ligand ID"'):
                 # Header line! Check, then skip.
                 header = line.strip().split("\t")
-                # print("header: ", header)
-                assert header == [
+                if header != [
                     '"Ligand ID"',
                     '"Name"',
                     '"Species"',
@@ -464,17 +463,12 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
                     '"GtoImmuPdb"',
                     '"GtoMPdb"',
                     '"Antibacterial"',
-                ], f"SMIFile {infile} has a modified header, please update."
-                try:
-                    idcol_index = header.index(idcol)
-                except ValueError:
-                    raise ValueError(f"Could not find ID column '{idcol}' in header {header} for {infile}") from None
-                try:
-                    smicol_index = header.index(smicol)
-                except ValueError:
-                    raise ValueError(
-                        f"Could not find SMILES column '{smicol}' in header {header} for {infile}"
-                    ) from None
+                ]:
+                    # An explicit raise rather than an assert, which `python -O` would skip. The exact match
+                    # also guarantees both index() lookups below succeed.
+                    raise ValueError(f"SMIFile {infile} has a modified header, please update: {header}")
+                idcol_index = header.index(idcol)
+                smicol_index = header.index(smicol)
                 continue
             x = line.split("\t")
             if stripquotes:
