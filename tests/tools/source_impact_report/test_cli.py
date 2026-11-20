@@ -17,7 +17,7 @@ import json
 
 import pytest
 
-from src.tools.source_impact_report.cli import PIPELINE_CONFIG, main
+from src.tools.source_impact_report.cli import PIPELINE_CONFIG, _list_source_files, main
 from src.util import get_config
 
 
@@ -183,10 +183,20 @@ def test_cli_synthetic_report_json_diff_counts(synthetic_intermediate, tmp_path)
 @pytest.mark.unit
 @pytest.mark.parametrize(
     ("pipeline", "config_key"),
-    [("anatomy", "anatomy_outputs"), ("disease", "disease_outputs")],
+    [("anatomy", "anatomy_outputs"), ("disease", "disease_outputs"), ("process", "process_outputs")],
 )
 def test_compendium_files_match_config_outputs(pipeline, config_key):
     """A pipeline's PIPELINE_CONFIG biolink types should cover exactly the compendium files
     that Snakemake builds for it. Adding a biolink type to config.yaml's ``<pipeline>_outputs``
     without adding the matching constant to the CLI (or vice versa) should fail here."""
     assert set(PIPELINE_CONFIG[pipeline]["compendium_files"]) == set(get_config()[config_key])
+
+
+@pytest.mark.unit
+def test_list_source_files_follows_config_order(tmp_path):
+    """Source files should come in config.yaml's order, which is the compendium rule's, then any others
+    alphabetically, with metadata sidecars left out."""
+    for name in ("EC", "GO", "MONDO_close", "UMLS", "metadata-GO.yaml"):
+        (tmp_path / name).write_text("")
+    listed = [p.name for p in _list_source_files(tmp_path, ["UMLS", "GO", "EC"])]
+    assert listed == ["UMLS", "GO", "EC", "MONDO_close"]

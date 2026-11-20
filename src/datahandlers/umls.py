@@ -2,18 +2,18 @@ import logging
 import os
 import re
 import shutil
-from collections import defaultdict
+from collections import Counter, defaultdict
+from types import MappingProxyType
 from zipfile import ZipFile
 
 import requests
 
-from src.babel_utils import make_local_name
 from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE, ORGANISM_TAXON
 from src.datahandlers import mesh
 from src.metadata.provenance import write_concord_metadata, write_download_metadata
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import MESH, RXCUI, UMLS
-from src.util import get_logger
+from src.util import get_logger, get_repo_root
 
 logger = get_logger(__name__)
 
@@ -555,6 +555,39 @@ def write_rxnorm_ids(
                 outf.write(f"{prefix}:{current_id}\t{DRUG}\n")
 
 
+# MRCONSO term types (TTY, column 12) that build_sets() takes from a source, for sources whose other atoms link a CUI
+# too loosely to count as equivalence. A source not listed here contributes every (non-suppressed, English) atom.
+# - MSH: MESH_CONCORD_TTYS, the one "main" name or heading every MeSH entry has. Taking every MeSH atom led to clear
+#   mistakes and logical impossibilities such as cyclical subclasses.
+# - DRUGBANK: DrugBank IDs are for active ingredients, so only take the ingredient term types. Otherwise the same
+#   DrugBank ID maps loosely to several CUIs.
+# Read-only (a mappingproxy of frozensets) because build_sets() uses it as its default: a caller that changed it in
+# place would change every later build_sets() call in the process. Build a variant with {**DEFAULT_ACCEPTABLE_TTYS, ...}.
+DEFAULT_ACCEPTABLE_TTYS = MappingProxyType(
+    {
+        "MSH": MESH_CONCORD_TTYS,
+        "DRUGBANK": frozenset({"IN", "PIN", "MIN"}),
+    }
+)
+
+# GO's preferred term (PT), plus MTH_PT where NLM has altered the preferred name. UMLS keeps GO synonym atoms (SY,
+# ET, ...) with the GO code of the term they came from, but often places them in different CUIs (e.g. "activation
+# of X" for "positive regulation of X"). Taking all of them maps one GO term to several CUIs, and the downstream
+# overused-xref filter then drops every pair for that GO term. pull_umls() uses the same set to decide which GO
+# term a CUI's GO atoms belong to.
+#
+# Only the process/activity concord restricts GO to these (see build_process_umls_relationships()). In anatomy
+# (cellular component), CUIs also link to MESH, SNOMEDCT, NCIT and FMA, and the extra GO mappings this produces
+# join existing cliques that have not been reviewed yet; see docs/sources/UMLS/GO.md.
+#
+# Considered and rejected: falling back to a GO term's SY/ET atoms when none of its PT/MTH_PT atoms is in an
+# in-scope CUI. Against the 2026jul22 build that restores only 61 process joins: about a dozen close synonyms, but
+# mostly narrow entry terms ("inhibition of X" for "negative regulation of X") and some plainly wrong ones ("growth
+# cone collapse" for GO:0070571 "negative regulation of neuron projection regeneration"), which a rule by term type
+# can't tell apart. docs/sources/UMLS/GO.md has the numbers, GO/fallback_joins.tsv the full list.
+GO_PREFERRED_TTYS = frozenset({"PT", "MTH_PT"})
+
+
 # I've made this more complicated than it ought to be for 2 reasons:
 # One is to keep from having to pass through the umls file more than once, but that's a bad reason
 # The second is because I want to use the UMLS as a source for some terminologies (SNOMED) even if there's another
@@ -564,28 +597,35 @@ def build_sets(
     umls_input,
     umls_output,
     other_prefixes,
-    bad_mappings=defaultdict(set),
-    acceptable_identifiers={},
+    bad_mappings=None,
+    acceptable_identifiers=None,
     cui_prefix=UMLS,
     provenance_metadata_yaml=None,
+    acceptable_ttys=None,
 ):
     """Given a list of umls identifiers we want to generate all the concordances
-    between UMLS and that other entity"""
-    # On UMLS / MESH: we have been getting all UMLS / MESH relationships.   This has led to some clear mistakes
-    # and logical impossibilities such as cyclical subclasses.   On further review, we can sharpen these relationships
-    # by choosing the best match UMLS for each MESH.  We will make use of the TTY column (column 12) in MRCONSO.
-    # This column can have a lot of values, but every MESH has one of (and only one of): MH, NM, HT, QAB.  These
-    # will be the ones that we pull, as they correspond to the "main" name or heading of the mesh entry.
-    # Because drugbank IDs are for active ingredients, we only want the UMLS IDs that map to a TTY of IN (ingredient)
-    # Otherwise, you get the same DBID mapping to multiple UMLS IDs in a loose way.
+    between UMLS and that other entity.
+
+    :param other_prefixes: maps an MRCONSO source abbreviation (SAB, e.g. "MSH") to the Babel prefix to write.
+    :param bad_mappings: optional dict of UMLS CURIE -> set of other CURIEs never to pair it with.
+    :param acceptable_identifiers: optional dict of prefix -> set of CURIEs; a prefix listed here only pairs with
+        those CURIEs.
+    :param acceptable_ttys: dict of source abbreviation -> set of MRCONSO term types to take from that source;
+        sources not listed contribute every atom. Defaults to DEFAULT_ACCEPTABLE_TTYS. To restrict GO as well, pass
+        ``{**DEFAULT_ACCEPTABLE_TTYS, "GO": GO_PREFERRED_TTYS}``.
+    """
+    if bad_mappings is None:
+        bad_mappings = {}
+    if acceptable_identifiers is None:
+        acceptable_identifiers = {}
+    if acceptable_ttys is None:
+        acceptable_ttys = DEFAULT_ACCEPTABLE_TTYS
     umls_ids = set()
     with open(umls_input) as inf:
         for line in inf:
             u = line.strip().split("\t")[0].split(":")[1]
             umls_ids.add(u)
     lookfor = set(other_prefixes.keys())
-    acceptable_mesh_tty = MESH_CONCORD_TTYS
-    acceptable_drugbank_tty = set(["IN", "PIN", "MIN"])
     pairs = set()
     # test_cui = 'C0026827'
     with open(mrconso) as inf, open(umls_output, "w") as concordfile:
@@ -603,9 +643,7 @@ def build_sets(
             if source not in lookfor:
                 continue
             tty = x[12]
-            if (source == "MSH") and (tty not in acceptable_mesh_tty):
-                continue
-            if (source == "DRUGBANK") and (tty not in acceptable_drugbank_tty):
+            if (source in acceptable_ttys) and (tty not in acceptable_ttys[source]):
                 continue
             # For some dippy reason, in the id column they say "HGNC:76"
             pref = other_prefixes[source]
@@ -618,7 +656,7 @@ def build_sets(
                 continue
             tup = (f"{cui_prefix}:{cui}", other_id)
             # Don't include bad mappings or bad ids
-            if tup[1] in bad_mappings[tup[0]]:
+            if tup[1] in bad_mappings.get(tup[0], ()):
                 continue
             if (pref in acceptable_identifiers) and (tup[1] not in acceptable_identifiers[pref]):
                 continue
@@ -626,19 +664,32 @@ def build_sets(
                 concordfile.write(f"{tup[0]}\teq\t{tup[1]}\n")
                 pairs.add(tup)
 
-    # Write provenance for this build_sets() call.
+    # Write provenance for this build_sets() call. Only term-type restrictions that differ from DEFAULT_ACCEPTABLE_TTYS
+    # are named, so a pipeline using the defaults keeps the same description from build to build.
     if provenance_metadata_yaml is not None:
+        description = (
+            f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}"
+        )
+        tty_overrides = {
+            k: sorted(v) for k, v in acceptable_ttys.items() if DEFAULT_ACCEPTABLE_TTYS.get(k) != frozenset(v)
+        }
+        dropped_defaults = sorted(DEFAULT_ACCEPTABLE_TTYS.keys() - acceptable_ttys.keys())
+        if tty_overrides:
+            description += f", taking only these term types from these sources: {tty_overrides}"
+        if dropped_defaults:
+            description += f", taking every term type from these sources: {dropped_defaults}"
         write_concord_metadata(
             provenance_metadata_yaml,
             name="umls.build_sets()",
             sources=[{"type": "UMLS", "name": "MRCONSO"}],
-            description=f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}",
+            description=description,
             concord_filename=umls_output,
         )
 
 
 def read_umls_priority():
-    mrp = os.path.join("input_data", "umls_precedence.txt")
+    # Resolved from the repo root, not the working directory, so pull_umls() works (and is testable) from anywhere.
+    mrp = get_repo_root() / "input_data" / "umls_precedence.txt"
     pris = []
     with open(mrp) as inf:
         _header = inf.readline()
@@ -774,13 +825,45 @@ def download_rxnorm(rxnorm_version, download_dir):
     shutil.copy2(os.path.join(download_dir, "rrf", "RXNREL.RRF"), download_dir)
 
 
-def pull_umls(mrconso):
-    """Run through MRCONSO.RRF creating label and synonym files for UMLS and SNOMEDCT"""
+def is_other_go_term_atom(go_code, own_go_codes):
+    """Return True for a GO atom that UMLS attributes to a different GO term than the CUI's own, which pull_umls()
+    leaves out of the CUI's synonyms.
+
+    UMLS often files another GO term's entry terms under a CUI: C1152464 "cardiolipin synthase activity"
+    (GO:0008808) carries ET "cardiolipin synthase" from GO:0043337. As synonyms, they would name the wrong clique.
+    A CUI's own GO terms are the codes of its GO_PREFERRED_TTYS atoms; a CUI with none keeps all its GO atoms, since
+    those are its own names.
+
+    This assumes the CUI joins a GO term it holds a preferred-term atom for. The process concord makes that so
+    (build_process_umls_relationships() takes GO_PREFERRED_TTYS atoms only), but anatomy's still takes every GO atom
+    (#1137), so an anatomy CUI could join a GO term through an entry term alone; it would then lose that term's names
+    and keep its preferred term's. Against the 2026jul22 build no CUI does; the report script
+    docs/sources/UMLS/GO/scripts/go_atoms_report.py lists any under "CUIs in a GO clique with none of their GO
+    preferred terms". Rerun it before switching anatomy over.
+
+    Considered and rejected: dropping every GO atom, on the grounds that GO's own synonyms reach the clique from
+    UberGraph. That only holds for CUIs that end up in a GO clique; against the 2026jul22 build it removed ~40,000
+    strings from CUIs that never do (leftover CUIs, CUIs whose GO term is obsolete), to remove ~200 wrong-term
+    strings. See docs/sources/UMLS/GO.md.
+
+    Labels need no such check: input_data/umls_precedence.txt ranks GO's PT above every other GO term type, so a CUI
+    with a GO preferred term never takes its label from one of these atoms.
+
+    :param go_code: the atom's GO code, or "" for an atom from another source.
+    :param own_go_codes: the GO codes of the CUI's GO_PREFERRED_TTYS atoms (may be empty).
+    """
+    return bool(go_code and own_go_codes and go_code not in own_go_codes)
+
+
+def pull_umls(mrconso, umls_labels, umls_synonyms, snomed_labels, snomed_synonyms):
+    """Run through MRCONSO.RRF writing label and synonym files for UMLS and SNOMEDCT to the given paths."""
     rows = defaultdict(list)
+    # CUI -> GO codes of its GO preferred-term atoms; see is_other_go_term_atom().
+    go_preferred_codes = defaultdict(set)
     priority = read_umls_priority()
-    snomed_label_name = make_local_name("labels", subpath="SNOMEDCT")
-    snomed_syn_name = make_local_name("synonyms", subpath="SNOMEDCT")
-    with open(mrconso) as inf, open(snomed_label_name, "w") as snolabels, open(snomed_syn_name, "w") as snosyns:
+    # (SAB, TTY, SUPPRESS) keys missing from umls_precedence.txt -> number of atoms that defaulted to 1000000.
+    missing_priority = Counter()
+    with open(mrconso) as inf, open(snomed_labels, "w") as snolabels, open(snomed_synonyms, "w") as snosyns:
         for line in inf:
             if not check_mrconso_line(line):
                 continue
@@ -804,22 +887,27 @@ def pull_umls(mrconso):
             pkey = (source, termtype, suppress)
             try:
                 pri = priority[pkey]
-            except Exception:
-                logger.warning(f"Priority not found for key {pkey}. Defaulting to high priority (1000000).")
-                # print(pkey)
+            except KeyError:
+                # Counted and logged once per key after the loop: an unranked source can have millions of atoms.
+                missing_priority[pkey] += 1
                 pri = 1000000
-            rows[cui].append((pri, term, line))
-    lname = make_local_name("labels", subpath="UMLS")
-    sname = make_local_name("synonyms", subpath="UMLS")
+            go_code = x[13] if source == "GO" else ""
+            if go_code and termtype in GO_PREFERRED_TTYS:
+                go_preferred_codes[cui].add(go_code)
+            rows[cui].append((pri, term, go_code))
+    for pkey, count in sorted(missing_priority.items()):
+        logger.warning("Priority not found for key %s (%d atoms). Defaulting to high priority (1000000).", pkey, count)
     re_numerical = re.compile(r"^\s*[+-]*[\d\.]+\s*$")
-    with open(lname, "w") as labels, open(sname, "w") as synonyms:
+    with open(umls_labels, "w") as labels, open(umls_synonyms, "w") as synonyms:
         for cui, crows in rows.items():
             crows.sort()
             labels.write(f"{UMLS}:{cui}\t{crows[0][1]}\n")
-            syns = set([crow[1] for crow in crows])
-            for s in syns:
+            own_go_codes = go_preferred_codes.get(cui)
+            syns = set(term for _, term, go_code in crows if not is_other_go_term_atom(go_code, own_go_codes))
+            # Sorted so that the synonyms file is the same from one run to the next (set order varies with hashing).
+            for s in sorted(syns):
                 # Skip any synonyms that are purely numerical, since those are unlikely to be useful.
                 if re_numerical.fullmatch(s):
-                    logging.debug(f"Found numerical synonym '{s}' in UMLS, skipping")
+                    logger.debug("Found numerical synonym %r in UMLS, skipping", s)
                     continue
                 synonyms.write(f"{UMLS}:{cui}\t{HAS_EXACT_SYNONYM}\t{s}\n")

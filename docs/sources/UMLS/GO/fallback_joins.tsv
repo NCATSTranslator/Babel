@@ -1,0 +1,62 @@
+umls_cui	go_term	go_label	umls_go_atoms
+UMLS:C0031845	GO:0008150	biological_process	SY physiological process
+UMLS:C0033462	GO:0098689	latency-replication decision	ET prophage induction
+UMLS:C1149576	GO:0050829	defense response to Gram-negative bacterium	ET Gram-negative antibacterial peptide activity
+UMLS:C1149577	GO:0050830	defense response to Gram-positive bacterium	ET Gram-positive antibacterial peptide activity
+UMLS:C1149578	GO:0050831	male-specific defense response to bacterium	ET male-specific antibacterial peptide activity
+UMLS:C1158281	GO:0019331	anaerobic respiration, using ammonium as electron donor	ET anaerobic ammonium oxidation
+UMLS:C1327633	GO:0019068	virion assembly	ET phage assembly; ET bacteriophage assembly
+UMLS:C1622397	GO:0002019	regulation of renal output by angiotensin	ET angiotensin mediated control of renal output
+UMLS:C1656954	GO:0051661	maintenance of centrosome location	ET maintenance of centrosome localization
+UMLS:C1660204	GO:0051655	maintenance of vesicle location	ET maintenance of vesicle localization
+UMLS:C1660206	GO:0051657	maintenance of organelle location	ET maintenance of organelle localization
+UMLS:C1660216	GO:0051687	maintenance of spindle location	ET maintenance of spindle localization
+UMLS:C1660772	GO:0051658	maintenance of nucleus location	ET maintenance of nucleus localization
+UMLS:C1660808	GO:0051688	maintenance of plastid location	ET maintenance of plastid localization
+UMLS:C1816460	GO:0051906	maintenance of pigment granule location	ET maintenance of pigment granule localization
+UMLS:C1817379	GO:0002208	somatic diversification of immunoglobulins involved in immune response	ET somatic diversification of antibodies during immune response; ET somatic diversification of immunoglobulins during immune response
+UMLS:C1817989	GO:0002536	respiratory burst involved in inflammatory response	ET oxidative burst during acute inflammatory response; ET production of reactive oxygen species during acute inflammatory response; ET respiratory burst involved in acute inflammatory response
+UMLS:C1819161	GO:0032255	maintenance of secretory granule location	ET maintenance of secretory granule localization
+UMLS:C1819163	GO:0032257	maintenance of dense core granule location	ET maintenance of dense core granule localization
+UMLS:C1819722	GO:0002715	regulation of natural killer cell mediated immunity	ET regulation of natural killer cell activity
+UMLS:C2244305	GO:0022003	negative regulation of anterior neural cell fate commitment of the neural plate by fibroblast growth factor receptor signaling pathway	ET fgf receptor signaling involved in inhibition of anterior neural cell fate of the neural plate
+UMLS:C2245643	GO:0032413	negative regulation of ion transmembrane transporter activity	ET inhibition of ion transporter activity
+UMLS:C2247569	GO:0034029	2-oxoglutarate carboxylase activity	ET carboxylating factor for ICDH
+UMLS:C2249579	GO:0045800	negative regulation of chitin-based cuticle tanning	ET inhibition of cuticle tanning
+UMLS:C2253591	GO:0048086	negative regulation of developmental pigmentation	ET inhibition of pigmentation
+UMLS:C2265466	GO:0010346	shoot axis formation	ET shoot formation
+UMLS:C2611850	GO:0009649	entrainment of circadian clock	ET regulation of circadian rhythm phase
+UMLS:C2752661	GO:0002537	nitric oxide production involved in inflammatory response	ET production of nitric oxide involved in acute inflammatory response; ET nitric oxide production involved in acute inflammatory response
+UMLS:C2752662	GO:0002538	arachidonate metabolite production involved in inflammatory response	ET production of arachidonic acid metabolites involved in acute inflammatory response; ET arachidonic acid metabolite production involved in acute inflammatory response
+UMLS:C2752663	GO:0002539	prostaglandin production involved in inflammatory response	ET prostaglandin production involved in acute inflammatory response
+UMLS:C2752664	GO:0002540	leukotriene production involved in inflammatory response	ET leukotriene production involved in acute inflammatory response
+UMLS:C2752678	GO:0060264	regulation of respiratory burst involved in inflammatory response	ET regulation of respiratory burst involved in acute inflammatory response
+UMLS:C2752679	GO:0060265	positive regulation of respiratory burst involved in inflammatory response	ET positive regulation of respiratory burst involved in acute inflammatory response
+UMLS:C2752680	GO:0060266	negative regulation of respiratory burst involved in inflammatory response	ET negative regulation of respiratory burst involved in acute inflammatory response
+UMLS:C3155173	GO:0051923	sulfation	ET phase II metabolism
+UMLS:C3159025	GO:0035825	homologous recombination	ET reciprocal DNA recombination; ET chromosomal crossover
+UMLS:C3269281	GO:1900017	positive regulation of cytokine production involved in inflammatory response	ET positive regulation of cytokine production involved in acute inflammatory response; ET up regulation of cytokine production involved in acute inflammatory response
+UMLS:C3271695	GO:0038016	insulin receptor internalization	ET insulin receptor endocytosis
+UMLS:C3272179	GO:0051964	negative regulation of synapse assembly	ET inhibition of synapse assembly
+UMLS:C3544393	GO:2000032	regulation of secondary shoot formation	ET regulation of shoot branching
+UMLS:C3545982	GO:1900453	negative regulation of long-term synaptic depression	ET downregulation of long term depression; ET negative regulation of long term depression; ET negative regulation of LTD; ET downregulation of LTD; ET down regulation of long term depression; ET down-regulation of long term depression; ET down regulation of LTD; ET down-regulation of LTD
+UMLS:C3546207	GO:1900272	negative regulation of long-term synaptic potentiation	ET downregulation of long-term potentiation; ET down regulation of long-term potentiation; ET down-regulation of long-term potentiation; ET downregulation of LTP; ET down regulation of LTP; ET down-regulation of LTP
+UMLS:C3548920	GO:0007610	behavior	ET single-organism behavior
+UMLS:C3820501	GO:0070571	negative regulation of neuron projection regeneration	ET growth cone collapse
+UMLS:C4329046	GO:0090680	viral release via disruption of host outer membrane	ET disruption by virus of host outer membrane
+UMLS:C4689932	GO:0023052	signaling	ET single organism signaling
+UMLS:C4689941	GO:0032501	multicellular organismal process	ET single-multicellular organism process
+UMLS:C4690103	GO:0061924	regulation of formation of radial glial scaffolds	ET regulation of Bergmann fiber formation
+UMLS:C4690339	GO:0099175	regulation of postsynapse organization	ET regulation of postsynapse organization and biogenesis
+UMLS:C5379972	GO:0060256	regulation of flocculation	ET regulation of flocculation via cell wall protein-carbohydrate interaction
+UMLS:C5450373	GO:0002377	immunoglobulin production	ET immunoglobulin secretion
+UMLS:C5450984	GO:0072359	circulatory system development	ET cardiovascular system development
+UMLS:C5451564	GO:0044478	venom-mediated platelet aggregation	ET venom-mediated platelet agglutination
+UMLS:C5814961	GO:0036335	intestinal stem cell homeostasis	ET intestinal crypt stem cell homeostasis
+UMLS:C5887942	GO:1902436	negative regulation of male mating behavior	ET inhibition of male mating behavior
+UMLS:C5888070	GO:1903187	negative regulation of vitellogenesis	ET inhibition of vitellogenesis; ET inhibition of yolk production
+UMLS:C5888071	GO:1903188	positive regulation of vitellogenesis	ET activation of vitellogenesis; ET activation of yolk production
+UMLS:C6003742	GO:0039540	symbiont-mediated suppression of host cytoplasmic pattern recognition receptor signaling pathway via inhibition of RIG-I activity	ET symbiont-mediated suppression of host RIG-I signaling pathway
+UMLS:C6003753	GO:0044477	venom-mediated suppression of platelet aggregation	ET venom-mediated suppression of platelet agglutination
+UMLS:C6003755	GO:0044734	venom-mediated activation of pH-gated ion channel activity	ET venom-mediated activation of acid-sensing ion channel activity
+UMLS:C6003756	GO:0044735	venom-mediated inhibition of pH-gated ion channel activity	ET venom-mediated inhibition of acid-sensing ion channel activity

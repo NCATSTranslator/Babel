@@ -1,23 +1,20 @@
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 import src.datahandlers.ec as ec
 import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
 import src.datahandlers.umls as umls
-from src.babel_utils import (
-    get_prefixes,
-    glom,
-    read_identifier_file,
-    remove_overused_xrefs,
-    unique_prefixes_from_config,
-)
+from src.babel_utils import get_prefixes, remove_overused_xrefs, unique_prefixes_from_config
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
+from src.model.cliques import glom_from_files
 from src.model.compendia import write_typed_compendia
-from src.model.intermediates import read_concords
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
+from src.util import get_logger
+
+logger = get_logger(__name__)
 
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):
@@ -60,7 +57,14 @@ def write_umls_ids(mrsty, outfile):
 
 
 def build_process_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
-    umls.build_sets(mrconso, idfile, outfile, {"GO": GO}, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(
+        mrconso,
+        idfile,
+        outfile,
+        {"GO": GO},
+        provenance_metadata_yaml=metadata_yaml,
+        acceptable_ttys={**umls.DEFAULT_ACCEPTABLE_TTYS, "GO": umls.GO_PREFERRED_TTYS},
+    )
 
 
 def build_process_obo_relationships(outdir, metadata_yaml):
@@ -91,86 +95,128 @@ def build_process_rhea_relationships(infile, outfile, metadata_yaml):
     rhea.make_concord(infile, outfile, metadata_yaml)
 
 
+# Concord pairs that cause problems and are dropped before glom.
+# GO:0034227/EC:2.8.1.4 is because that go term is a biological process, but EC is not a valid prefix for that,
+#  leading to a loss of the EC term (and a unified RHEA) on output.
+# A set *of* frozensets: set(frozenset([...])) would be a set of the two CURIE strings, which no pair matches.
+BAD_CONCORDS = {frozenset(["GO:0034227", "EC:2.8.1.4"])}
+
+
+def _process_concord_pair_drop_reason(parts, infile, dicts):
+    """Return why a concord pair should be dropped before glom, or None to keep it.
+
+    Drops BAD_CONCORDS pairs, and UMLS concord pairs unless both CURIEs are already in the clique state: UMLS includes
+    GO terms that are obsolete, so the UMLS concord may only join identifiers that the ids files (or earlier concords)
+    already contain. We trust the other concords to retrieve decent identifiers.
+    """
+    if frozenset([parts[0], parts[2]]) in BAD_CONCORDS:
+        return "listed in BAD_CONCORDS"
+    if infile.endswith("UMLS") and not (parts[0] in dicts and parts[2] in dicts):
+        return "UMLS pair naming a CURIE not already in a clique"
+    return None
+
+
+def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=(), *, mesh_ownership=None):
+    """Load process/activity/pathway identifier and concord files and return the clique state without writing
+    compendia.
+
+    Thin wrapper over :func:`src.model.cliques.glom_from_files`; ``build_compendia`` calls it too, so a replay over a
+    build's intermediate files (the source-impact report's ``PIPELINE_CONFIG["process"]``) uses the same code path as
+    the real build.
+
+    :param mesh_ownership: accepted so the source-impact report can call every pipeline the same way, and ignored:
+        process is not in ``config.yaml: umls_mesh_owning_pipelines`` (its UMLS concord has no MeSH), so the build
+        skips no concord pair for naming a CUI another pipeline owns.
+    :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE to its declared biolink type
+    """
+    # One count per (file, reason), logged once the cliques are built: a change to GO_PREFERRED_TTYS or to an ids file
+    # that makes the UMLS gate drop many more pairs should show up in the rule's log without a line per pair.
+    dropped = Counter()
+
+    def concord_pair_filter(parts, infile, dicts):
+        reason = _process_concord_pair_drop_reason(parts, infile, dicts)
+        if reason is not None:
+            dropped[(infile, reason)] += 1
+        return reason is None
+
+    result = glom_from_files(
+        concordances,
+        identifiers,
+        unique_prefixes=unique_prefixes_from_config("process_unique_prefixes"),
+        concord_pair_filter=concord_pair_filter,
+        # One kind of error is that GO->Reactome xrefs are frequently more like subclass relations: GO:0004674
+        # (protein serine/threonine kinase) has over 400 Reactome xrefs. remove_overused_xrefs() drops pairs whose
+        # second element is overused, but here it's the first, so we use bothways.
+        overused_xref_remover=lambda pairs, infile: remove_overused_xrefs(pairs, bothways=True),
+        excluded_sources=excluded_sources,
+    )
+    for (infile, reason), count in sorted(dropped.items()):
+        logger.info("dropped %d concord pairs from %s: %s", count, infile, reason)
+    return result
+
+
 def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories"""
-    # These are concords that cause problems and are being special cased out.  In disease/process we put these in some
-    # files, and maybe we should here too?
-    # GO:0034227/EC:2.8.1.4 is because that go term is a biological process, but EC is not a valid prefix for that,
-    #  leading to a loss of the EC term (and a unified RHEA) on output.
-    bad_concords = set(frozenset(["GO:0034227", "EC:2.8.1.4"]))
-    unique_prefixes = unique_prefixes_from_config("process_unique_prefixes")
-    dicts = {}
-    types = {}
-    for ifile in identifiers:
-        print(ifile)
-        new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
-        types.update(new_types)
-    for infile in concordances:
-        print(infile)
-        print("loading", infile)
-        # We have a concordance problem with UMLS - it is including GO terms that are obsolete and we don't want
-        # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
-        # UMLS concord.  We trust the others to retrieve decent identifiers.
-        pairs = []
-        for x in read_concords(infile):
-            if infile.endswith("UMLS"):
-                use = True
-                for xi in (x[0], x[2]):
-                    if xi not in dicts:
-                        print(f"Skipping pair {x} from {infile} because {xi} is not in dicts")
-                        use = False
-                if not use:
-                    continue
-            # A 2-tuple, handed to glom() as is: see read_concord_pairs() for why not a set or list.
-            pair = (x[0], x[2])
-            if frozenset(pair) not in bad_concords:
-                pairs.append(pair)
-        # one kind of error is that GO->Reactome xrefs are freqently more like subclass relations. So
-        # GO:0004674 (protein serine/threonine kinase) has over 400 Reactome xrefs
-        # remove_overused_xrefs assumes that we want to remove pairs where the second pair is overused
-        # but this case it's the first, so we use the bothways optoin
-        newpairs = remove_overused_xrefs(pairs, bothways=True)
-        glom(dicts, newpairs, unique_prefixes=unique_prefixes)
+    dicts, types = compute_cliques_for_impact_report(concordances, identifiers)
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     write_typed_compendia(metadata_yamls, typed_sets, icrdf_filename)
 
 
-def create_typed_sets(eqsets, types):
-    """Given a set of sets of equivalent identifiers, we want to type each one into
-    being either a disease or a phenotypic feature.  Or something else, that we may want to
-    chuck out here.
-    Current rules: If it has GO trust the GO's type
-    After that, check the types dict to see if we know anything.
+def classify_process_clique(equivalent_ids, types):
+    """Pick a biolink type for one process/activity/pathway clique: trust the GO term's declared type, else take a
+    majority vote over the declared types of the clique's members, breaking ties by the order Pathway,
+    BiologicalProcess, MolecularActivity.
+
+    Returns the biolink type string, or ``None`` if no member of the clique has a declared type. Used both by
+    ``create_typed_sets`` (the real build) and by the source-impact report, via the ``clique_classifier`` hook in
+    ``PIPELINE_CONFIG``, so the report labels each clique with the type the build would assign.
+
+    :raises ValueError: for a clique whose GO term has no declared type (it reached the clique through a concord but
+        is in no ids file, e.g. an obsolete GO term), or for a GO-less clique any of whose members declares a type
+        outside Pathway, BiologicalProcess and MolecularActivity. Either means an ids or concord
+        file holds something this pipeline was not built to type, so guessing would be worse than stopping.
     """
     order = [PATHWAY, BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY]
+    prefixes = get_prefixes(equivalent_ids)
+    if GO in prefixes:
+        go_term = prefixes[GO][0]
+        if go_term not in types:
+            raise ValueError(
+                f"GO term {go_term} in process clique {sorted(equivalent_ids)} has no declared type: it is in no "
+                "process ids file"
+            )
+        return types[go_term]
+    typecounts = defaultdict(int)
+    for eid in equivalent_ids:
+        if eid in types:
+            typecounts[types[eid]] += 1
+    if not typecounts:
+        return None
+    # Checked before the single-type return, so a clique whose members agree on a foreign type also stops the build
+    # rather than becoming a compendium that is not in process_outputs.
+    unexpected = sorted(set(typecounts) - set(order))
+    if unexpected:
+        raise ValueError(
+            f"Process clique {sorted(equivalent_ids)} has members declared {unexpected}, which is not one of {order}"
+        )
+    if len(typecounts) == 1:
+        return next(iter(typecounts))
+    # First attempt is majority vote, and after that by most specific
+    otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
+    otypes.sort()
+    return otypes[0][2]
+
+
+def create_typed_sets(eqsets, types):
+    """Group cliques by the biolink type :func:`classify_process_clique` gives them.
+
+    Raises RuntimeError for a clique none of whose members has a declared type.
+    """
     typed_sets = defaultdict(set)
     for equivalent_ids in eqsets:
-        # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
-        prefixes = get_prefixes(equivalent_ids)
-        found = False
-        for prefix in [GO]:
-            if prefix in prefixes and not found:
-                mytype = types[prefixes[prefix][0]]
-                typed_sets[mytype].add(equivalent_ids)
-                found = True
-        if not found:
-            typecounts = defaultdict(int)
-            for eid in equivalent_ids:
-                if eid in types:
-                    typecounts[types[eid]] += 1
-            if len(typecounts) == 0:
-                print("how did we not get any types?")
-                print(equivalent_ids)
-                exit()
-            elif len(typecounts) == 1:
-                t = list(typecounts.keys())[0]
-                typed_sets[t].add(equivalent_ids)
-            else:
-                # First attempt is majority vote, and after that by most specific
-                otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
-                otypes.sort()
-                t = otypes[0][2]
-                typed_sets[t].add(equivalent_ids)
+        mytype = classify_process_clique(equivalent_ids, types)
+        if mytype is None:
+            raise RuntimeError(f"No member of process clique {sorted(equivalent_ids)} has a declared type")
+        typed_sets[mytype].add(equivalent_ids)
     return typed_sets
