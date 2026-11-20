@@ -174,24 +174,36 @@ class ConcordRowScan:
     rejects: Counter = field(default_factory=Counter)
     # The first rejected line for each reason, as (line_number, line), so a report can show one.
     examples: dict[str, tuple[int, str]] = field(default_factory=dict)
+    # Filled only when scan_concord_lines() is asked to count prefixes: valid rows per
+    # (column, prefix), column being "subject" or "object", and the first CURIE seen for each. A
+    # CURIE with no colon is counted under the prefix None.
+    prefixes: Counter = field(default_factory=Counter)
+    prefix_examples: dict[tuple[str, str | None], str] = field(default_factory=dict)
 
     @property
     def rejected(self) -> int:
         return sum(self.rejects.values())
 
 
-def scan_concord_lines(lines: Iterable[str], filename: str) -> ConcordRowScan:
+def scan_concord_lines(lines: Iterable[str], filename: str, count_prefixes: bool = False) -> ConcordRowScan:
     """Run :func:`parse_concord_line` over every line, tallying rejects instead of raising.
 
     This is how to find out, before a build does, whether a set of concords would trip the
-    parser -- and which rows, by kind.
+    parser -- and which rows, by kind. With ``count_prefixes``, it also tallies the subject and
+    object prefixes of every valid row, for :func:`src.model.concords.find_unknown_prefixes`.
     """
     scan = ConcordRowScan(filename=filename)
     for line_number, line in enumerate(lines, start=1):
         scan.rows += 1
         try:
-            parse_concord_line(line, filename, line_number)
+            subject, _predicate, obj = parse_concord_line(line, filename, line_number)
         except MalformedConcordRowError as err:
             scan.rejects[err.reason] += 1
             scan.examples.setdefault(err.reason, (line_number, line))
+            continue
+        if count_prefixes:
+            for column, curie in (("subject", subject), ("object", obj)):
+                key = (column, curie.split(":", 1)[0] if ":" in curie else None)
+                scan.prefixes[key] += 1
+                scan.prefix_examples.setdefault(key, curie)
     return scan

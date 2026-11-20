@@ -6,12 +6,21 @@ Sections:
   ``babel-overused-xrefs`` and mirrors ``remove_overused_xrefs``'s 2+ subject rule.
 - ``# --- load_mrconso_labels ---`` checks the MRCONSO fallback used to label the
   classification vocabularies (ICD-10, SNOMED) Babel references but never ingests.
+- ``# --- find_unknown_prefixes ---`` checks the prefix report behind
+  ``babel-check-concords --prefixes``.
 """
 
 import pytest
 
-from src.model.concords import OverusedTarget, find_overused_xref_targets, load_mrconso_labels
-from src.model.intermediates import MalformedConcordRowError
+from src.model.concords import (
+    OverusedTarget,
+    UnknownPrefix,
+    find_overused_xref_targets,
+    find_unknown_prefixes,
+    known_curie_prefixes,
+    load_mrconso_labels,
+)
+from src.model.intermediates import MalformedConcordRowError, scan_concord_lines
 
 # --- find_overused_xref_targets ---
 
@@ -184,3 +193,32 @@ def test_overused_target_prefix_preserves_case():
     """The audit's target_prefix column must echo the CURIE, not an upper-cased version of it."""
     assert OverusedTarget(target="orphanet:558", subjects={"DOID:1", "DOID:2"}).prefix == "orphanet"
     assert OverusedTarget(target="no-colon", subjects={"DOID:1"}).prefix == ""
+
+
+# --- find_unknown_prefixes ---
+
+
+@pytest.mark.unit
+def test_known_prefixes_add_babels_own_to_biolinks():
+    """Should accept a prefix only src/prefixes.py defines (icd11 is missing from Biolink's prefix map)."""
+    known = known_curie_prefixes(["UBERON"])
+    assert {"UBERON", "icd11", "SNOMEDCT"} <= known
+
+
+@pytest.mark.unit
+def test_unknown_prefixes_are_listed_with_a_case_hint():
+    """Should list only unknown prefixes, subjects first and then by row count, and name the known
+    prefix an unknown one differs from only in case."""
+    lines = [
+        "UBERON:1\txref\tSCTID:1\n",
+        "UBERON:2\txref\tSCTID:2\n",
+        "UBERON:3\txref\tsnomedct:3\n",
+        "UBERON:4\txref\tSNOMEDCT:4\n",
+        "NOPE:5\txref\tSNOMEDCT:5\n",
+    ]
+    scan = scan_concord_lines(lines, "UBERON", count_prefixes=True)
+    assert find_unknown_prefixes(scan, frozenset({"UBERON", "SNOMEDCT"})) == [
+        UnknownPrefix("subject", "NOPE", 1, "NOPE:5"),
+        UnknownPrefix("object", "SCTID", 2, "SCTID:1"),
+        UnknownPrefix("object", "snomedct", 1, "snomedct:3", case_variant_of="SNOMEDCT"),
+    ]

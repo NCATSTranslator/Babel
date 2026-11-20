@@ -99,3 +99,60 @@ GROUP BY ALL;
 It found the same two writers: 440 padded DOIs in `PMID_DOI` and 2 padded xrefs in `EFO`, and no
 empty columns, across 51 files and 231,483,535 rows. It cannot show wrong-column-count rows,
 because that build's export dropped them (see `docs/DataFormats.md`).
+
+## Unknown prefixes (`--prefixes`)
+
+```bash
+uv run babel-check-concords --prefixes babel_outputs/intermediate/disease
+```
+
+With `--prefixes`, the tool also asks a second question: **does any concord CURIE carry a prefix
+Babel doesn't know?** Known means the Biolink Model's prefix map at `config.yaml: biolink_version`,
+plus `src/prefixes.py` for the few Babel uses that the map lacks (`icd11`, `ICD0`, `ICD10CM`,
+`GARD`). Under each file it prints one line per unknown subject or object prefix, with its row count
+and an example, and says when a prefix differs from a known one only in case:
+
+```text
+…/anatomy/concords/UBERON       45260   0
+#   unknown object prefix 'Wikipedia': 3555 rows, e.g. 'Wikipedia:Cervix'
+#   unknown object prefix 'EHDAA2': 1460 rows, e.g. 'EHDAA2:0001225'
+```
+
+This is the automated form of the check in
+[`docs/sources/AGENTS.md`](../sources/AGENTS.md#a-missing-prefix-rename-is-the-same-bug-spelled-differently):
+a source whose spelling of a vocabulary has no entry in its `config.yaml: *_xref_prefixes` map
+writes CURIEs that join nothing, and `glom()` still merges every subject that cites one. Matching
+is exact because `glom()` compares CURIEs as strings. The compendium writer later fixes the case of
+a prefix Biolink registers for the clique's class, so MONDO's `MEDGEN:` xrefs ship as `medgen:`,
+but in `glom()` the two spellings are different identifiers.
+
+It is a report, not a gate: unknown prefixes don't change the exit status. Every build has many
+that are harmless. UBERON alone cross-references some seventy anatomy vocabularies that Babel
+doesn't ingest, and almost all of those CURIEs are cited by one subject, so they can't merge
+anything. Read the list for a spelling of a vocabulary Babel *does* use (`SCTID`, `MIM`,
+`SNOMEDCT_US_2025_09_01`, a case variant), and for an unknown CURIE that several subjects cite.
+
+### What 2026jul22 contained
+
+2026jul22 published no `intermediate/` tree, so
+[`check-concords/unknown_prefix_merges.py`](check-concords/unknown_prefix_merges.py) reads the same
+rows from its DuckDB export's `Concord.parquet`, for the anatomy, disease, process and protein
+pipelines. It also asks the question the tool can't, file by file: did an unknown-prefix CURIE cited
+by two or more subjects put them in one clique? Its output is
+[`check-concords/2026jul22.md`](check-concords/2026jul22.md), judged at Biolink 4.4.3.
+
+- **136 concord/prefix pairs, 126 distinct prefixes.** Most are vocabularies Babel doesn't ingest
+  (UBERON's anatomy xrefs, PR's `Reactome` and `EcoCyc`, GO's `MetaCyc`) or mangled xrefs (EFO's
+  `https` and `modelled on http`).
+- **Missing renames.** DOID's `MIM`, `ORDO` and six release-stamped `SNOMEDCT_US_*` spellings
+  (about 14,000 rows) are now renamed by `config.yaml: disease_xref_prefixes`. UBERON's 4,117
+  `SCTID` xrefs are renamed by #1135, through `config.yaml: anatomy_xref_prefixes`. EFO's 3 `SCTID`
+  xrefs still have no rename, nor do the case variants `Intact` and `IntAct` in anatomy's GO
+  concord, `kegg.module` and `InterPro` in process's, and DOID's `ICD11`.
+- **Merges.** 27 unknown-prefix CURIEs cited by two or more subjects ended up with all of those
+  subjects in one clique. For 21 of them, the subjects are also linked through another concord row,
+  directly or by a shared neighbour. The other 6 were probably merged by the unknown CURIE alone:
+  four DOID pairs through the `SNOMEDCT_US` and `ORDO` spellings that are now renamed, and two GO
+  cellular components joined to UBERON terms through `Wikipedia:` xrefs. Those two are
+  `GO:0005903` "brush border" with `UBERON:0012424` "brush border layer", and `GO:0043209` "myelin
+  sheath" with `UBERON:0000345` "myelin".

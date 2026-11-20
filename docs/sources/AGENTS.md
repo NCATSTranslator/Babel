@@ -77,10 +77,11 @@ one clique. That is the overused-xref failure with a different cause, and it is 
 per-compendium metadata YAMLs — a prefix pair that never joins simply has no `prefix_counts` row.
 
 So **tabulate a source's xref target prefixes against its rename map** before trusting a concord,
-the same way you tabulate them for junk targets.
-`cut -f3 <concord> | sed 's/:.*//' | sort | uniq -c` against
-`config.yaml: disease_xref_prefixes[<SOURCE>]` is the whole check; DOID had 5,358 SNOMED and 6,483
-OMIM rows falling through it (see [`DOID/mappings.md`](DOID/mappings.md)).
+the same way you tabulate them for junk targets. `uv run babel-check-concords --prefixes <concord>`
+lists every prefix in it that neither Biolink nor `src/prefixes.py` defines
+([`docs/tools/CheckConcords.md`](../tools/CheckConcords.md#unknown-prefixes---prefixes)); read
+that list against `config.yaml: <pipeline>_xref_prefixes[<SOURCE>]`. DOID had 5,358 SNOMED and
+6,483 OMIM rows falling through it (see [`DOID/mappings.md`](DOID/mappings.md)).
 
 The maps live in `config.yaml`, not beside the code, precisely because the review question is "what
 is missing" — which you cannot ask of a dict you have to go find. This is the deliberate exception
