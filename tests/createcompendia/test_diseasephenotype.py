@@ -566,17 +566,63 @@ def test_build_disease_doid_relationships_keeps_icd_in_the_concord():
     assert "overuse-filtered at glom" in mock_meta.call_args.kwargs["description"]
 
 
-# --- EFO->MP xref exclusion (MP disjointness at the EFO source) ---
+# --- EFO xref exclusions (MP disjointness, and PMID citations, at the EFO source) ---
 
 
 @pytest.mark.unit
-def test_efo_excluded_xref_prefixes_is_mp():
+def test_efo_excluded_xref_prefixes_are_mp_and_publications():
     """EFO_EXCLUDED_XREF_PREFIXES must list MP so EFO's untrusted direct xrefs to Mammalian
-    Phenotype terms are dropped at the source, keeping MP disjoint from EFO. Regression guard
-    against the constant being emptied or repointed. See docs/sources/MP/disjointness.md."""
-    from src.prefixes import MP
+    Phenotype terms are dropped at the source, keeping MP disjoint from EFO, and the publication
+    prefixes (PMID, PMC, doi) so its citations never reach glom() as equivalences. Regression guard
+    against the constant being emptied or repointed. See docs/sources/MP/disjointness.md and
+    docs/sources/EFO/pmid-xrefs/."""
+    from src.prefixes import DOI, MP, PMC, PMID
 
-    assert diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES == [MP]
+    assert diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES == [MP, PMID, PMC, DOI]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "efo_number,citation",
+    [
+        # EFO_0020008 "campesterol measurement" is the only EFO term to cite this PMID, so the
+        # overuse filter would have kept the row.
+        ("0020008", "PMID:11432711"),
+        # EFO_0011031 cites one paper twice, as PMID:31251335 and as this doi.
+        ("0011031", "doi:10.1111/nmo.12871"),
+    ],
+)
+def test_efo_publication_citation_is_not_written_to_the_concord(efo_number, citation):
+    """An EFO term's citation of the paper it was curated from must not become a concord row.
+
+    Each xref is copied verbatim from EFO 3.95.0's efo.owl, e.g.
+    ``<oboInOwl:hasDbXref>PMID:11432711</oboInOwl:hasDbXref>`` on EFO_0020008.
+    """
+    import io
+
+    import pyoxigraph
+
+    from src.datahandlers.efo import EFOgraph
+    from tests.datahandlers.conftest import lit, make_graph_from_store, nn, quad
+
+    store = pyoxigraph.Store()
+    store.add(
+        quad(
+            nn(f"http://www.ebi.ac.uk/efo/EFO_{efo_number}"),
+            nn("http://www.geneontology.org/formats/oboInOwl#hasDbXref"),
+            lit(citation),
+        )
+    )
+    graph = make_graph_from_store(EFOgraph, store)
+    efo_id = f"EFO:{efo_number}"
+
+    unfiltered = io.StringIO()
+    graph.get_xrefs(efo_id, unfiltered)
+    assert unfiltered.getvalue() == f"{efo_id}\toboInOwl:hasDbXref\t{citation}\n"  # not vacuous
+
+    filtered = io.StringIO()
+    graph.get_xrefs(efo_id, filtered, excluded_target_prefixes=diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES)
+    assert filtered.getvalue() == ""
 
 
 @pytest.mark.unit
