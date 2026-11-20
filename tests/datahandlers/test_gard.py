@@ -294,7 +294,7 @@ def test_disease_node_factory_keeps_gard_only_with_extra_prefixes():
 def test_labels_and_synonyms_are_written_utf8_under_a_c_locale(tmp_path, monkeypatch):
     """Non-ASCII rare-disease names must survive the write whatever the process locale is.
 
-    ``open(..., "w")`` inherits the locale encoding on Python < 3.14 (this repo pins >=3.11,<3.14),
+    ``open(..., "w")`` inherits the locale encoding on Python < 3.14 (this repo pins >=3.12,<3.14),
     so on an HPC batch node running under LC_ALL=C an unqualified open() raises UnicodeEncodeError
     partway through and leaves a truncated labels file. GARD is full of names like these, so the
     writers pass encoding="utf-8" explicitly.
