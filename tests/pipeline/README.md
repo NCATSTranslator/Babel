@@ -71,6 +71,13 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
   chemicals) unless the gene pipeline selects it (`UMLS:C1413234` stays in gene), and chemicals must
   not contain any UMLS IDs that the protein compendium claimed (semantic type tree A1.4.1.2.1.7,
   Amino Acid/Peptide/Protein).
+  The UMLS fixture re-downloads when `babel_downloads/UMLS/UMLS.metadata.yaml` names a different
+  release or subset than `config.yaml`, so a `umls_version` bump is tested on the new release.
+
+- **`test_umls_mesh_skew.py`** (`pipeline`) — runs the build's UMLS/MeSH skew check
+  (`check_umls_mesh_skew`) against the configured UMLS and MeSH downloads, and checks that the
+  cached UMLS is the configured release, so a `umls_version` or `mesh_year` bump finds out before a
+  build does. See `docs/sources/MeSH/Ingestion.md` ("Source data").
 
 - **`test_ec.py`**, **`test_rhea.py`**, **`test_chembl.py`**, **`test_clo.py`**,
   **`test_efo.py`** (`pipeline`) — Output format and content checks for the EC, Rhea,

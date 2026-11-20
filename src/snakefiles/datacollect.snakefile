@@ -325,8 +325,13 @@ rule download_umls:
         mem="8G",
         cpus_per_task=1,
         runtime="6h",
+    params:
+        # Params, so that changing umls_version (or the subset) reruns the download rather than reusing the old
+        # release's MRCONSO.RRF.
+        umls_version=config["umls_version"],
+        umls_subset=config["umls"]["subset"],
     run:
-        umls.download_umls(config["umls_version"], config["umls"]["subset"], config["download_directory"] + "/UMLS")
+        umls.download_umls(params.umls_version, params.umls_subset, config["download_directory"] + "/UMLS")
 
 
 rule get_umls_labels_and_synonyms:
@@ -1114,8 +1119,11 @@ rule download_rxnorm:
     resources:
         mem="8G",
         cpus_per_task=1,
+    params:
+        # A param, so that changing rxnorm_version reruns the download rather than reusing the old release.
+        rxnorm_version=config["rxnorm_version"],
     run:
-        umls.download_rxnorm(config["rxnorm_version"], config["download_directory"] + "/RxNorm")
+        umls.download_rxnorm(params.rxnorm_version, config["download_directory"] + "/RxNorm")
 
 
 rule pubchem_rxnorm_annotations:
