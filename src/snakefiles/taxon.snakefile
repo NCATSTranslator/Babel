@@ -18,23 +18,26 @@ rule taxon_ncbi_ids:
 rule taxon_mesh_ids:
     input:
         infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Every record with an NCBI Taxon registry number is claimed here, whatever its MeSH record class (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/taxon/ids/MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/taxon_mesh_ids.tsv"
     run:
-        taxon.write_mesh_ids(output.outfile)
+        taxon.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule taxon_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         outfile=config["intermediate_directory"] + "/taxon/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/taxon_umls_ids.tsv"
     run:
-        taxon.write_umls_ids(input.mrsty, output.outfile)
+        taxon.write_umls_ids(input.mrsty, output.outfile, mesh_ownership=input.mesh_ownership)
 
 
 rule get_taxon_umls_relationships:
@@ -52,15 +55,22 @@ rule get_taxon_umls_relationships:
 
 rule get_taxon_relationships:
     input:
-        meshfile=config["download_directory"] + "/MESH/mesh.nt",
-        meshids=config["intermediate_directory"] + "/taxon/ids/MESH",
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
+        mesh_rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        mesh_xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
     output:
         outfile=config["intermediate_directory"] + "/taxon/concords/NCBI_MESH",
         metadata_yaml=config["intermediate_directory"] + "/taxon/concords/metadata-NCBI_MESH.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_taxon_relationships.tsv"
     run:
-        taxon.build_relationships(output.outfile, input.meshids, output.metadata_yaml)
+        taxon.build_relationships(
+            output.outfile,
+            output.metadata_yaml,
+            mesh_registry=input.mesh_registry,
+            mesh_rdf_source=input.mesh_rdf_source,
+            mesh_xml_sources=input.mesh_xml_sources,
+        )
 
 
 rule taxon_compendia:
@@ -73,6 +83,7 @@ rule taxon_compendia:
         ),
         idlists=expand("{dd}/taxon/ids/{ap}", dd=config["intermediate_directory"], ap=config["taxon_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["taxon_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["taxon_outputs"])),
@@ -84,8 +95,17 @@ rule taxon_compendia:
         # watch for an OOM as NCBITaxon grows; 2026jul22 peaked at 14.1 GiB = 15.1 GB, 95% of the
         # default, so it gets a block.
         mem="24G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["taxon_unique_prefixes"],
     run:
-        taxon.build_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
+        taxon.build_compendia(
+            input.concords,
+            input.metadata_yamls,
+            input.idlists,
+            input.icrdf_filename,
+            mesh_ownership=input.mesh_ownership,
+        )
 
 
 rule check_taxon_completeness:

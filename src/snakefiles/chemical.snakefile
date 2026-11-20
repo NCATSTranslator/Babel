@@ -8,12 +8,13 @@ import src.snakefiles.util as util
 rule chemical_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_umls_ids.tsv"
     run:
-        chemicals.write_umls_ids(input.mrsty, output.outfile)
+        chemicals.write_umls_ids(input.mrsty, output.outfile, mesh_ownership=input.mesh_ownership)
 
 
 rule chemical_rxnorm_ids:
@@ -30,12 +31,14 @@ rule chemical_rxnorm_ids:
 rule chemical_mesh_ids:
     input:
         infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_mesh_ids.tsv"
     run:
-        chemicals.write_mesh_ids(output.outfile)
+        chemicals.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule chemical_pubchem_ids:
@@ -248,6 +251,9 @@ rule get_chemical_wikipedia_relationships:
 rule get_chemical_mesh_relationships:
     input:
         infile=config["intermediate_directory"] + "/chemicals/ids/MESH",
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
+        mesh_rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        mesh_xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
     output:
         casout=config["intermediate_directory"] + "/chemicals/concords/mesh_cas",
         uniout=config["intermediate_directory"] + "/chemicals/concords/mesh_unii",
@@ -257,7 +263,14 @@ rule get_chemical_mesh_relationships:
         config["output_directory"] + "/benchmarks/get_chemical_mesh_relationships.tsv"
     run:
         chemicals.get_mesh_relationships(
-            input.infile, output.casout, output.uniout, output.casout_metadata_yaml, output.uniout_metadata_yaml
+            input.infile,
+            output.casout,
+            output.uniout,
+            output.casout_metadata_yaml,
+            output.uniout_metadata_yaml,
+            mesh_registry=input.mesh_registry,
+            mesh_rdf_source=input.mesh_rdf_source,
+            mesh_xml_sources=input.mesh_xml_sources,
         )
 
 
@@ -279,6 +292,9 @@ rule get_chemical_unichem_relationships:
         # i.e. 93% of 24 GB -- raised a bucket so a growing UniChem doesn't OOM it.
         mem="32G",
     run:
+        # The only concord rule that writes no metadata, so its rows aren't checked by
+        # write_concord_metadata()'s read_concords() pass here: a malformed row surfaces later, when
+        # chemical_unichem_concordia reads it. Adding metadata per UNICHEM_* file would fix both (#648).
         chemicals.write_unichem_concords(
             input.structfile, input.reffile, config["intermediate_directory"] + "/chemicals/concords/UNICHEM"
         )
@@ -360,6 +376,9 @@ rule chemical_unichem_concordia:
     resources:
         # 2026jul22 peaked at 111.6 GiB = 119.8 GB, 94% of 128G; UniChem grows every release.
         mem="192G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["chemical_unique_prefixes"],
     run:
         chemicals.combine_unichem(input.concords, output.unichemgroup)
 
@@ -378,10 +397,15 @@ rule untyped_chemical_compendia:
             cc=config["chemical_concords"],
         ),
         idlists=expand("{dd}/chemicals/ids/{ap}", dd=config["intermediate_directory"], ap=config["chemical_ids"]),
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
+        # Declared as an input so editing the file re-triggers this rule.
+        badxrefs=chemicals.CHEMICAL_BAD_XREFS,
     output:
         typesfile=config["intermediate_directory"] + "/chemicals/partials/types",
         untyped_file=config["intermediate_directory"] + "/chemicals/partials/untyped_compendium",
         untyped_meta=config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml",
+        # The bad xref pairs this build applied, for babel-inchikey-audit --badxrefs: the repo's file may have moved on.
+        applied_badxrefs=config["intermediate_directory"] + "/chemicals/partials/applied_badxrefs.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/untyped_chemical_compendia.tsv"
     resources:
@@ -392,6 +416,9 @@ rule untyped_chemical_compendia:
         # entirely, but only at 77% used with no room for one release's growth; revisit after the
         # next full run, when there are three peaks to size from rather than two.
         mem="256G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["chemical_unique_prefixes"],
     run:
         chemicals.build_untyped_compendia(
             input.concords,
@@ -401,6 +428,9 @@ rule untyped_chemical_compendia:
             output.typesfile,
             output.untyped_meta,
             input.metadata_yamls,
+            mesh_ownership=input.mesh_ownership,
+            badxrefs=input.badxrefs,
+            applied_badxrefs=output.applied_badxrefs,
         )
 
 

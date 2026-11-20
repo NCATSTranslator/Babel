@@ -129,8 +129,9 @@ there is no `get_biolink_prefix_map()` expansion for it).
 Hemophilia is [`GARD:10418`](https://rarediseases.info.nih.gov/?gard_id=10418); `GARD:0418` is a
 typo, and it unpads to `GARD:418` "Essential pentosuria", which
 [`DOID:0111258`](http://purl.obolibrary.org/obo/DOID_0111258) "pentosuria" already xrefs. The two
-cliques do not merge — both hold a MONDO identifier and MONDO is in `DISEASE_UNIQUE_PREFIXES`, so
-`glom()` refuses the union — so the contested identifier goes to whichever concord claims it first.
+cliques do not merge — both hold a MONDO identifier and MONDO is in `disease_unique_prefixes`
+(`config.yaml`), so `glom()` refuses the union — so the contested identifier goes to whichever
+concord claims it first.
 
 Two things settle it, neither specific to this row. `MONDO_GARD` is glommed before `DOID`
 (`disease_concords` order is load-bearing, and a unit test pins it), and MONDO maps

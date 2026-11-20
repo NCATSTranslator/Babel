@@ -31,7 +31,7 @@ uv run snakemake --profile slurm chemical
 | `executor` | `slurm` | Uses Snakemake's built-in SLURM executor |
 | `jobs` | 50 | Max parallel SLURM jobs |
 | `default-resources.mem` | 16G | Per-job default RAM (90% of rules peak below 8G) |
-| `default-resources.cpus_per_task` | 1 | Per-job default CPUs (only DuckDB rules use more) |
+| `default-resources.cpus_per_task` | 1 | Per-job default CPUs (the DuckDB exports, `protein` and `generate_pubmed_concords` set more) |
 | `default-resources.runtime` | 120 min | Per-job default wall time |
 | `python.executable` | `/usr/bin/time -v python` | Captures memory/time to job stderr |
 | `slurm-efficiency-report` | True | Writes per-job efficiency CSV |
@@ -39,6 +39,11 @@ uv run snakemake --profile slurm chemical
 Download-only rules (e.g. `get_EFO`, `get_mesh`, `get_rhea`, `get_pubchem`, `download_umls`)
 override the defaults with `mem="8G", cpus_per_task=1` since they are I/O-bound. Large downloads
 (UniProtKB idmapping/trembl, UMLS) also set `runtime="6h"`.
+
+A rule that runs more than one process or thread must set `cpus_per_task` as well as `threads:`.
+The SLURM executor allocates `cpus_per_task` when it is set, and the default above always sets it,
+so `threads: 8` alone gets a one-CPU job whose eight workers share a single core. Keep the two
+equal (`generate_pubmed_concords` is an example).
 
 ## Benchmark Data
 
@@ -116,8 +121,8 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `generate_prefix_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges, biolink_type read from the denormalized Edge column (no join); memory_limit 1000G, 1 thread. Replaced the former `generate_curie_report` + `generate_clique_leader_report`, scanning the Edge set once instead of twice |
 | `chembl_labels_and_smiles` | `datacollect.snakefile` | 128G | — | RDF parse |
 | `chemical_unichem_concordia` | `chemical.snakefile` | 192G | — | UniChem merge (119.8 GB peak, was 94% of 128G) |
-| `generate_pubmed_concords` | `publications.snakefile` | 128G | 24h | Full PubMed parse; 17.5h on babel-1.17, 20.0h on 2026jul22. Reported at-risk (83%) and left alone on purpose — see below |
-| `generate_pubmed_compendia` | `publications.snakefile` | 192G | 4h | PubMed compendium build; 132.5 GB peak was at or past its own 128G request, and 88% of the 2h default |
+| `generate_pubmed_concords` | `publications.snakefile` | 16G | 1h | Parallel parse of the pubmed2db NDJSON export (8 threads, `cpus_per_task=8`); ~10 GB and minutes, extrapolated from shard 0 of 2026sep26 measured locally (31s, 1.27 GB). Replaced the 128G/24h XML parse (20.0h, 32 GB peak on 2026jul22); confirm from the first cluster benchmark |
+| `generate_pubmed_compendia` | `publications.snakefile` | 8G | 1h | PubMed compendium streamed from the shards without glom, single-threaded; ~3 GB and ~15 min, extrapolated from shard 0 of 2026sep26 measured locally (102s, 0.10 GB without the common UberGraph files). The glom version peaked at 132.5 GB; confirm from the first cluster benchmark |
 | `geneprotein_conflated_synonyms` | `geneprotein.snakefile` | 512G | 6h | Conflated synonym merge |
 | `drugchemical_conflation` | `drugchemical.snakefile` | 96G | — | Drug/chemical conflation (61.2 GB peak, was 96% of 64G) |
 | `geneprotein_conflation` | `geneprotein.snakefile` | 64G | — | Gene/protein conflation (~48G peak) |
@@ -154,11 +159,11 @@ review also reports runtime fit). Two cautions from it:
 - `get_ensembl` swung from 3 minutes (babel-1.17) to 1.9h (2026jul22). Network-bound rules vary
   by an order of magnitude between runs, so their runtimes are deliberately generous.
 
-After the 2026jul22 sizing pass one rule is still within 80% of its runtime limit, deliberately:
-`generate_pubmed_concords` sits at 83% of 24h. That limit is known to work, 4h of slack has been
-enough across two runs, and a rewrite that removes the rule's cost is in progress — so the fix is
-to make the rule cheaper, not to reserve a day and a half of wall time for it. Raise it only if a
-run actually times out.
+After the 2026jul22 sizing pass one rule was still within 80% of its runtime limit, deliberately:
+`generate_pubmed_concords` sat at 83% of 24h, and the fix chosen was to make the rule cheaper rather
+than reserve more wall time. It has since been rewritten to read the pubmed2db export
+(`docs/sources/PubMed/README.md`); its limits now come from a local single-shard measurement,
+pending a cluster benchmark.
 
 The slowest rule still on the *default* runtime is `untyped_chemical_compendia` at 58 minutes, so
 the 120-minute default has roughly 2x headroom and was left alone.
@@ -168,9 +173,16 @@ the 120-minute default has roughly 2x headroom and was left alone.
 The DuckDB rules (`export_*_to_duckdb` and the cross-compendium report rules in
 `duckdb.snakefile`) spill larger-than-memory intermediates to a temp directory. By default that
 is `tmp_directory` from `config.yaml` (`babel_downloads/tmp`, on the parallel filesystem).
-`setup_duckdb()` gives each job its own `duckdb-$SLURM_JOB_ID` subdirectory there, so concurrent
-jobs never share spill files — sharing one directory previously caused `stale file handle` and
-`could not read enough bytes` IO errors when several report jobs ran at once.
+`connect_duckdb()` gives each connection its own `duckdb-$SLURM_JOB_ID-<pid>-<random>`
+subdirectory there, so concurrent jobs never share spill files — sharing one directory previously
+caused `stale file handle` and `could not read enough bytes` IO errors when several report jobs ran
+at once. The subdirectory is deleted when the connection closes, including when a query raises;
+any file it can't delete (an NFS `.nfsXXXX` file DuckDB still holds open, say) is logged by path
+as a `Could not delete DuckDB spill path` warning. A job killed outright — SIGKILL at its time
+limit or a cgroup OOM-kill, or the SIGABRT of a DuckDB background-thread OOM — skips that clean-up
+and leaves its directory, spill files included; the job ID in its name says whether that job is
+still running, and once it isn't, the directory can be deleted. Its permissions follow the job's
+umask, so anyone the umask lets in can clear it, not only the user who ran the job.
 
 Hatteras has no large node-local disk suitable for spilling:
 
@@ -241,7 +253,7 @@ The **definitive** fix is for the cluster to raise `vm.max_map_count` (it is the
 65530; 262144+ is typical for data-heavy mmap workloads — tracking issue #846). The `memory_limit`
 cap keeps the rule running until then. `mem` stays at 512G (the cgroup was never the constraint).
 
-The memory snapshot is built to tell these shapes apart. `setup_duckdb()` logs a connect-time
+The memory snapshot is built to tell these shapes apart. `connect_duckdb()` logs a connect-time
 `DuckDB memory headroom: memory_limit=…, cgroup hard limit=…` line (the only memory record that
 survives a SIGABRT), and `log_duckdb_settings_on_error()` plus the end of each report log two lines:
 a `Memory snapshot (…)` line (process peak RSS, cgroup current/peak/hard-limit, DuckDB tracked, and
@@ -263,7 +275,7 @@ as:
 
 The cgroup figures come from the job's SLURM cgroup, resolved via `/proc/self/cgroup` (the bare
 `/sys/fs/cgroup` root would report the node total, not the `mem=` allocation); all fields read
-`unknown` off Linux/cgroups. See `src/exporters/duckdb_exporters.py`.
+`unknown` off Linux/cgroups. See `src/utils/duckdb_setup.py` and `src/utils/memory.py`.
 
 To override the spill location for a run — for example to point spills at a larger or less-contended
 filesystem — set `BABEL_DUCKDB_TEMP_DIR` in the job environment; an individual rule can also pass
@@ -281,7 +293,7 @@ may have at `vm.max_map_count` (the old default is 65530), and a new mmap-backed
 with `ENOMEM` once that ceiling is reached.
 
 How to confirm: look at the `Address-space snapshot (…)` line that `log_memory_snapshot()` writes
-(`src/exporters/duckdb_exporters.py`); it is surfaced automatically by `babel-slurm-errors`. If
+(`src/utils/memory.py`); it is surfaced automatically by `babel-slurm-errors`. If
 `mappings` is at or near `max_map_count` while `Committed_AS` is well under `CommitLimit` and
 `MemAvailable` is large, it is this issue. (Compare against the RAM shapes documented under
 "Temporary Scratch Space" above.)

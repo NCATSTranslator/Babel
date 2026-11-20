@@ -335,7 +335,7 @@ def test_labels_and_synonyms_are_written_utf8_under_a_c_locale(tmp_path, monkeyp
 # assertion only means something because this string is a copy of what NCATS actually serves --
 # `&amp;` entities, icon markup inside the anchor and all. Interpolating constants into it would
 # turn the fixture into a construction of what we think the page looks like, which is the failure
-# tests/CLAUDE.md warns about ("fixtures for a real-data bug must be copied verbatim"). Recopy it
+# tests/AGENTS.md warns about ("fixtures for a real-data bug must be copied verbatim"). Recopy it
 # from the page when the link is repointed.
 _ABOUT_PAGE_ANCHOR = (
     '<a href="https://ncats.file.force.com/sfc/dist/version/download/?oid=00Dt00000004XG2&amp;ids=068SJ00001HZAaEYAX'

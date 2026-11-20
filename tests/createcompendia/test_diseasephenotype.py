@@ -9,7 +9,7 @@ Sections:
   the downstream ``umls.write_umls_ids`` call rather than running a real MRSTY
   parse -- keeping these tests fast and offline.
 - ``# --- MONDO_close parsing in compute_cliques_for_impact_report ---`` guards
-  the 3-column ``MONDO_close`` concord reader against a column-count regression, and
+  that ``MONDO_close`` is read by the shared strict concord parser, and
   checks that excluding MONDO also skips its own MONDO_close close-match data.
 - ``# --- classify_disease_clique ---`` checks the per-clique biolink typing used
   by both the real build and the source-impact report.
@@ -18,7 +18,7 @@ Sections:
 - ``# --- split_mutually_exclusive_cliques (HP/MP disjointness) ---`` checks that a
   glommed clique holding both HP and MP is split (MP peeled out, HP side kept).
 - ``# --- MP data-quality guards ---`` checks that MP gets the same same-prefix
-  overmerge guard (``DISEASE_UNIQUE_PREFIXES``) and overused-xref filtering
+  overmerge guard (``disease_unique_prefixes`` in config.yaml) and overused-xref filtering
   (``OVERUSE_FILTERED_CONCORDS``) that MONDO/HP already have.
 - ``# --- DOID ICD xref overuse filtering ---`` checks that a DOID ICD xref is dropped exactly
   when its code is claimed by 2+ DOID terms -- an ICD code names a disease *family* -- while
@@ -32,9 +32,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.babel_utils import glom, norm, remove_overused_xrefs
+from src.babel_utils import glom, norm, remove_overused_xrefs, unique_prefixes_from_config
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+from src.model import compendia
+from src.model.intermediates import MalformedConcordRowError
 from src.prefixes import DOID, GARD, ICD10CM, MONDO
 from src.ubergraph import build_sets
 from src.util import Text, get_config
@@ -121,7 +123,6 @@ def test_mondo_close_accepts_three_column_concord(tmp_path):
         tmp_path / "MONDO_close",
         [
             "MONDO:0000739\toio:closeMatch\tMEDDRA:10051962",
-            "",  # blank line must be skipped, not crash
             "MONDO:0000740\toio:closeMatch\tMEDDRA:10001229",
         ],
     )
@@ -139,14 +140,14 @@ def test_mondo_close_accepts_three_column_concord(tmp_path):
 
 @pytest.mark.unit
 def test_mondo_close_rejects_malformed_row(tmp_path):
-    """A MONDO_close row that is not exactly three tab-separated columns is malformed
-    and must raise a clear RuntimeError rather than silently mis-parsing or hitting an
-    IndexError deep inside glom.
+    """A MONDO_close row the shared concord parser rejects -- here a padded last column, which the
+    old ``line.strip()`` reader hid -- must raise, naming the file and line, rather than be
+    accepted here while every other concord reader rejects it.
     """
     ids = _write_lines(tmp_path / "MONDO", [f"MONDO:0000001\t{DISEASE}"])
-    mondoclose = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\tMEDDRA:10051962"])
+    mondoclose = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\toio:closeMatch\tMEDDRA:10051962 "])
 
-    with pytest.raises(RuntimeError, match="not a valid MONDO_close entry"):
+    with pytest.raises(MalformedConcordRowError, match=r"MONDO_close:1 is not a valid concord row"):
         diseasephenotype.compute_cliques_for_impact_report(
             concordances=[],
             identifiers=[ids],
@@ -170,7 +171,7 @@ def test_excluding_mondo_skips_basename_discovered_mondo_close(tmp_path):
     ids = _write_lines(tmp_path / "HP", [f"HP:0000001\t{PHENOTYPIC_FEATURE}"])
     bad_mondo_close = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\tMEDDRA:10051962"])
 
-    with pytest.raises(RuntimeError, match="not a valid MONDO_close entry"):
+    with pytest.raises(MalformedConcordRowError, match=r"MONDO_close:1 is not a valid concord row"):
         diseasephenotype.compute_cliques_for_impact_report(
             concordances=[bad_mondo_close],
             identifiers=[ids],
@@ -438,18 +439,19 @@ def test_split_then_create_typed_sets_routes_mp_to_phenotypic_feature():
 
 @pytest.mark.unit
 def test_mp_included_in_unique_prefixes_blocks_same_prefix_merge():
-    """DISEASE_UNIQUE_PREFIXES must include MP so two distinct MP ids never merge into one
-    clique via a shared bridge -- the same protection MONDO and HP already get.
+    """config.yaml's disease_unique_prefixes must include MP so two distinct MP ids never merge into
+    one clique via a shared bridge -- the same protection MONDO and HP already get.
 
-    Regression guard: MP was added to disease_ids/disease_concords without being added to
-    DISEASE_UNIQUE_PREFIXES, silently losing this data-quality guard.
+    Regression guard: MP was added to disease_ids/disease_concords without being added to the
+    disease unique prefixes, silently losing this data-quality guard.
     """
+    unique_prefixes = unique_prefixes_from_config("disease_unique_prefixes")
     dicts = {}
-    glom(dicts, [("MP:0000001",), ("MP:0000002",)], unique_prefixes=diseasephenotype.DISEASE_UNIQUE_PREFIXES)
-    glom(dicts, [("MP:0000001", "MESH:D000001")], unique_prefixes=diseasephenotype.DISEASE_UNIQUE_PREFIXES)
+    glom(dicts, [("MP:0000001",), ("MP:0000002",)], unique_prefixes=unique_prefixes)
+    glom(dicts, [("MP:0000001", "MESH:D000001")], unique_prefixes=unique_prefixes)
     # MP:0000002 bridging to the same MESH id would merge it with MP:0000001's clique; with MP
     # in unique_prefixes that merge must be rejected, leaving MP:0000002 in its own clique.
-    glom(dicts, [("MP:0000002", "MESH:D000001")], unique_prefixes=diseasephenotype.DISEASE_UNIQUE_PREFIXES)
+    glom(dicts, [("MP:0000002", "MESH:D000001")], unique_prefixes=unique_prefixes)
 
     assert dicts["MP:0000002"] == {"MP:0000002"}
     assert dicts["MP:0000001"] == {"MP:0000001", "MESH:D000001"}
@@ -917,7 +919,8 @@ def test_build_compendium_passes_the_extra_prefixes_through():
     with (
         patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
         patch.object(diseasephenotype, "create_typed_sets", return_value={DISEASE: [["MONDO:1"]]}),
-        patch.object(diseasephenotype, "write_compendium") as mock_write,
+        patch.object(compendia, "InformationContentFactory"),
+        patch.object(compendia, "write_compendium") as mock_write,
     ):
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
 
@@ -941,7 +944,8 @@ def test_extra_prefixes_are_looked_up_per_biolink_class():
     with (
         patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
         patch.object(diseasephenotype, "create_typed_sets", return_value=typed),
-        patch.object(diseasephenotype, "write_compendium") as mock_write,
+        patch.object(compendia, "InformationContentFactory"),
+        patch.object(compendia, "write_compendium") as mock_write,
     ):
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
 
@@ -1036,7 +1040,7 @@ def test_badxrefs_files_are_registered_for_the_concords_they_name():
     """Every DEFAULT_BAD_XREFS key must name a concord the disease build actually produces.
 
     A bad-xrefs file has to be registered in two places (this dict and the disease_compendia rule),
-    and a key matching no concord silently filters nothing -- the footgun docs/sources/CLAUDE.md
+    and a key matching no concord silently filters nothing -- the footgun docs/sources/AGENTS.md
     warns about. compute_cliques_for_impact_report() raises on an unknown key, but only once it has
     a concord list to check against; this pins the dict itself against config.yaml."""
     known_concords = set(get_config()["disease_concords"])
