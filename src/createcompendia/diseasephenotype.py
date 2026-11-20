@@ -40,7 +40,7 @@ from src.prefixes import (
     UMLS,
 )
 from src.ubergraph import build_sets
-from src.util import Text, get_config, get_logger, get_repo_root
+from src.util import Text, get_config, get_extra_prefixes, get_logger, get_repo_root, validate_xref_prefix_map
 
 logger = get_logger(__name__)
 
@@ -66,19 +66,12 @@ LOCAL_ID_DEPENDENT_RENAMES = {
 def get_xref_prefix_map(source):
     """Return `config.yaml: disease_xref_prefixes[source]` as an `other_prefixes` map for `norm()`.
 
-    Every target prefix is checked against src/prefixes.py (via `Text.prefixmap`, which is built
-    from it) so a typo fails the build here, rather than renaming CURIEs into a namespace no ids
-    file carries -- which `norm()` cannot detect and `glom()` happily merges through. A value listed
-    in `LOCAL_ID_DEPENDENT_RENAMES` is swapped for its callable.
+    Target prefixes are validated by `validate_xref_prefix_map()`. A value listed in
+    `LOCAL_ID_DEPENDENT_RENAMES` is swapped for its callable.
     """
-    mapping = get_config()["disease_xref_prefixes"][source]
-    known = set(Text.prefixmap.values())
-    unknown = sorted({v for v in mapping.values() if v not in known})
-    if unknown:
-        raise ValueError(
-            f"config.yaml: disease_xref_prefixes[{source}] renames to {unknown}, which src/prefixes.py "
-            f"does not define. Add the constant there first, so the rename lands on a prefix Babel uses."
-        )
+    mapping = validate_xref_prefix_map(
+        get_config()["disease_xref_prefixes"][source], f"disease_xref_prefixes[{source}]"
+    )
     return {key: LOCAL_ID_DEPENDENT_RENAMES.get(value, value) for key, value in mapping.items()}
 
 
@@ -899,16 +892,11 @@ def build_compendium(
     # Prefixes Biolink does not register for a clique's class but that we ship anyway; without this
     # write_compendium() drops them silently, after they have already merged cliques in glom(). See
     # config.yaml: disease_extra_prefixes_by_biolink_class for which, and why each one is there.
-    #
-    # extra_prefixes is a per-class allowlist and this loop writes several classes, so the list is
-    # looked up per class rather than passed whole: an exemption argued for one class must not be
-    # granted to the rest. A class with no entry gets nothing.
-    extra_prefixes_by_class = get_config()["disease_extra_prefixes_by_biolink_class"]
     write_typed_compendia(
         metadata_yamls,
         typed_sets,
         icrdf_filename,
-        extra_prefixes_for=lambda biotype: extra_prefixes_by_class.get(biotype, []),
+        extra_prefixes_for=lambda biotype: get_extra_prefixes("disease_extra_prefixes_by_biolink_class", biotype),
     )
 
 

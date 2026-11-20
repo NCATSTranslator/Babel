@@ -17,7 +17,7 @@ from src.model.cliques import glom_from_files
 from src.model.compendia import write_typed_compendia
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
-from src.util import Text, get_logger, get_repo_root
+from src.util import Text, get_config, get_extra_prefixes, get_logger, get_repo_root, validate_xref_prefix_map
 
 logger = get_logger(__name__)
 
@@ -229,7 +229,8 @@ def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
 
 # Ignore list notes:
 # The BTO and BAMs and HTTP (braininfo) identifiers promote over-glommed nodes
-# FMA is a specific problem where in CL they use FMA xref to mean 'part of'
+# FMA is a specific problem where in CL they use FMA xref to mean 'part of' (UBERON keeps its FMA xrefs:
+#   see UBERON_OBO_IGNORE_LIST)
 # CALOHA is a specific problem where in CL they use FMA xref to mean 'part of'
 # GOC is a specific problem where in CL they use FMA xref to mean 'part of'
 # wikipedia.en is a specific problem where in CL they use FMA xref to mean 'part of'
@@ -237,11 +238,12 @@ def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
 # CL only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # GO only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # PMID is just wrong
-# Target prefixes never written to an anatomy OBO concord: citations (PMID), ontologies Babel
-# does not ingest for anatomy (BTO, BAMS, FMA, CALOHA, OPENCYC, NIF_SUBCELLULAR), bare URLs
-# (HTTP, WIKIPEDIA.EN), provenance annotations (GOC), and CL/GO, whose cliques are built from
-# their own roots rather than from a cross-reference. Matched against Text.get_prefix_or_none(),
-# which upper-cases, so every entry must be upper-case.
+# Target prefixes never written to the GO or EMAPA anatomy OBO concords: citations (PMID),
+# ontologies Babel does not ingest for anatomy (BTO, BAMS, CALOHA, OPENCYC, NIF_SUBCELLULAR), FMA
+# (whose xrefs from these sources have not been reviewed; UBERON's are kept, see
+# UBERON_OBO_IGNORE_LIST), bare URLs (HTTP, WIKIPEDIA.EN), provenance annotations (GOC), and CL/GO,
+# whose cliques are built from their own roots rather than from a cross-reference. Matched against
+# Text.get_prefix_or_none(), which upper-cases, so every entry must be upper-case.
 ANATOMY_OBO_IGNORE_LIST = [
     "PMID",
     "BTO",
@@ -256,6 +258,20 @@ ANATOMY_OBO_IGNORE_LIST = [
     "HTTP",
     "OPENCYC",
 ]
+
+# UBERON's own ignore list: ANATOMY_OBO_IGNORE_LIST minus FMA. FMA was excluded because CL uses FMA
+# xrefs to mean "part of", but CL subclasses are never written from the UBERON root (build_sets drops
+# other ontologies' terms) and CL now comes from Wikidata. UBERON's FMA xrefs are mostly exact, and are
+# the only bridge to the many UMLS concepts whose only anatomy source is FMA: the full-build comparison in
+# docs/sources/UBERON/umls-joins/README.md found ~2,900 more UBERON/UMLS joins from FMA, and the wrong
+# merges it found traced to individual UBERON xrefs now listed in input_data/anatomy_badxrefs.txt.
+# GO and EMAPA keep the shared list; their FMA xrefs have not been reviewed.
+UBERON_OBO_IGNORE_LIST = [prefix for prefix in ANATOMY_OBO_IGNORE_LIST if prefix != FMA]
+
+
+def get_anatomy_xref_prefix_map(source):
+    """Return `config.yaml: anatomy_xref_prefixes[source]`, the renames applied to a source's xref targets."""
+    return validate_xref_prefix_map(get_config()["anatomy_xref_prefixes"][source], f"anatomy_xref_prefixes[{source}]")
 
 
 def build_emapa_obo_relationships(concordfiles):
@@ -275,6 +291,7 @@ def build_emapa_obo_relationships(concordfiles):
         concordfiles,
         "xref",
         ignore_list=ANATOMY_OBO_IGNORE_LIST,
+        other_prefixes=get_anatomy_xref_prefix_map(EMAPA),
         hierarchy_predicate=HIERARCHY_PART_OF,
     )
 
@@ -288,12 +305,13 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
         open(f"{outdir}/{EMAPA}", "w") as emapa,
     ):
         source_to_concord = {UBERON: uberon, GO: go, CL: cl, EMAPA: emapa}
-        for source_prefix in [UBERON, GO]:
+        for source_prefix, ignore_list in [(UBERON, UBERON_OBO_IGNORE_LIST), (GO, ANATOMY_OBO_IGNORE_LIST)]:
             build_sets(
                 ANATOMY_OBO_SOURCES[source_prefix]["root"],
                 source_to_concord,
                 "xref",
-                ignore_list=ANATOMY_OBO_IGNORE_LIST,
+                ignore_list=ignore_list,
+                other_prefixes=get_anatomy_xref_prefix_map(source_prefix),
             )
         build_emapa_obo_relationships(source_to_concord)
         # CL is now being handled by Wikidata (build_wikidata_cell_relationships), so we can probably remove it from here.
@@ -313,7 +331,9 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
                 "get_subclasses_and_xrefs() of "
                 f"{ANATOMY_OBO_SOURCES[UBERON]['root']}, "
                 f"{ANATOMY_OBO_SOURCES[GO]['root']}, and "
-                f"{ANATOMY_OBO_SOURCES[EMAPA]['root']}"
+                f"{ANATOMY_OBO_SOURCES[EMAPA]['root']}, with renames from config.yaml: anatomy_xref_prefixes; "
+                "UBERON's xrefs filtered by UBERON_OBO_IGNORE_LIST (which keeps FMA), GO's and EMAPA's by "
+                "ANATOMY_OBO_IGNORE_LIST"
             ),
             concord_filename=f"{outdir}/{metadata_name}",
         )
@@ -368,12 +388,20 @@ def build_wikidata_cell_relationships(outdir, metadata_yaml):
     )
 
 
+# The MRCONSO sources (SAB) whose codes the anatomy UMLS concord maps each CUI to, with the Babel prefix
+# each is written as. UWDA is deliberately absent even though its codes are FMA numbers: a CUI whose only
+# FMA-numbered atom comes from UWDA is not joined to UBERON's FMA xrefs. The UBERON/UMLS census
+# (docs/sources/UBERON/umls-joins/scripts/missed_umls_links.py) imports this so it counts only bridges the
+# build can use.
+ANATOMY_UMLS_SOURCES = {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA}
+
+
 def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     umls.build_sets(
         mrconso,
         idfile,
         outfile,
-        {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA},
+        ANATOMY_UMLS_SOURCES,
         provenance_metadata_yaml=umls_metadata,
     )
 
@@ -419,6 +447,53 @@ def _anatomy_concord_pair_filter(parts, infile, dicts):
             )
             return False
     return True
+
+
+def find_uberon_snomed_xrefs_to_review(uberon_concord, umls_concord, bad_pairs):
+    """Return {(UBERON CURIE, SNOMEDCT CURIE): {reason, ...}} for UBERON SNOMED xrefs whose join needs review.
+
+    UBERON's SNOMED xrefs (renamed from SCTID by config.yaml: anatomy_xref_prefixes) join an UBERON term to
+    whichever UMLS concept holds that SNOMED code. That is right when the concept is the same thing, and wrong
+    in two shapes, which this flags:
+
+    - "UMLS concept holds other SNOMED codes": UMLS has lumped this SNOMED code with others, so the xref also
+      joins whatever those mean (UMLS files "Structure of dentition" under its "Tooth" concept).
+    - "UBERON term reaches several UMLS concepts": the term's SNOMED xrefs land in more than one concept and
+      merge them all, which is wrong when one is narrower (left and right margin of tongue).
+
+    Both shapes include many correct joins (synonyms, SNOMED's structure/entire pairs), so a flagged xref is a
+    question for a person, not a drop. The answers are input_data/anatomy_badxrefs.txt (drop) and
+    docs/sources/UBERON/umls-joins/snomed-xref-review.csv (reviewed and kept); a pipeline test fails on a
+    flagged xref in neither. `bad_pairs` (frozensets, as in the anatomy concord filter) are removed first, so
+    a pair dropped there neither is flagged nor makes another one look lumped.
+    """
+
+    def rows(path):
+        with open(path) as inf:
+            for line in inf:
+                subject, _, target = line.rstrip("\n").split("\t")
+                if frozenset((subject, target)) not in bad_pairs:
+                    yield subject, target
+
+    cui_snomeds, snomed_cuis = defaultdict(set), defaultdict(set)
+    for cui, target in rows(umls_concord):
+        if target.startswith(f"{SNOMEDCT}:"):
+            cui_snomeds[cui].add(target)
+            snomed_cuis[target].add(cui)
+    uberon_snomeds = defaultdict(set)
+    for uberon, target in rows(uberon_concord):
+        if uberon.startswith(f"{UBERON}:") and target.startswith(f"{SNOMEDCT}:"):
+            uberon_snomeds[uberon].add(target)
+
+    flagged = defaultdict(set)
+    for uberon, snomeds in uberon_snomeds.items():
+        reached = {cui for snomed in snomeds for cui in snomed_cuis[snomed]}
+        for snomed in snomeds:
+            if any(len(cui_snomeds[cui]) > 1 for cui in snomed_cuis[snomed]):
+                flagged[(uberon, snomed)].add("UMLS concept holds other SNOMED codes")
+            if len(reached) > 1 and snomed_cuis[snomed]:
+                flagged[(uberon, snomed)].add("UBERON term reaches several UMLS concepts")
+    return dict(flagged)
 
 
 def compute_cliques_for_impact_report(
@@ -471,7 +546,13 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, b
         concordances, identifiers, badxrefs=badxrefs, mesh_ownership=mesh_ownership
     )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
-    write_typed_compendia(metadata_yamls, typed_sets, icrdf_filename)
+    write_typed_compendia(
+        metadata_yamls,
+        typed_sets,
+        icrdf_filename,
+        # FMA for GrossAnatomicalStructure until biolink_version reaches 4.4.6 (#1134); see get_extra_prefixes().
+        extra_prefixes_for=lambda biotype: get_extra_prefixes("anatomy_extra_prefixes_by_biolink_class", biotype),
+    )
 
 
 def classify_anatomy_clique(equivalent_ids, types):

@@ -424,7 +424,7 @@ class UberGraph:
             results.append(y)
         return results
 
-    def get_subclasses_and_xrefs(self, iri, hierarchy_predicate=HIERARCHY_SUBCLASS_OF):
+    def get_subclasses_and_xrefs(self, iri, hierarchy_predicate=HIERARCHY_SUBCLASS_OF, descendent_prefix=None):
         """Return every term below `iri` in a hierarchy that has an xref, with its xrefs.
         Terms with no xref are not returned.
 
@@ -432,8 +432,20 @@ class UberGraph:
         "subclasses" in the name is the common case rather than a constraint: pass
         HIERARCHY_PART_OF for partonomy ontologies such as EMAPA. See get_subclasses_of()
         for why the get_subclasses_* family keeps this name rather than being renamed to
-        get_descendants_*."""
+        get_descendants_*.
+
+        If descendent_prefix is given, only terms from that OBO ontology are returned; it is matched
+        case-sensitively against the OBO PURL, so pass the ontology's own spelling ("NCBITaxon", not
+        "NCBITAXON"). Filtering in the
+        query rather than afterwards matters: UberGraph infers every NCBITaxon class to be a subclass of
+        UBERON:0000465 "material anatomical entity", so an unfiltered query from an UBERON root returns
+        ~860k taxa with all their xrefs, times out server-side, and fails to parse."""
         _assert_known_hierarchy_predicate(hierarchy_predicate)
+        descendent_filter = ""
+        if descendent_prefix is not None:
+            descendent_filter = (
+                f'FILTER(STRSTARTS(STR(?descendent), "http://purl.obolibrary.org/obo/{descendent_prefix}_"))'
+            )
         text = """
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
@@ -453,11 +465,16 @@ class UberGraph:
           graph <http://reasoner.renci.org/redundant> {
                 ?descendent $hierarchy_predicate $sourcedefclass .
           }
+          $descendent_filter
           ?descendent <http://www.geneontology.org/formats/oboInOwl#hasDbXref> ?xref .
         }
         """
         resultmap = self.triplestore.query_template(
-            inputs={"sourcedefclass": iri, "hierarchy_predicate": hierarchy_predicate},
+            inputs={
+                "sourcedefclass": iri,
+                "hierarchy_predicate": hierarchy_predicate,
+                "descendent_filter": descendent_filter,
+            },
             outputs=["descendent", "xref"],
             template_text=text,
         )
@@ -691,7 +708,14 @@ def build_sets(
         )
     uber = UberGraph()
     if set_type == "xref":
-        uberres = uber.get_subclasses_and_xrefs(iri, hierarchy_predicate=hierarchy_predicate)
+        # Descendents from other ontologies are dropped below unless hop_ontologies, so filter them in the query.
+        # The filter matches the OBO PURL, which is case-sensitive (NCBITaxon_, FBbt_), so it takes the root's
+        # prefix as written rather than the upper-cased `prefix` the post-filter below compares with.
+        uberres = uber.get_subclasses_and_xrefs(
+            iri,
+            hierarchy_predicate=hierarchy_predicate,
+            descendent_prefix=None if hop_ontologies else Text.get_prefix(iri),
+        )
     elif set_type == "exact":
         uberres = uber.get_subclasses_and_exacts(iri)
     elif set_type == "close":

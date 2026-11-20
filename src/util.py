@@ -476,6 +476,35 @@ def get_config():
     return config_yaml
 
 
+def validate_xref_prefix_map(mapping, config_path):
+    """Check a source's xref prefix renames (from `config.yaml: <config_path>`) and return them as a dict for `norm()`.
+
+    Every target prefix is checked against src/prefixes.py (via `Text.prefixmap`, which is built
+    from it) so a typo fails the build here, rather than renaming CURIEs into a namespace no ids
+    file carries -- which `norm()` cannot detect and `glom()` happily merges through.
+    """
+    known = set(Text.prefixmap.values())
+    unknown = sorted({v for v in mapping.values() if v not in known})
+    if unknown:
+        raise ValueError(
+            f"config.yaml: {config_path} renames to {unknown}, which src/prefixes.py "
+            f"does not define. Add the constant there first, so the rename lands on a prefix Babel uses."
+        )
+    return dict(mapping)
+
+
+def get_extra_prefixes(config_key, biolink_class):
+    """Return the prefixes to ship for one Biolink class beyond those Biolink registers for it.
+
+    Reads `config.yaml: <config_key>` (e.g. `disease_extra_prefixes_by_biolink_class`), a mapping from
+    Biolink class to prefixes, for the `extra_prefixes` argument of `write_compendium()`. The mapping is
+    looked up per class rather than passed whole because `extra_prefixes` is a per-class allowlist and a
+    pipeline writes several classes: an exemption argued for one class must not be granted to the rest.
+    A class with no entry gets nothing.
+    """
+    return list(get_config()[config_key].get(biolink_class, []))
+
+
 _GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 

@@ -1,0 +1,71 @@
+{
+  "about": {
+    "after": "SCTID rename, FMA extra prefix, 27 new anatomy bad xrefs",
+    "before": "main (bdea0e5c) plus the UberGraph query filter",
+    "files": [
+      "AnatomicalEntity.txt",
+      "GrossAnatomicalStructure.txt",
+      "Cell.txt",
+      "CellularComponent.txt"
+    ],
+    "note": "isolates the SCTID to SNOMEDCT rename"
+  },
+  "compendia": {
+    "AnatomicalEntity.txt": {
+      "changed_before_cliques": 4178,
+      "clique_count": {
+        "after": 144129,
+        "before": 147532,
+        "diff": -3403,
+        "diff_percent": -2.31
+      },
+      "cliques_with_dropped_members": 1,
+      "dropped_member_count": 1,
+      "leader_changed_count": 0,
+      "moved_member_count": 2923,
+      "regrouped_member_count": 878
+    },
+    "Cell.txt": {
+      "changed_before_cliques": 4,
+      "clique_count": {
+        "after": 9189,
+        "before": 9192,
+        "diff": -3,
+        "diff_percent": -0.03
+      },
+      "cliques_with_dropped_members": 3,
+      "dropped_member_count": 3,
+      "leader_changed_count": 0,
+      "moved_member_count": 6,
+      "regrouped_member_count": 0
+    },
+    "CellularComponent.txt": {
+      "changed_before_cliques": 1,
+      "clique_count": {
+        "after": 9464,
+        "before": 9464,
+        "diff": 0,
+        "diff_percent": 0.0
+      },
+      "cliques_with_dropped_members": 1,
+      "dropped_member_count": 1,
+      "leader_changed_count": 0,
+      "moved_member_count": 1,
+      "regrouped_member_count": 0
+    },
+    "GrossAnatomicalStructure.txt": {
+      "changed_before_cliques": 3106,
+      "clique_count": {
+        "after": 12693,
+        "before": 12693,
+        "diff": 0,
+        "diff_percent": 0.0
+      },
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
+      "leader_changed_count": 0,
+      "moved_member_count": 0,
+      "regrouped_member_count": 3
+    }
+  }
+}
