@@ -90,7 +90,13 @@ def build_conflation(geneprotein_concord, gene_compendium, protein_compendium, o
     conf = {}
     # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
     # all_ids is fixed before the concord is read, so filtering while glom() runs is safe.
-    glom(conf, ((s, o) for s, o in read_concord_pairs(geneprotein_concord) if s in all_ids and o in all_ids))
+    glom(
+        conf,
+        ((s, o) for s, o in read_concord_pairs(geneprotein_concord) if s in all_ids and o in all_ids),
+        # Restricts nothing: the conflation merges gene and protein cliques by their preferred ids.
+        # It used to inherit glom()'s old (INCHIKEY,) default, which none of those ids match (#882).
+        unique_prefixes=(),
+    )
     conf_sets = set([frozenset(x) for x in conf.values()])
     with jsonlines.open(outfile, "w") as outf:
         for cs in conf_sets:

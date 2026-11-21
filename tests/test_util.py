@@ -1,9 +1,18 @@
 """Tests for src/util.py helpers."""
 
+import duckdb
 import pytest
 import yaml
 
-from src.util import Text, _biolink_ref, curie_format_problem, ensure_parent_dir, safe_load_yaml_unique_keys
+from src.util import (
+    Text,
+    _biolink_ref,
+    curie_format_problem,
+    ensure_parent_dir,
+    safe_load_yaml_unique_keys,
+    sql_list,
+    sql_str,
+)
 
 
 @pytest.mark.unit
@@ -66,6 +75,19 @@ class TestGetBiolinkModelToolkitNetwork:
         assert toolkit is not None
         element = toolkit.get_element("chemical entity")
         assert element is not None
+
+    def test_toolkit_is_cached_per_version(self):
+        """Two calls for the same version must return the same Toolkit, and different versions must not share one.
+
+        Constructing a Toolkit fetches biolink-model.yaml over the network and parses it through
+        linkml. write_compendium() builds a NodeFactory -- and so a Toolkit -- on every call, and
+        the chemical build calls write_compendium once per entry in config.yaml: chemical_outputs,
+        so without the cache that is eight fetches and eight parses in one rule.
+        """
+        from src.util import get_biolink_model_toolkit
+
+        assert get_biolink_model_toolkit("4.4.2") is get_biolink_model_toolkit("4.4.2")
+        assert get_biolink_model_toolkit("4.4.2") is not get_biolink_model_toolkit("4.4.1")
 
 
 @pytest.mark.unit
@@ -182,3 +204,15 @@ def test_safe_load_yaml_unique_keys_refuses_a_repeated_key(text):
     last value."""
     with pytest.raises(yaml.constructor.ConstructorError, match="duplicate key 'a'"):
         safe_load_yaml_unique_keys(text)
+
+
+# SQL LITERALS
+
+
+@pytest.mark.unit
+def test_sql_str_and_sql_list_survive_an_embedded_quote():
+    """A value holding a single quote (a path like gaurav's-builds) should round-trip through DuckDB unchanged."""
+    value = "/home/me/gaurav's-builds/duckdb"
+    con = duckdb.connect()
+    assert con.sql(f"SELECT {sql_str(value)}").fetchone()[0] == value
+    assert con.sql(f"SELECT {sql_list([value, 'plain'])}").fetchone()[0] == [value, "plain"]

@@ -2,7 +2,8 @@
 
 MONDO is the backbone of Babel's `disease` pipeline: it supplies identifiers, labels and synonyms,
 it is first in the type-precedence order used by `create_typed_sets`, and it is one of the three
-prefixes in `DISEASE_UNIQUE_PREFIXES`, so a clique may hold at most one MONDO identifier.
+prefixes in `disease_unique_prefixes` (`config.yaml`), so a clique may hold at most one MONDO
+identifier.
 
 This page is about the part that is easy to get wrong: **which of MONDO's mappings Babel reads.**
 
@@ -23,7 +24,7 @@ concords from UberGraph with `build_sets(..., set_type="exact")` and `set_type="
 MONDO also carries **145,433 `hasDbXref` rows across 39 namespaces** on its non-deprecated terms,
 and with one exception Babel reads none of them. That is deliberate: an OBO `hasDbXref` often means
 "this term is *about* that thing" rather than "this term *is* that thing" (see
-[`docs/sources/CLAUDE.md`](../CLAUDE.md), "An OBO `hasDbXref` is not an equivalence"). Ingesting
+[`docs/sources/AGENTS.md`](../AGENTS.md), "An OBO `hasDbXref` is not an equivalence"). Ingesting
 them wholesale would merge on ICD family codes exactly the way DOID's did before
 [#1031](https://github.com/NCATSTranslator/Babel/issues/1031).
 

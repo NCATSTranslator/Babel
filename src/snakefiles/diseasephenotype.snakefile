@@ -81,13 +81,15 @@ rule disease_ncit_ids:
 
 rule disease_mesh_ids:
     input:
-        config["download_directory"] + "/MESH/mesh.nt",
+        infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/disease/ids/MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/disease_mesh_ids.tsv"
     run:
-        diseasephenotype.write_mesh_ids(output.outfile)
+        diseasephenotype.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule disease_umls_ids:
@@ -238,6 +240,7 @@ rule get_disease_doid_relationships:
 
 
 rule disease_manual_concord:
+    # How to write a row of this file, and what one really merges: input_data/manual_concords/README.md.
     input:
         infile="input_data/manual_concords/disease.txt",
     output:
@@ -342,6 +345,9 @@ rule disease_compendia:
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["disease_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/disease_compendia.tsv"
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["disease_unique_prefixes"],
     run:
         # A new prefix's bad-xref file must be registered HERE (as a rule input above and a key
         # in this dict) and in diseasephenotype.DEFAULT_BAD_XREFS. A key that matches no concord

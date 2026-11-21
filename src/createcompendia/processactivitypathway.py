@@ -5,9 +5,16 @@ import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    glom,
+    read_identifier_file,
+    remove_overused_xrefs,
+    unique_prefixes_from_config,
+)
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
+from src.model.compendia import write_typed_compendia
 from src.model.intermediates import read_concords
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
@@ -80,8 +87,8 @@ def build_process_obo_relationships(outdir, metadata_yaml):
     )
 
 
-def build_process_rhea_relationships(outfile, metadata_yaml):
-    rhea.make_concord(outfile, metadata_yaml)
+def build_process_rhea_relationships(infile, outfile, metadata_yaml):
+    rhea.make_concord(infile, outfile, metadata_yaml)
 
 
 def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
@@ -92,12 +99,13 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     # GO:0034227/EC:2.8.1.4 is because that go term is a biological process, but EC is not a valid prefix for that,
     #  leading to a loss of the EC term (and a unified RHEA) on output.
     bad_concords = set(frozenset(["GO:0034227", "EC:2.8.1.4"]))
+    unique_prefixes = unique_prefixes_from_config("process_unique_prefixes")
     dicts = {}
     types = {}
     for ifile in identifiers:
         print(ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[GO])
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
     for infile in concordances:
         print(infile)
@@ -124,11 +132,9 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # remove_overused_xrefs assumes that we want to remove pairs where the second pair is overused
         # but this case it's the first, so we use the bothways optoin
         newpairs = remove_overused_xrefs(pairs, bothways=True)
-        glom(dicts, newpairs, unique_prefixes=[GO])
+        glom(dicts, newpairs, unique_prefixes=unique_prefixes)
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+    write_typed_compendia(metadata_yamls, typed_sets, icrdf_filename)
 
 
 def create_typed_sets(eqsets, types):

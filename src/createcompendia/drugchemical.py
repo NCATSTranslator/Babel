@@ -8,7 +8,7 @@ from collections import defaultdict
 import jsonlines
 from humanfriendly import format_timespan
 
-from src.babel_utils import get_numerical_curie_suffix, glom
+from src.babel_utils import get_numerical_curie_suffix, glom, unique_prefixes_from_config
 from src.categories import CHEMICAL_ENTITY
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.model.intermediates import read_concords
@@ -361,6 +361,7 @@ def build_conflation(
     logger.info("Loading information content values...")
     ic_factory = InformationContentFactory(icrdf_filename)
 
+    # How to write a row of this file, and what one really joins: input_data/manual_concords/README.md.
     logger.info("Loading manual concords ...")
     manual_concords = []
     manual_concords_curies = set()
@@ -518,7 +519,7 @@ def build_conflation(
     # Glommin' time
     logger.info(f"glom: {get_memory_usage_summary()}")
     gloms = {}
-    glom(gloms, pairs)
+    glom(gloms, pairs, unique_prefixes=unique_prefixes_from_config("drugchemical_unique_prefixes"))
 
     # Set up the preferred conflation type order.
     # preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER

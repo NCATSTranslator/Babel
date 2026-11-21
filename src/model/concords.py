@@ -9,7 +9,7 @@ distinct subjects — a merge hazard: `glom()` fuses every subject that names it
 Overuse is what :func:`src.babel_utils.remove_overused_xrefs` drops (any target claimed by 2+
 subjects), and what ``diseasephenotype.OVERUSE_FILTERED_CONCORDS`` opts a source into. This module
 answers the question that decision needs: *which* targets are overused in a given concord, by how
-much, and by whom. See ``docs/sources/CLAUDE.md`` ("An OBO ``hasDbXref`` is not an equivalence")
+much, and by whom. See ``docs/sources/AGENTS.md`` ("An OBO ``hasDbXref`` is not an equivalence")
 for why a source's xrefs deserve auditing before they are trusted.
 
 Labels come from the same per-prefix ``babel_downloads/<PREFIX>/labels`` files the build uses,

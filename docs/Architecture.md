@@ -54,6 +54,7 @@ All Python and Snakemake source code lives under `src/`:
 | `src/node.py`          | Core factory classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`, `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.                                      |
 | `src/babel_utils.py`   | Core pipeline utilities: download/FTP helpers, `glom()` (clique merging), `write_compendium()` (compendium builder), and state management helpers.                                |
 | `src/util.py`          | Logging setup, config loading, [Biolink Model Toolkit](https://github.com/biolink/biolink-model-toolkit) access.                                                                  |
+| `src/utils/`           | Generic helpers: `duckdb_setup.py` opens every DuckDB connection (`connect_duckdb()`, `log_duckdb_settings_on_error()`); `memory.py` holds the memory diagnostics (#1223).        |
 | `src/exporters/`       | Output format handlers for KGX, Apache Parquet, and JSONL.                                                                                                                        |
 | `src/reports/`         | Report generation code.                                                                                                                                                           |
 | `src/synonyms/`        | Synonym file generation.                                                                                                                                                          |
@@ -120,6 +121,11 @@ The first identifier in `identifiers` is the preferred identifier for the clique
 Rather than loading entire datasets into memory up front, they load data on demand and cache
 results. This is important because many source files are gigabytes in size.
 
+`InformationContentFactory` is the exception: it reads all of `icRDF.tsv` (~3.9 million rows)
+when it is built. A pipeline that writes one compendium per Biolink type should write them
+with `write_typed_compendia()` (`src/model/compendia.py`). That function builds one factory
+and passes it to every `write_compendium()` call, so the file is not reloaded for each output.
+
 ### TSVSQLiteLoader
 
 `TSVSQLiteLoader` (in [`src/node.py`](../src/node.py)) loads tab-separated files into in-memory
@@ -132,7 +138,9 @@ entire large TSV files in RAM, which would be infeasible given Babel's data volu
 cliques. It maintains a dictionary (`conc_set`) where every CURIE key points to its equivalence
 set. For each new `(CURIE1, CURIE2)` pair (the relation is dropped when a concord is read), it
 unions all existing sets that contain either CURIE, then adds both CURIEs to the resulting set,
-unless the result would break a `unique_prefixes` or `close` restriction. At the end, each value in
+unless the result would break a `unique_prefixes` or `close` restriction. Each pipeline's
+`unique_prefixes` is `config.yaml: <pipeline>_unique_prefixes`, read with
+`unique_prefixes_from_config()`; `glom()` itself has no default. At the end, each value in
 `conc_set` is one clique. [`tests/test_glom.py`](../tests/test_glom.py) pins its whole behavior,
 quirks included, and checks it against a short reference model. `write_compendium()` in the same
 file drives the overall compendium-building process, calling `glom()` and then sorting, enriching,
@@ -221,6 +229,13 @@ a build unusable downstream fail it instead:
   [`docs/sources/UMLS/CuiFollowsMesh.md`](sources/UMLS/CuiFollowsMesh.md)) or, for a duplicate an
   issue accepts for now, add the row with that issue. Member-level duplicates
   (`duplicate_curies.tsv`) stay report-only.
+- **A MeSH dump behind UMLS.** When `mesh_year` lags `umls_version`, UMLS's MSH codes point at
+  MeSH records the dump doesn't have, so their CUIs reach the compendia without a MeSH label, type
+  or tree position. `rule check_umls_mesh_skew` (`src/snakefiles/reports.snakefile`) reads
+  `reports/umls_mesh_skew.json` and raises when more codes are missing than
+  `umls_mesh_skew_max_missing_codes`. Unlike the check above, it runs early: `rule
+  umls_mesh_ownership` waits for it, so the five MeSH-owning pipelines stop before building their
+  compendia. See [`docs/sources/MeSH/Ingestion.md`](sources/MeSH/Ingestion.md#source-data).
 
 ## Output directories
 

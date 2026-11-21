@@ -16,6 +16,22 @@ build:
 # (https://github.com/NCATSTranslator/Babel/issues/1192).
 biolink_version: "4.4.3"
 umls_version: "2026AA"
+# MeSH release year, downloaded from ftp://ftp.nlm.nih.gov/online/mesh/rdf/{mesh_year}/mesh{mesh_year}.nt.gz.
+# To check for a newer release, open https://nlmpubs.nlm.nih.gov/projects/mesh/rdf/ in a browser: each MeSH year
+# gets its own directory there (ignore the top-level mesh.nt.gz, which stopped being updated after MeSH 2024).
+# That HTTPS site is the one NLM's download page links to, and it serves the same files under the same paths as
+# ftp://ftp.nlm.nih.gov/online/mesh/. We intend to download from it instead of FTP, which has been less reliable:
+# https://github.com/NCATSTranslator/Babel/pull/1161 makes that switch. If the FTP downloads fail before it lands,
+# that PR is the fix to reach for.
+# Keep this in step with umls_version: UMLS 20XXAA carries MeSH 20XX codes, and a MeSH dump older than UMLS
+# leaves UMLS MSH codes (especially new SCRs) with no MeSH record. reports/umls_mesh_skew.json measures this.
+mesh_year: "2026"
+# The build fails (rule check_umls_mesh_skew, before rule umls_mesh_ownership) if more MSH codes in UMLS than this
+# have no record in the mesh_year dump, not counting the U "(MeSH Category)" headings UMLS adds itself. Against
+# UMLS 2026AA, MeSH 2026 misses 0, MeSH 2025 misses 829 and MeSH 2024 misses 1,856
+# (docs/sources/MeSH/umls-mesh-skew/README.md), so 100 tolerates a few stray codes but not a dump a year behind.
+# Raise it only for a build that has to run on a skewed MeSH, and say why under build.workarounds.
+umls_mesh_skew_max_missing_codes: 100
 rxnorm_version: "07062026"
 drugbank_version: "5-1-13" # The latest is 5-1-21, but since downloads are currently not allowed, we need to reuse our most recent download.
 # The pubmed2db NDJSON export (https://github.com/TranslatorSRI/pubmed2db) this build reads PubMed from:
@@ -68,9 +84,10 @@ input_directory: input_data
 download_directory: babel_downloads
 intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
-# Where DuckDB spills larger-than-memory intermediates. setup_duckdb() gives each job its own
-# duckdb-$SLURM_JOB_ID subdirectory here. Override per run with the BABEL_DUCKDB_TEMP_DIR
-# environment variable; see slurm/README.md ("Temporary Scratch Space") for the trade-offs.
+# Where DuckDB spills larger-than-memory intermediates. connect_duckdb() gives each connection its
+# own duckdb-$SLURM_JOB_ID-<pid>-<random> subdirectory here, deleted when the connection closes.
+# Override per run with the BABEL_DUCKDB_TEMP_DIR environment variable; see slurm/README.md
+# ("Temporary Scratch Space") for the trade-offs.
 tmp_directory: babel_downloads/tmp
 
 # HTTP settings.
@@ -187,18 +204,35 @@ anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, Gross
 # Restricting EMAPA would block all 122 merges and would silently delete any EMAPA CURIE that
 # lost the resulting contest without having its own ids-file row.  See
 # docs/sources/EMAPA/README.md, which flags this for SME review.
+# This entry and every other <pipeline>_unique_prefixes below are read with
+# unique_prefixes_from_config(), which fails the build if one isn't a non-empty list of prefixes
+# defined in src/prefixes.py (a bare `UBERON` or a misspelt prefix would restrict the wrong
+# prefixes). The builder reads its entry itself, so each rule that runs one also declares the entry
+# as a `params:` value: that is how Snakemake sees an edit here and reruns the rule. Before adding a
+# prefix to any of them, check what it makes compete: docs/AddingNewSources.md, step 3.
 anatomy_unique_prefixes: [UBERON, GO]
 
 gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
 gene_ids:      [ENSEMBL, HGNC, NCBIGene, UMLS, OMIM, ZFIN, WormBase, FB, MGI, RGD, SGD]
 gene_concords: [NCBIGene, NCBIGeneENSEMBL, medgen, UMLS, UMLS_NCBIGene]
 gene_outputs:  [Gene.txt]
+# Prefixes glom() keeps to one identifier per gene clique: a merge that would put two NCBIGene, HGNC,
+# ENSEMBL or OMIM ids in one clique is refused. Each of these vocabularies gives a gene one id, so two
+# from one vocabulary in a clique means a bad mapping has bridged two genes. That reason is inferred:
+# the list arrived without one in #27 (2021). Moved here from build_gene_compendia() (#882).
+gene_unique_prefixes: [NCBIGene, HGNC, ENSEMBL, OMIM]
 
 protein_labels:   [UniProtKB, PR, UMLS]
 protein_synonyms: [PR, UMLS]
 protein_ids:      [ENSEMBL, MESH, UniProtKB, PR, UMLS]
 protein_concords: [UniProtKB, PR, NCIT_UniProtKB, NCIT_UMLS, UMLS, UMLS_UniProtKB]
 protein_outputs:  [Protein.txt]
+# Prefixes glom() keeps to one identifier per protein clique: a merge that would put two UniProtKB
+# accessions or two PR terms in one clique is refused. A UniProtKB accession is one protein entry and
+# a PR term one protein class, so two of either in a clique means a bad mapping has bridged two
+# proteins. That reason is inferred: the list arrived without one in #27 (2021). Moved here from
+# build_protein_compendia() (#882).
+protein_unique_prefixes: [UniProtKB, PR]
 
 disease_labelsandsynonyms: [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, SNOMEDCT, EFO]
 disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
@@ -219,6 +253,15 @@ disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UML
 # this list. A unit test pins its position.
 disease_concords:          [HP, MP, MONDO, MONDO_GARD, UMLS, DOID, EFO, Manual, GARD_label]
 disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
+# Prefixes glom() rejects a *same-prefix* merge for: if a clique would end up holding two distinct
+# identifiers of one of these prefixes (e.g. two different MONDO ids, or two different HP/MP ids),
+# the merge is refused rather than silently accepted. MONDO, HP, and MP are each meant to be the
+# single authoritative identifier of their kind within a clique, so an accidental same-prefix
+# collision (e.g. via a bad transitive MESH/SNOMED bridge) is a data-quality signal worth catching
+# rather than merging through. Because MONDO is listed, disease_concords order decides which
+# concord's MONDO mapping wins (see MONDO_GARD above). Moved here from DISEASE_UNIQUE_PREFIXES in
+# src/createcompendia/diseasephenotype.py (#882).
+disease_unique_prefixes: [MONDO, HP, MP]
 
 # The vocabularies build_gard_label_concord() may match a GARD label against, in PRIORITY ORDER:
 # the first entry holding an identifier with the GARD term's label wins, and the term is skipped if
@@ -353,6 +396,10 @@ process_labels:   [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_ids:      [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_concords: [GO, RHEA, UMLS]
 process_outputs:  [Pathway.txt, BiologicalProcess.txt, MolecularActivity.txt]
+# Prefixes glom() keeps to one identifier per process clique: a merge that would put two GO terms in
+# one clique is refused, since GO is the backbone of this pipeline and two GO terms are two
+# processes or activities. Moved here from build_compendia() in processactivitypathway.py (#882).
+process_unique_prefixes: [GO]
 
 unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 
@@ -365,6 +412,16 @@ chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUN
 # this list so those cliques flow into DrugChemical conflation and the exports like any other chemical
 # output. (The processed extracts among them go to the already-present ComplexMolecularMixture.)
 chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt, Food.txt]
+
+# Prefixes glom() keeps to one identifier per chemical clique: a merge that would put two InChIKeys
+# (two different structures) in one clique is refused. Used by both chemical glom() steps,
+# combine_unichem() (grouping UniChem's per-source xrefs around each InChIKey) and
+# build_untyped_compendia(), so the UniChem grouping and the compendium build can't disagree. Moved
+# here from three [INCHIKEY] literals in src/createcompendia/chemicals.py (#882).
+# babel-inchikey-audit (src/model/glom_edges.py) reads every refused pair between two keyed cliques
+# as the InChIKey guard, so it assumes INCHIKEY is the only entry; a test pins that. Adding a prefix
+# means changing that model first.
+chemical_unique_prefixes: [INCHIKEY]
 
 # Chemical clique type precedence, most preferred first. create_typed_sets() (src/createcompendia/
 # chemicals.py) uses it in two places: as the tie-break when a clique's members vote for several types
@@ -447,6 +504,14 @@ taxon_synonyms: [NCBITaxon, UMLS]
 taxon_ids:      [NCBITaxon, MESH, UMLS]
 taxon_concords: [NCBI_MESH, UMLS]
 taxon_outputs:  [OrganismTaxon.txt]
+# Prefixes glom() keeps to one identifier per taxon clique: a merge that would put two NCBITaxon,
+# MESH or UMLS ids in one clique is refused. NCBITaxon and MESH arrived in #27 (2021), and UMLS was
+# added in #60 (2022) when the pipeline began importing UMLS taxa; neither recorded a reason. The
+# likely one is that each vocabulary gives a taxon one id, so two from one vocabulary in a clique
+# means an NCBI_MESH or UMLS mapping has bridged two taxa. The cost of restricting MESH and UMLS is
+# that when two descriptors or CUIs map to one taxon, the clique keeps whichever the concords name
+# first and refuses the other. Moved here from build_compendia() in taxon.py (#882).
+taxon_unique_prefixes: [NCBITaxon, MESH, UMLS]
 
 cell_line_outputs: [CellLine.txt]
 
@@ -501,6 +566,11 @@ publications:
 geneprotein_outputs: [GeneProtein.txt]
 
 drugchemical_outputs: [DrugChemical.txt]
+# Prefixes the DrugChemical conflation's glom() keeps to one identifier per conflation group. The
+# conflation merges chemical cliques by their preferred ids, so this only refuses a merge that would
+# put two cliques whose preferred id is an InChIKey into one group. INCHIKEY was inherited from
+# glom()'s old default rather than chosen; it is kept so moving it here (#882) changes no output.
+drugchemical_unique_prefixes: [INCHIKEY]
 
 preferred_name_boost_prefixes:
   biolink:ChemicalEntity: [DRUGBANK, DrugCentral, CHEBI, MESH, GTOPDB]

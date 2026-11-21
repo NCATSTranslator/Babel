@@ -1,6 +1,6 @@
-# CLAUDE.md — tests/
+# AGENTS.md — tests/
 
-Point-of-use conventions for writing Babel tests, for Claude Code. For the test taxonomy (the four
+Point-of-use conventions for writing Babel tests, for coding agents. For the test taxonomy (the four
 `unit`/`network`/`slow`/`pipeline` marks, the `min_memory_gb` guard) and *where* a new test belongs,
 see [`README.md`](README.md) — this file only covers how to write one once you know where it goes.
 
@@ -17,6 +17,13 @@ see [`README.md`](README.md) — this file only covers how to write one once you
 - **Ruff lint in test code** — all Python must pass `uv run ruff check`. Two rules are easy to trip
   in tests: E741 (no single-letter ambiguous names like `l`/`O`/`I`) and F841 (no unread
   assignments).
+
+- **A `unit` test under `tests/pipeline/` never runs in CI** — `pytest_collection_modifyitems` in
+  `tests/conftest.py` skips any item with `"pipeline"` in its keywords, and pytest puts the package
+  name there, so everything in that directory needs `--pipeline` whatever its mark. A unit test
+  *about* the pipeline-test machinery belongs beside the code it guards instead: the checks that
+  `ec_pipeline_outputs` and `rhea_pipeline_outputs` still call the handlers' entry points correctly
+  are in `tests/datahandlers/test_ec.py` and `test_rhea.py`.
 
 - **Fixtures for a real-data bug must be copied verbatim** — when a test stands in for a specific
   record from a source file, paste that record's row exactly as it appears in the downloaded file

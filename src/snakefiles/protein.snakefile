@@ -10,10 +10,12 @@ import src.snakefiles.util as util
 rule protein_mesh_ids:
     input:
         infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/MESH",
     run:
-        protein.write_mesh_ids(output.outfile)
+        protein.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule protein_pr_ids:
@@ -163,6 +165,9 @@ rule protein_compendia:
         # over-provisioned until UniProtKB recovers; ignore that unless a second full-size run agrees.
         runtime="12h",
         mem="512G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["protein_unique_prefixes"],
     run:
         protein.build_protein_compendia(
             input.concords,

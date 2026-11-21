@@ -173,9 +173,16 @@ the 120-minute default has roughly 2x headroom and was left alone.
 The DuckDB rules (`export_*_to_duckdb` and the cross-compendium report rules in
 `duckdb.snakefile`) spill larger-than-memory intermediates to a temp directory. By default that
 is `tmp_directory` from `config.yaml` (`babel_downloads/tmp`, on the parallel filesystem).
-`setup_duckdb()` gives each job its own `duckdb-$SLURM_JOB_ID` subdirectory there, so concurrent
-jobs never share spill files — sharing one directory previously caused `stale file handle` and
-`could not read enough bytes` IO errors when several report jobs ran at once.
+`connect_duckdb()` gives each connection its own `duckdb-$SLURM_JOB_ID-<pid>-<random>`
+subdirectory there, so concurrent jobs never share spill files — sharing one directory previously
+caused `stale file handle` and `could not read enough bytes` IO errors when several report jobs ran
+at once. The subdirectory is deleted when the connection closes, including when a query raises;
+any file it can't delete (an NFS `.nfsXXXX` file DuckDB still holds open, say) is logged by path
+as a `Could not delete DuckDB spill path` warning. A job killed outright — SIGKILL at its time
+limit or a cgroup OOM-kill, or the SIGABRT of a DuckDB background-thread OOM — skips that clean-up
+and leaves its directory, spill files included; the job ID in its name says whether that job is
+still running, and once it isn't, the directory can be deleted. Its permissions follow the job's
+umask, so anyone the umask lets in can clear it, not only the user who ran the job.
 
 Hatteras has no large node-local disk suitable for spilling:
 
@@ -246,7 +253,7 @@ The **definitive** fix is for the cluster to raise `vm.max_map_count` (it is the
 65530; 262144+ is typical for data-heavy mmap workloads — tracking issue #846). The `memory_limit`
 cap keeps the rule running until then. `mem` stays at 512G (the cgroup was never the constraint).
 
-The memory snapshot is built to tell these shapes apart. `setup_duckdb()` logs a connect-time
+The memory snapshot is built to tell these shapes apart. `connect_duckdb()` logs a connect-time
 `DuckDB memory headroom: memory_limit=…, cgroup hard limit=…` line (the only memory record that
 survives a SIGABRT), and `log_duckdb_settings_on_error()` plus the end of each report log two lines:
 a `Memory snapshot (…)` line (process peak RSS, cgroup current/peak/hard-limit, DuckDB tracked, and
@@ -268,7 +275,7 @@ as:
 
 The cgroup figures come from the job's SLURM cgroup, resolved via `/proc/self/cgroup` (the bare
 `/sys/fs/cgroup` root would report the node total, not the `mem=` allocation); all fields read
-`unknown` off Linux/cgroups. See `src/exporters/duckdb_exporters.py`.
+`unknown` off Linux/cgroups. See `src/utils/duckdb_setup.py` and `src/utils/memory.py`.
 
 To override the spill location for a run — for example to point spills at a larger or less-contended
 filesystem — set `BABEL_DUCKDB_TEMP_DIR` in the job environment; an individual rule can also pass
@@ -286,7 +293,7 @@ may have at `vm.max_map_count` (the old default is 65530), and a new mmap-backed
 with `ENOMEM` once that ceiling is reached.
 
 How to confirm: look at the `Address-space snapshot (…)` line that `log_memory_snapshot()` writes
-(`src/exporters/duckdb_exporters.py`); it is surfaced automatically by `babel-slurm-errors`. If
+(`src/utils/memory.py`); it is surfaced automatically by `babel-slurm-errors`. If
 `mappings` is at or near `max_map_count` while `Committed_AS` is well under `CommitLimit` and
 `MemAvailable` is large, it is this issue. (Compare against the RAM shapes documented under
 "Temporary Scratch Space" above.)

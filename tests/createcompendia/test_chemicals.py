@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+import src.createcompendia.chemicals as chemicals
+import src.model.compendia as compendia
 from src import categories
 from src.categories import (
     CHEMICAL_ENTITY,
@@ -32,8 +34,10 @@ from src.createcompendia.chemicals import (
     create_typed_sets,
     make_chebi_relations,
     read_chebi_lookup_ids,
+    read_untyped_compendium,
     split_chebi_sdf_values,
     write_unichem_concords,
+    write_untyped_compendium,
 )
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
@@ -580,6 +584,132 @@ def test_make_chebi_relations_raises_when_the_dbx_contributes_nothing(tmp_path):
         _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER)
 
 
+# ----
+# CHEMICAL BAD XREFS (input_data/chemical_badxrefs.txt)
+# ----
+
+# DrugCentral's identifier table gives DrugCentral:4951 (ofatumumab) PubChem CID 8254 (dimethyl ether); these rows
+# are copied from Babel 2026jul22's intermediate/chemicals/concords/DrugCentral (via its duckdb/Concord.parquet),
+# with the predicate the DrugCentral concord writes.
+_OFATUMUMAB_DRUGCENTRAL_ROWS = (
+    "DrugCentral:4951\toio:equivalent\tPUBCHEM.COMPOUND:8254\nDrugCentral:4951\toio:equivalent\tDRUGBANK:DB06650\n"
+)
+_DIMETHYL_ETHER_UNICHEM_SET = ["PUBCHEM.COMPOUND:8254", "INCHIKEY:LCGLNKUTAGEVQW-UHFFFAOYSA-N"]
+
+
+def _untyped_sets(tmp_path, badxrefs_text, **kwargs):
+    """Run build_untyped_compendia() over the ofatumumab rows with the given bad-xrefs file; return its sets.
+
+    ``kwargs`` go to build_untyped_compendia(); the metadata YAML is written to ``tmp_path / "metadata.yaml"``."""
+    from src.createcompendia.chemicals import build_untyped_compendia
+
+    partial = tmp_path / "UNICHEM"
+    partial.write_text(json.dumps(_DIMETHYL_ETHER_UNICHEM_SET) + "\n")
+    concord = tmp_path / "DrugCentral"
+    concord.write_text(_OFATUMUMAB_DRUGCENTRAL_ROWS)
+    badxrefs = tmp_path / "chemical_badxrefs.txt"
+    badxrefs.write_text(badxrefs_text)
+    untyped = tmp_path / "untyped_compendium"
+    build_untyped_compendia(
+        [str(concord)],
+        [],
+        str(partial),
+        str(untyped),
+        str(tmp_path / "types"),
+        str(tmp_path / "metadata.yaml"),
+        [],
+        badxrefs=str(badxrefs),
+        **kwargs,
+    )
+    return list(read_untyped_compendium(untyped))
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_drops_a_listed_bad_xref_in_either_direction(tmp_path):
+    """A pair in the bad-xrefs file should not reach glom(), whichever way round it is listed, so ofatumumab's
+    records stay out of the dimethyl-ether set; the antibody's other xrefs are unaffected."""
+    sets = _untyped_sets(tmp_path, "# reason\nPUBCHEM.COMPOUND:8254 DrugCentral:4951\n")
+
+    assert {"PUBCHEM.COMPOUND:8254", "INCHIKEY:LCGLNKUTAGEVQW-UHFFFAOYSA-N"} in sets
+    assert {"DrugCentral:4951", "DRUGBANK:DB06650"} in sets
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_without_the_entry_merges_them(tmp_path):
+    """The control: with an empty bad-xrefs file the DrugCentral row puts ofatumumab into the dimethyl-ether set."""
+    sets = _untyped_sets(tmp_path, "# nothing listed\n")
+
+    assert {
+        "PUBCHEM.COMPOUND:8254",
+        "INCHIKEY:LCGLNKUTAGEVQW-UHFFFAOYSA-N",
+        "DrugCentral:4951",
+        "DRUGBANK:DB06650",
+    } in sets
+
+
+@pytest.mark.unit
+def test_the_checked_in_chemical_badxrefs_file_parses_and_lists_each_pair_once():
+    """input_data/chemical_badxrefs.txt should parse, be non-empty, and not list a pair twice in either order."""
+    from src.babel_utils import read_badxrefs
+    from src.createcompendia.chemicals import CHEMICAL_BAD_XREFS
+
+    pairs = read_badxrefs(CHEMICAL_BAD_XREFS)
+    unordered = [frozenset(p) for p in pairs]
+    assert pairs
+    assert len(unordered) == len(set(unordered))
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_writes_the_pairs_it_applied_for_the_audit(tmp_path):
+    """The build should write the pairs it applied, under a header read_applied_badxrefs() requires, so the audit can
+    model that build rather than whatever input_data/chemical_badxrefs.txt says by the time it runs."""
+    from src.createcompendia.chemicals import APPLIED_BADXREFS_HEADER, read_applied_badxrefs
+
+    applied = tmp_path / "partials" / "applied_badxrefs.txt"
+    _untyped_sets(tmp_path, "# reason\nPUBCHEM.COMPOUND:8254 DrugCentral:4951\n", applied_badxrefs=str(applied))
+
+    assert applied.read_text().splitlines()[0] == APPLIED_BADXREFS_HEADER
+    assert read_applied_badxrefs(str(applied)) == {("PUBCHEM.COMPOUND:8254", "DrugCentral:4951")}
+
+
+@pytest.mark.unit
+def test_read_applied_badxrefs_refuses_the_input_data_file():
+    """Handing the audit the repo's chemical_badxrefs.txt, which may list pairs a build never applied, should fail."""
+    from src.createcompendia.chemicals import CHEMICAL_BAD_XREFS, read_applied_badxrefs
+
+    with pytest.raises(ValueError, match="applied_badxrefs.txt"):
+        read_applied_badxrefs(CHEMICAL_BAD_XREFS)
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_records_unmatched_bad_pairs_in_its_metadata(tmp_path):
+    """A listed pair no concord row names should be counted and listed in the metadata YAML, which is nested into
+    every chemical compendium's metadata, rather than only logged."""
+    import yaml
+
+    _untyped_sets(tmp_path, "PUBCHEM.COMPOUND:8254 DrugCentral:4951\nDrugCentral:1 PUBCHEM.COMPOUND:2\n")
+    counts = yaml.safe_load((tmp_path / "metadata.yaml").read_text())["counts"]
+
+    assert counts == {"bad_xref_pairs": 2, "bad_xref_pairs_unmatched": ["DrugCentral:1 PUBCHEM.COMPOUND:2"]}
+
+
+@pytest.mark.unit
+def test_a_bad_pair_naming_a_cui_owned_elsewhere_still_counts_as_matched(tmp_path, monkeypatch):
+    """A listed pair that also names a CUI another pipeline owns is skipped either way, but it still matches a concord
+    row, so it should not be reported as unmatched (and so as safe to delete)."""
+    import yaml
+
+    from src.createcompendia import chemicals
+
+    # The build skips any pair naming a member of this set, whatever its prefix; the ofatumumab rows name no CUI, so
+    # CID 8254 stands in for one.
+    monkeypatch.setattr(chemicals.umls, "read_cuis_owned_elsewhere", lambda *_: frozenset({"PUBCHEM.COMPOUND:8254"}))
+    _untyped_sets(tmp_path, "PUBCHEM.COMPOUND:8254 DrugCentral:4951\n")
+    counts = yaml.safe_load((tmp_path / "metadata.yaml").read_text())["counts"]
+
+    assert counts["bad_xref_pairs_unmatched"] == []
+
+
 # COMBINING UNICHEM CONCORDS
 
 
@@ -675,6 +805,131 @@ def test_build_untyped_compendia_survives_a_concord_with_no_pairs_left(tmp_path,
     )
 
     assert untyped_concord.read_text().count("\n") == 1
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_skips_a_pair_naming_a_taxon_owned_mesh_record(tmp_path):
+    """A PUBCHEM_MESH pair naming a MeSH record with an NCBI Taxon registry number should be skipped, so the
+    record stays in the taxon compendium alone (#1240). make_pubchem_mesh_concord() matches MeSH labels without
+    reading chemicals/ids/MESH, so leaving the record out of that file is not enough; the ownership file's row
+    for it is what keeps it out. Without an ownership file the pair is glommed, which is the failure."""
+    maize_virus = "MESH:C000626778"  # "maize chlorotic mottle virus": SCR_Chemical with txid12138 in supp2026.gz
+    concord = tmp_path / "PUBCHEM_MESH"
+    concord.write_text(f"{PUBCHEMCOMPOUND}:1\txref\t{maize_virus}\n")
+    unichem_partial = tmp_path / "unichem_partial.jsonl"
+    unichem_partial.write_text(json.dumps([f"{PUBCHEMCOMPOUND}:1", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"]) + "\n")
+    mesh_ownership = tmp_path / "mesh_ownership.tsv"
+    mesh_ownership.write_text(f"{maize_virus}\ttaxon\t{maize_virus}\tbiolink:OrganismTaxon\n")
+
+    def members(ownership):
+        untyped = tmp_path / "untyped_compendium"
+        build_untyped_compendia(
+            [str(concord)],
+            [],
+            str(unichem_partial),
+            str(untyped),
+            str(tmp_path / "types"),
+            str(tmp_path / "metadata.yaml"),
+            [],
+            mesh_ownership=ownership,
+        )
+        return set().union(*read_untyped_compendium(untyped))
+
+    assert maize_virus not in members(str(mesh_ownership))
+    assert maize_virus in members(None)
+
+
+# THE UNTYPED-COMPENDIUM HANDOFF
+
+
+@pytest.mark.unit
+def test_untyped_compendium_round_trips(tmp_path):
+    """What build_untyped_compendia writes must be exactly what build_compendia reads back."""
+    path = tmp_path / "untyped_compendium"
+    cliques = {
+        frozenset({"CHEBI:15377", "PUBCHEM.COMPOUND:962", "INCHIKEY:XLYOFNOQVPJJNP-UHFFFAOYSA-N"}),
+        frozenset({"CHEBI:16234"}),
+    }
+
+    write_untyped_compendium(path, cliques)
+
+    assert read_untyped_compendium(path) == cliques
+
+
+@pytest.mark.unit
+def test_a_cliques_line_does_not_depend_on_member_insertion_order(tmp_path):
+    """A given clique must always serialise to the same text, so two builds' files can be compared
+    with `sort | diff` rather than re-parsed.
+
+    Only within-line order is stable. Line order still follows set iteration and is not reproducible
+    between runs -- sorting ~100M lines to fix that would cost more than the diffability is worth.
+    """
+    members = ["CHEBI:15377", "PUBCHEM.COMPOUND:962", "MESH:D005947"]
+    forwards, backwards = tmp_path / "a", tmp_path / "b"
+
+    write_untyped_compendium(forwards, [frozenset(members)])
+    write_untyped_compendium(backwards, [frozenset(reversed(members))])
+
+    assert forwards.read_text() == backwards.read_text()
+
+
+@pytest.mark.unit
+def test_reading_a_pre_jsonl_partial_says_to_delete_it(tmp_path):
+    """A partial left over from before the format switch must fail with an actionable message.
+
+    Snakemake will not rebuild a partial that is newer than its inputs, so a tree carried over from
+    an older checkout reaches build_compendia still holding repr(set) lines. Failing inside
+    json.loads would name neither the cause nor the fix.
+    """
+    path = tmp_path / "untyped_compendium"
+    path.write_text("{'CHEBI:15377', 'PUBCHEM.COMPOUND:962'}\n")
+
+    with pytest.raises(RuntimeError, match=r"pre-JSONL `repr\(set\)` format"):
+        read_untyped_compendium(path)
+
+
+@pytest.mark.unit
+def test_blank_lines_are_skipped(tmp_path):
+    """A trailing newline is not a clique."""
+    path = tmp_path / "untyped_compendium"
+    path.write_text('["CHEBI:15377"]\n\n')
+
+    assert read_untyped_compendium(path) == {frozenset({"CHEBI:15377"})}
+
+
+@pytest.mark.unit
+def test_build_compendia_loads_icrdf_once_for_every_output(tmp_path, monkeypatch):
+    """Every chemical output is written from one InformationContentFactory, not one per write.
+
+    The rule writes one compendium per config.yaml: chemical_outputs entry, and icRDF.tsv is ~3.9
+    million rows. build_compendia writes through write_typed_compendia(), which holds the factory for
+    the call rather than caching it in src/node.py, so it is freed when the rule's work is done; this
+    runs the real typing step and checks the sharing still happens.
+    """
+    type_file = tmp_path / "types"
+    type_file.write_text(f"CHEBI:15377\t{SMALL_MOLECULE}\nCHEBI:16234\t{MOLECULAR_MIXTURE}\n")
+    untyped = tmp_path / "untyped_compendium"
+    write_untyped_compendium(untyped, [frozenset({"CHEBI:15377"}), frozenset({"CHEBI:16234"})])
+    food_types = tmp_path / "food_types"
+    food_types.write_text("")
+    icrdf = str(tmp_path / "icRDF.tsv")
+
+    factories, writes = [], []
+
+    class RecordingFactory:
+        def __init__(self, ic_file):
+            self.ic_file = ic_file
+            factories.append(self)
+
+    monkeypatch.setattr(compendia, "InformationContentFactory", RecordingFactory)
+    monkeypatch.setattr(compendia, "write_compendium", lambda *args, **kwargs: writes.append(kwargs))
+
+    chemicals.build_compendia(str(type_file), str(untyped), [], [], icrdf, [str(food_types)])
+
+    assert len(factories) == 1
+    assert len(writes) == 2
+    assert factories[0].ic_file == icrdf
+    assert all(w["ic_factory"] is factories[0] and w["icrdf_filename"] == icrdf for w in writes)
 
 
 # ----
