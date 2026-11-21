@@ -1,7 +1,6 @@
 import gzip
 import hashlib
 import json
-import logging
 from collections import Counter, defaultdict
 
 import jsonlines
@@ -541,8 +540,7 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
             if line.startswith('"Ligand ID"'):
                 # Header line! Check, then skip.
                 header = line.strip().split("\t")
-                # print("header: ", header)
-                assert header == [
+                if header != [
                     '"Ligand ID"',
                     '"Name"',
                     '"Species"',
@@ -569,27 +567,21 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
                     '"GtoImmuPdb"',
                     '"GtoMPdb"',
                     '"Antibacterial"',
-                ], f"SMIFile {infile} has a modified header, please update."
-                try:
-                    idcol_index = header.index(idcol)
-                except ValueError:
-                    logging.error(f"Could not find ID column '{idcol}' in header {header} for {infile}")
-                    exit(1)
-                try:
-                    smicol_index = header.index(smicol)
-                except ValueError:
-                    logging.error(f"Could not find SMILES column '{smicol}' in header {header} for {infile}")
-                    exit(1)
+                ]:
+                    # An explicit raise rather than an assert, which `python -O` would skip. The exact match
+                    # also guarantees both index() lookups below succeed.
+                    raise ValueError(f"SMIFile {infile} has a modified header, please update: {header}")
+                idcol_index = header.index(idcol)
+                smicol_index = header.index(smicol)
                 continue
             x = line.split("\t")
             if stripquotes:
                 x = [xi[1:-1] for xi in x]
+            # A data row before any header row leaves the column indices unset.
             if idcol_index is None:
-                logging.error(f"Could not find ID column '{idcol}' in {infile}")
-                exit(1)
+                raise ValueError(f"Could not find ID column '{idcol}' in {infile}")
             if smicol_index is None:
-                logging.error(f"Could not find SMILES column '{smicol}' in {infile}")
-                exit(1)
+                raise ValueError(f"Could not find SMILES column '{smicol}' in {infile}")
             smi = x[smicol_index]
             dcid = f"{pref}:{x[idcol_index]}"
             ctype = get_type_from_smiles(smi)
@@ -1379,12 +1371,12 @@ def create_typed_sets(eqsets, types, food_types):
         """Type a clique as the most preferred of its voted type and any food/extract evidence on it."""
         typed_sets[min({biolink_type} | food_evidence, key=order.index) if food_evidence else biolink_type].add(ids)
 
-    # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
+    # logger.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
         # The evidence joins the vote below rather than overriding it. Recomputed per output clique in
         # the split branch, since a split sends the evidence CURIE to only one of the two halves.
         food_evidence = evidence_for(equivalent_ids)
-        # logging.warning(f"Processing equivalent_ids={equivalent_ids}.")
+        # logger.warning(f"Processing equivalent_ids={equivalent_ids}.")
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)
         found = False
@@ -1396,7 +1388,7 @@ def create_typed_sets(eqsets, types, food_types):
                     if x in types:
                         pctypes.add(types[x])
                     else:
-                        # logging.warning(f"No type found for {x}, skipping.")
+                        # logger.warning(f"No type found for {x}, skipping.")
                         pass
 
                 if len(pctypes) == 1:
@@ -1422,11 +1414,16 @@ def create_typed_sets(eqsets, types, food_types):
                         else:
                             all_other_ids.add(eq_id)
 
-                    logging.info(
-                        "Found a clique that that contains PUBCHEM types "
-                        + "({'biolink:SmallMolecule', 'biolink:MolecularMixture'}). This clique will be split "
-                        + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
-                        + f"a biolink:SmallMolecule ({all_other_ids})"
+                    # Debug, not info: this fires thousands of times per build (see the count above).
+                    logger.debug(
+                        "Found a clique that contains PUBCHEM types %s and %s. This clique will be split into a "
+                        "%s (%s) and a %s (%s)",
+                        SMALL_MOLECULE,
+                        MOLECULAR_MIXTURE,
+                        MOLECULAR_MIXTURE,
+                        molecular_mixture_ids,
+                        SMALL_MOLECULE,
+                        all_other_ids,
                     )
                     # Each half votes on its own evidence: an extract CURIE that lands in the small
                     # molecule half must not retype the mixture half to ComplexMolecularMixture.
@@ -1434,7 +1431,7 @@ def create_typed_sets(eqsets, types, food_types):
                     assign(SMALL_MOLECULE, frozenset(all_other_ids), evidence_for(all_other_ids))
                     found = True
                 else:
-                    logging.warning(
+                    logger.warning(
                         f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}"
                     )
         if not found:
