@@ -80,9 +80,7 @@ Having text after the fenced code block (or multiple code blocks) is fine too.
 
 The assertion types are defined in [babel-validation][assertion types], whose README is generated
 from the handler classes themselves. That page is canonical: it is always in sync with what the
-harness can actually run, so link to it rather than copying the list here. As of writing it covers
-`Resolves`, `DoesNotResolve`, `ResolvesWith`, `DoesNotResolveWith`, `HasLabel` and
-`ResolvesWithType` for NodeNorm, `SearchByName` for NameRes, and the `Needed` placeholder.
+harness can actually run, so link to it rather than copying the list here.
 
 Use `{{BabelTest|Needed}}` as a placeholder if you know a test is needed but do not yet know the
 exact expected values. It always fails, as a reminder.
@@ -133,8 +131,9 @@ The issue's own state decides the expected outcome, so the two are not read the 
   This is the signal that the bug is fixed and the issue can be closed. It is the main reason to
   add assertions to issues at all.
 - **Closed issue** — its assertions must pass. A failure here is a regression.
-- **`skipped`** — the harness found no assertion in the body at all, usually a malformed
-  `{{BabelTest|...}}` marker.
+- **`skipped`** — for one issue, the harness found no assertion in its body, usually a malformed
+  `{{BabelTest|...}}` marker. If *every* issue is skipped, suspect a missing `GITHUB_TOKEN` first
+  (see above); the skip reason that `-rs` prints tells the two apart.
 
 Results for every configured repository, across all six environments, are published daily to the
 [babel-validation dashboard]; filter by the *GitHub issues* kind.
