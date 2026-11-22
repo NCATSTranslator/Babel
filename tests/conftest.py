@@ -7,9 +7,9 @@ import pytest
 
 from src.model.intermediates import read_concords
 from src.node import NodeFactory
-from src.util import get_config
+from src.util import get_config, get_repo_root
 
-REPO_ROOT = Path(__file__).parent.parent
+REPO_ROOT = get_repo_root()
 
 # ---------------------------------------------------------------------------
 # Repository file listing (used by the checks on the repository's own files)

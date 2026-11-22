@@ -21,9 +21,11 @@ from pathlib import Path
 
 import pytest
 
+from src.util import get_repo_root
+
 pytestmark = pytest.mark.unit
 
-REPO_ROOT = Path(__file__).parent.parent
+REPO_ROOT = get_repo_root()
 
 
 def _tracked_files():
