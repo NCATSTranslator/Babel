@@ -63,6 +63,12 @@ def get_repo_root():
     path works there — but the CLI entry points (the source-impact report, the clique diff) can
     be invoked from anywhere, and a module-level constant built from a relative path would then
     silently point at nothing.
+
+    Prefer this to counting ``Path(__file__).parents[n]`` in each caller, where the count is wrong
+    as soon as the caller moves. It needs no marker-file search because it counts from this file,
+    whose place in the repo is fixed. Scripts that must put the repo on ``sys.path`` before they
+    can import ``src`` (some under ``docs/``, and ``releases/scripts/``) can't call it, and compute
+    the root themselves.
     """
     return Path(__file__).resolve().parents[1]
 

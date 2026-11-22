@@ -14,6 +14,10 @@ see [`README.md`](README.md) — this file only covers how to write one once you
   instead of hand-rolling TSV checks. When a handler adds a new output kind, add the matching helper
   to the root `conftest.py` rather than a private one in the test file.
 
+- **Finding the repository root** — use `get_repo_root()` from `src/util.py` (or `REPO_ROOT`,
+  which `tests/conftest.py` sets from it), not `Path(__file__).parents[n]`, whose depth breaks
+  silently when a test file moves to another directory.
+
 - **Ruff lint in test code** — all Python must pass `uv run ruff check`. Two rules are easy to trip
   in tests: E741 (no single-letter ambiguous names like `l`/`O`/`I`) and F841 (no unread
   assignments).
