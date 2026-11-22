@@ -529,9 +529,55 @@ def write_chemical_ids_from_labels_and_smiles(labelfile, smifile, outfile):
             outf.write(f"{hmdbid}\t{ctype}\n")
 
 
+# The exact column list of GtoPdb's ligands.tsv, as parse_smifile() expects it. Any change upstream should stop
+# the build rather than silently shift which column is read as the ID or the SMILES, so the header is compared
+# against this list in full. Update it (and check the column names write_gtopdb_ids() passes) when GtoPdb changes
+# the file.
+GTOPDB_LIGANDS_COLUMNS = [
+    '"Ligand ID"',
+    '"Name"',
+    '"Species"',
+    '"Type"',
+    '"Approved"',
+    '"Withdrawn"',
+    '"Labelled"',
+    '"Radioactive"',
+    '"PubChem SID"',
+    '"PubChem CID"',
+    '"UniProt ID"',
+    '"Ensembl ID"',
+    '"ChEMBL ID"',
+    '"Ligand Subunit IDs"',
+    '"Ligand Subunit Name"',
+    '"Ligand Subunit UniProt IDs"',
+    '"Ligand Subunit Ensembl IDs"',
+    '"IUPAC name"',
+    '"INN"',
+    '"Synonyms"',
+    '"SMILES"',
+    '"InChIKey"',
+    '"InChI"',
+    '"GtoImmuPdb"',
+    '"GtoMPdb"',
+    '"Antibacterial"',
+]
+
+
 def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
-    idcol_index = None
-    smicol_index = None
+    """Write a `CURIE<TAB>Biolink type` row for every ligand in GtoPdb's ligands.tsv, typed from its SMILES.
+
+    `idcol` and `smicol` name the ID and SMILES columns exactly as the header spells them (quotes included); both
+    must be in GTOPDB_LIGANDS_COLUMNS. The version line is skipped, the header must match GTOPDB_LIGANDS_COLUMNS
+    exactly. With `stripquotes`, each field's surrounding double quotes are removed.
+    Raises ValueError for an unknown column name, a modified header, or a data row before the header.
+    """
+    for param, column in (("idcol", idcol), ("smicol", smicol)):
+        if column not in GTOPDB_LIGANDS_COLUMNS:
+            raise ValueError(f"parse_smifile() {param}={column!r} is not a column of GTOPDB_LIGANDS_COLUMNS")
+    # Both names are in the expected header, which a header row must match exactly, so these always succeed.
+    idcol_index = GTOPDB_LIGANDS_COLUMNS.index(idcol)
+    smicol_index = GTOPDB_LIGANDS_COLUMNS.index(smicol)
+    seen_header = False
     with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             if line.startswith('"# GtoPdb Version'):
@@ -540,48 +586,18 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
             if line.startswith('"Ligand ID"'):
                 # Header line! Check, then skip.
                 header = line.strip().split("\t")
-                if header != [
-                    '"Ligand ID"',
-                    '"Name"',
-                    '"Species"',
-                    '"Type"',
-                    '"Approved"',
-                    '"Withdrawn"',
-                    '"Labelled"',
-                    '"Radioactive"',
-                    '"PubChem SID"',
-                    '"PubChem CID"',
-                    '"UniProt ID"',
-                    '"Ensembl ID"',
-                    '"ChEMBL ID"',
-                    '"Ligand Subunit IDs"',
-                    '"Ligand Subunit Name"',
-                    '"Ligand Subunit UniProt IDs"',
-                    '"Ligand Subunit Ensembl IDs"',
-                    '"IUPAC name"',
-                    '"INN"',
-                    '"Synonyms"',
-                    '"SMILES"',
-                    '"InChIKey"',
-                    '"InChI"',
-                    '"GtoImmuPdb"',
-                    '"GtoMPdb"',
-                    '"Antibacterial"',
-                ]:
-                    # An explicit raise rather than an assert, which `python -O` would skip. The exact match
-                    # also guarantees both index() lookups below succeed.
+                if header != GTOPDB_LIGANDS_COLUMNS:
+                    # An explicit raise rather than an assert, which `python -O` would skip.
                     raise ValueError(f"SMIFile {infile} has a modified header, please update: {header}")
-                idcol_index = header.index(idcol)
-                smicol_index = header.index(smicol)
+                seen_header = True
                 continue
+            if not seen_header:
+                # Also what a header that doesn't start with exactly '"Ligand ID"' (a BOM, leading whitespace, a
+                # renamed first column) looks like, since it is then read as data.
+                raise ValueError(f"SMIFile {infile} has a data row before its '\"Ligand ID\"' header: {line!r}")
             x = line.split("\t")
             if stripquotes:
                 x = [xi[1:-1] for xi in x]
-            # A data row before any header row leaves the column indices unset.
-            if idcol_index is None:
-                raise ValueError(f"Could not find ID column '{idcol}' in {infile}")
-            if smicol_index is None:
-                raise ValueError(f"Could not find SMILES column '{smicol}' in {infile}")
             smi = x[smicol_index]
             dcid = f"{pref}:{x[idcol_index]}"
             ctype = get_type_from_smiles(smi)

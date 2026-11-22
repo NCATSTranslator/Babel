@@ -940,14 +940,14 @@ def test_build_compendia_loads_icrdf_once_for_every_output(tmp_path, monkeypatch
 @pytest.mark.unit
 def test_parse_smifile_raises_on_a_data_row_before_the_header(tmp_path):
     """A ligands file whose first row is data, not the "Ligand ID" header, leaves the column indices unset, so
-    parse_smifile() should raise ValueError rather than exit the process. The row is synthetic: it only has to come
-    before any header."""
+    parse_smifile() should raise ValueError saying so, rather than exit the process or blame a missing column. The row
+    is synthetic: it only has to come before any header."""
     from src.createcompendia.chemicals import write_gtopdb_ids
 
     infile = tmp_path / "ligands.tsv"
     infile.write_text('"1"\t"a ligand"\n')
 
-    with pytest.raises(ValueError, match="Could not find ID column"):
+    with pytest.raises(ValueError, match="data row before"):
         write_gtopdb_ids(str(infile), str(tmp_path / "ids"))
 
 
@@ -962,3 +962,17 @@ def test_parse_smifile_raises_on_a_modified_header(tmp_path):
 
     with pytest.raises(ValueError, match="modified header"):
         write_gtopdb_ids(str(infile), str(tmp_path / "ids"))
+
+
+@pytest.mark.unit
+def test_parse_smifile_raises_on_a_column_not_in_the_expected_header(tmp_path):
+    """A column name that GTOPDB_LIGANDS_COLUMNS doesn't list should raise ValueError naming the parameter, not a bare
+    `'"X"' is not in list` from index()."""
+    from src.createcompendia.chemicals import parse_smifile
+    from src.prefixes import GTOPDB
+
+    infile = tmp_path / "ligands.tsv"
+    infile.write_text("")
+
+    with pytest.raises(ValueError, match="smicol='\"Isomeric SMILES\"'"):
+        parse_smifile(str(infile), str(tmp_path / "ids"), '"Isomeric SMILES"', '"Ligand ID"', GTOPDB)
