@@ -79,6 +79,11 @@ uv run rumdl fmt .                       # Markdown auto-fix
   intermediate directory names when they differ (e.g., `diseasephenotype → disease`,
   `processactivitypathway → process`). Update this when adding a new semantic type whose
   directory name doesn't match its Python module name.
+- Every prefix in a `*_ids` list in `config.yaml` (e.g. `gene_ids`) needs a rule whose output is
+  `<intermediate_directory>/<type>/ids/<prefix>`. `check_id_prefix_rules()` in
+  `src/snakefiles/util.py` enforces this when Snakemake loads the workflow; it must stay the last
+  statement of the top-level `Snakefile`, since it can only see rules defined before it runs. A new
+  semantic type's `*_ids` list needs an entry in `ID_PREFIX_LISTS` there.
 
 ## Architecture
 
