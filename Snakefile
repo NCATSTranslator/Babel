@@ -24,7 +24,7 @@ include: "src/snakefiles/exports.snakefile"
 
 # Some general imports.
 import shutil
-from src.snakefiles.util import write_done
+from src.snakefiles.util import check_id_prefix_rules, write_done
 
 # Some global settings.
 import os
@@ -111,3 +111,8 @@ rule uncompress_synonym_file:
         config["output_directory"] + "/benchmarks/uncompress_synonym_file_{synonym_file}.tsv"
     shell:
         "gunzip {input} -c > {output}"
+
+
+# Check that every prefix in config.yaml's *_ids lists has a rule that writes its ids file. This must stay at the
+# end of this file, after every include and rule, because it can only see rules that have already been defined.
+check_id_prefix_rules(workflow, config)
