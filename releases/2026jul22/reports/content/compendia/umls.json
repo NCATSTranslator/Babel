@@ -1,0 +1,60 @@
+{
+  "compendium_path": "babel_outputs/compendia/umls.txt",
+  "count_by_biolink_type": {
+    "biolink:Activity": 9092,
+    "biolink:Agent": 4461,
+    "biolink:AnatomicalEntity": 2480,
+    "biolink:Behavior": 4202,
+    "biolink:BiologicalEntity": 110,
+    "biolink:BiologicalProcess": 3,
+    "biolink:ChemicalEntity": 20847,
+    "biolink:ClinicalAttribute": 112982,
+    "biolink:ClinicalFinding": 11065,
+    "biolink:ClinicalIntervention": 36772,
+    "biolink:Cohort": 950,
+    "biolink:Device": 73167,
+    "biolink:Drug": 31537,
+    "biolink:Event": 288,
+    "biolink:Food": 8825,
+    "biolink:GenomicEntity": 42421,
+    "biolink:GeographicLocation": 4698,
+    "biolink:GrossAnatomicalStructure": 8,
+    "biolink:Human": 46,
+    "biolink:InformationContentEntity": 54550,
+    "biolink:MolecularActivity": 268,
+    "biolink:MolecularEntity": 14,
+    "biolink:NamedThing": 32,
+    "biolink:NucleicAcidEntity": 551,
+    "biolink:Phenomenon": 332529,
+    "biolink:PhysicalEntity": 6624,
+    "biolink:PhysiologicalProcess": 108,
+    "biolink:Polypeptide": 214,
+    "biolink:PopulationOfIndividualOrganisms": 13383,
+    "biolink:Procedure": 447867,
+    "biolink:Publication": 53920
+  },
+  "count_by_prefix": {
+    "UMLS": 1274014
+  },
+  "count_lines": 1274014,
+  "counters": {
+    "clique_count": 1274014,
+    "cliques_by_description_count": {
+      "0": 1274014
+    },
+    "cliques_by_id_count": {
+      "1": 1274014
+    },
+    "cliques_by_label_count": {
+      "1": 1274014
+    },
+    "cliques_by_unique_description_count": {
+      "0": 1274014
+    },
+    "cliques_by_unique_label_count": {
+      "1": 1274014
+    }
+  },
+  "name": "umls",
+  "report_path": "babel_outputs/reports/content/compendia/umls.json"
+}

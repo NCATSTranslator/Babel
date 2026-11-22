@@ -5,6 +5,8 @@ import logging
 import os
 
 import pytest
+import requests
+from apybiomart import find_datasets
 
 from src.datahandlers.ensembl import pull_ensembl
 
@@ -103,3 +105,53 @@ def test_pull_ensembl(tmp_path):
         unsplit_rows_normalized = normalize_list_of_dictionaries(unsplit_rows)
         split_rows_normalized = normalize_list_of_dictionaries(split_rows)
         assert unsplit_rows_normalized == split_rows_normalized
+
+
+@pytest.mark.network
+@pytest.mark.timeout(120)
+def test_biomart_find_datasets_response_format():
+    """
+    Diagnose the 'Too many columns specified: expected 9 and found 1' error from
+    apybiomart.find_datasets().  That call parses the BioMart ?type=datasets response
+    as a 9-column TSV; if the API is returning an error page (HTML/JSON) instead of
+    tab-separated text the parse will fail.
+
+    This test hits the live BioMart HTTPS endpoint, prints the raw response so we can
+    see what the server actually returns, and then checks that the response looks like
+    the tab-separated text that apybiomart expects.
+
+    apybiomart uses http:// internally; Ensembl now redirects / blocks HTTP, so we
+    probe https:// here to see the actual current server response.
+    """
+    url = "https://www.ensembl.org/biomart/martservice"
+    try:
+        resp = requests.get(url, params={"type": "datasets", "mart": "ENSEMBL_MART_ENSEMBL"}, timeout=90)
+    except requests.exceptions.Timeout:
+        pytest.skip("BioMart endpoint timed out — service may be down or unreachable from this host")
+
+    raw = resp.text
+    first_500 = raw[:500]
+    print(f"\n--- BioMart find_datasets raw response (first 500 chars) ---\n{first_500}\n---")
+    print(f"HTTP status: {resp.status_code}")
+    print(f"Content-Type: {resp.headers.get('Content-Type', '(none)')}")
+
+    # Count tab-separated columns in the first non-empty line.
+    first_line = next((ln for ln in raw.splitlines() if ln.strip()), "")
+    tab_count = first_line.count("\t")
+    print(f"First non-empty line tab count: {tab_count}")
+    print(f"First line: {first_line[:200]!r}")
+
+    # apybiomart expects 9 tab-separated columns per row.
+    assert tab_count == 8, (
+        f"BioMart ?type=datasets response has changed: expected 8 tabs (9 columns) per row "
+        f"but found {tab_count} tabs in the first line.\n"
+        f"Content-Type: {resp.headers.get('Content-Type', '(none)')!r}\n"
+        f"First line: {first_line[:200]!r}\n"
+        f"Full response prefix: {first_500!r}"
+    )
+
+    # Also confirm apybiomart.find_datasets() itself can parse without raising.
+    df = find_datasets()
+    print(f"\nfind_datasets() returned {len(df)} rows with columns: {list(df.columns)}")
+    assert "Dataset_ID" in df.columns, f"Expected 'Dataset_ID' column, got: {list(df.columns)}"
+    assert len(df) > 0, "find_datasets() returned an empty dataframe"

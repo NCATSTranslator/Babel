@@ -1,12 +1,18 @@
 """Unit tests for src/datahandlers/ec.py (ECgraph)."""
 
+import os
+from unittest.mock import create_autospec
+
 import pyoxigraph
 import pytest
 
 from src.categories import MOLECULAR_ACTIVITY
-from src.datahandlers.ec import ECgraph
+from src.createcompendia import processactivitypathway as pap
+from src.datahandlers import ec
+from src.datahandlers.ec import ECgraph, make_ids, make_labels
 from src.prefixes import EC
 from tests.datahandlers.conftest import RDF_NS, RDFS_NS, SKOS_NS, lit, make_graph_from_store, nn, quad
+from tests.pipeline.conftest import run_ec_entry_points
 
 _EC_NS = "http://purl.uniprot.org/enzyme/"
 _UC_NS = "http://purl.uniprot.org/core/"
@@ -63,3 +69,63 @@ def test_pull_EC_labels_altlabel_in_syn_only(ec_output):
 def test_pull_EC_labels_rdfs_label_in_both_files(ec_output):
     assert f"{EC}:5.6.7.8\tSome enzyme" in ec_output["labels"]
     assert f"{EC}:5.6.7.8\trdfs:label\tSome enzyme" in ec_output["syns"]
+
+
+# ENTRY POINTS -- the caller-supplied enzyme.rdf path must actually be the file we load.
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda infile, tmp: make_ids(infile, str(tmp / "ids.tsv")), id="make_ids"),
+        pytest.param(
+            lambda infile, tmp: make_labels(infile, str(tmp / "labels.tsv"), str(tmp / "syns.tsv")),
+            id="make_labels",
+        ),
+    ],
+)
+def test_entry_points_load_the_infile_they_are_given(call, tmp_path):
+    """Both entry points should open the path passed to them, not one re-derived from the download
+    directory. ECgraph used to call make_local_name("enzyme.rdf", subpath="EC") itself, so the
+    Snakemake rules' declared input was ignored and the filename lived in two places -- a rule could
+    depend on one file and read another. Pointing them at a missing path proves which one is opened:
+    the error must name our path.
+    """
+    missing = tmp_path / "not-the-download-dir" / "enzyme.rdf"
+
+    with pytest.raises(FileNotFoundError) as excinfo:
+        call(str(missing), tmp_path)
+
+    assert str(missing) in str(excinfo.value)
+
+
+# PIPELINE-TEST FIXTURE -- lives here, not in tests/pipeline/, because everything under
+# tests/pipeline/ is skipped without --pipeline (see tests/AGENTS.md).
+
+
+@pytest.mark.unit
+def test_pipeline_fixture_rebuilds_stale_outputs_through_the_entry_points(tmp_path, monkeypatch):
+    """When enzyme.rdf is newer than the cached outputs, the ec_pipeline_outputs fixture should
+    rebuild every one by calling the entry points the Snakemake rules call, passing the RDF's path.
+
+    The fixture once built ECgraph itself, and kept calling it the old way after ECgraph started
+    taking its path; the pipeline tests then errored, and CI, which skips them, never saw it. The
+    autospec mocks raise TypeError on any call the real functions' signatures would reject.
+    """
+    mock_make_labels = create_autospec(ec.make_labels)
+    mock_write_ec_ids = create_autospec(pap.write_ec_ids)
+    monkeypatch.setattr(ec, "make_labels", mock_make_labels)
+    monkeypatch.setattr(pap, "write_ec_ids", mock_write_ec_ids)
+
+    rdf, labels, synonyms, ids = (str(tmp_path / name) for name in ("enzyme.rdf", "labels", "synonyms", "ids"))
+    for cached in (labels, synonyms, ids):
+        open(cached, "w").close()
+        os.utime(cached, (1_000, 1_000))
+    open(rdf, "w").close()
+    os.utime(rdf, (2_000, 2_000))
+
+    run_ec_entry_points(rdf, labels=labels, synonyms=synonyms, ids=ids, regenerate=False)
+
+    mock_make_labels.assert_called_once_with(rdf, labels, synonyms)
+    mock_write_ec_ids.assert_called_once_with(rdf, ids)

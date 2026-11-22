@@ -33,7 +33,9 @@ import pytest
 
 from src.babel_utils import make_local_name
 from src.createcompendia import anatomy, chemicals, diseasephenotype, protein, taxon
-from src.datahandlers.mesh import Mesh, pull_mesh
+from src.datahandlers.mesh import Mesh, pull_mesh, pull_mesh_labels, pull_mesh_xml, write_mesh_registry
+from src.prefixes import EMAPA, MP
+from src.ubergraph import build_sets
 
 # ---------------------------------------------------------------------------
 # Shared helpers (not fixtures — importable by test files)
@@ -134,18 +136,33 @@ def _intermediate_id_path(compendium: str, vocab: str) -> str:
     return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "ids", vocab)
 
 
-def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
-    """Run fn() to (re)generate outfile unless it exists and regenerate is False.
+def _maybe_run(outfile: str | list[str], fn, regenerate: bool, inputs: list[str] = ()) -> str:
+    """Run fn() to (re)generate outfile unless it exists, is newer than its inputs, and regenerate is False.
 
     fn is a zero-argument callable (typically a lambda) that writes to outfile.
-    Creates parent directories as needed.  Always returns outfile.
+    Creates parent directories as needed.  Always returns outfile (the first, if given several).
+
+    Pass a list when one call produces several outputs together (NCBIGene's single pass over
+    gene_info.gz writes labels, synonyms, taxa and descriptions at once): fn() then runs unless
+    *every* output is already present, so a half-finished run is not mistaken for a cached one.
+
+    Pass ``inputs`` (the files fn() reads) to rerun when any of them is newer than an output, as
+    Snakemake would. This only catches changed *files*: a change to the code fn() runs still
+    needs --regenerate.
     """
-    if not os.path.exists(outfile) or regenerate:
-        os.makedirs(os.path.dirname(outfile), exist_ok=True)
+    outfiles = [outfile] if isinstance(outfile, str) else outfile
+    stale = all(os.path.exists(f) for f in outfiles) and any(
+        os.path.getmtime(i) > min(os.path.getmtime(f) for f in outfiles) for i in inputs
+    )
+    if stale:
+        print(f"[pipeline] {', '.join(outfiles)} is older than its inputs; regenerating")  # noqa: T201
+    if regenerate or stale or not all(os.path.exists(f) for f in outfiles):
+        for f in outfiles:
+            os.makedirs(os.path.dirname(f), exist_ok=True)
         fn()
     else:
-        print(f"[pipeline] reusing cached {outfile} (pass --regenerate to refresh)")  # noqa: T201
-    return outfile
+        print(f"[pipeline] reusing cached {', '.join(outfiles)} (pass --regenerate to refresh)")  # noqa: T201
+    return outfiles[0]
 
 
 # ---------------------------------------------------------------------------
@@ -256,16 +273,43 @@ def chemicals_concords_dir(pipeline_output):
 
 @pytest.fixture(scope="session")
 def mesh_nt():
-    """Download babel_downloads/MESH/mesh.nt, or skip if unavailable."""
+    """Download babel_downloads/MESH/mesh.nt and its rdf_source.json, as rule get_mesh does, if either is missing;
+    fail if the download does. write_mesh_registry() needs rdf_source.json to check the XML is the same year."""
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
+    rdf_source = make_local_name("rdf_source.json", subpath="MESH")
+    _download_or_fail("MESH mesh.nt", lambda: pull_mesh(get_config()["mesh_year"], rdf_source), rdf_source)
     return _download_or_fail(
         "MESH mesh.nt",
-        pull_mesh,
+        lambda: pull_mesh(get_config()["mesh_year"], rdf_source),
         make_local_name("mesh.nt", subpath="MESH"),
     )
 
 
 @pytest.fixture(scope="session")
-def mesh_pipeline_outputs(mesh_nt, regenerate):
+def mesh_registry(mesh_nt, regenerate):
+    """Build babel_downloads/MESH/registry.tsv as rule get_mesh_registry does, downloading the MeSH XML and
+    writing MESH/labels first if they are missing. Every ids/MESH and the ownership file read it (#1240)."""
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
+    desc, supp = (make_local_name(f"{prefix}.xml.gz", subpath="MESH") for prefix in ("desc", "supp"))
+    xml_sources = make_local_name("xml_sources.json", subpath="MESH")
+    _download_or_fail("MeSH XML", lambda: pull_mesh_xml(get_config()["mesh_year"], xml_sources), xml_sources)
+    labels = _maybe_run(make_local_name("labels", subpath="MESH"), pull_mesh_labels, regenerate, inputs=[mesh_nt])
+    rdf_source = make_local_name("rdf_source.json", subpath="MESH")
+    registry = make_local_name("registry.tsv", subpath="MESH")
+    return _maybe_run(
+        registry,
+        lambda: write_mesh_registry(
+            desc, supp, labels, registry, rdf_source_file=rdf_source, xml_sources_file=xml_sources
+        ),
+        regenerate,
+        inputs=[desc, supp, labels, rdf_source, xml_sources],
+    )
+
+
+@pytest.fixture(scope="session")
+def mesh_pipeline_outputs(mesh_nt, mesh_registry, regenerate):
     """Run write_mesh_ids for all five compendia; skip if mesh_nt unavailable.
 
     Output files are written to babel_outputs/intermediate/{type}/ids/MESH and
@@ -275,11 +319,17 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
     def p(compendium):
         return _intermediate_id_path(compendium, "MESH")
 
-    _maybe_run(p("chemicals"), lambda: chemicals.write_mesh_ids(p("chemicals")), regenerate)
-    _maybe_run(p("protein"), lambda: protein.write_mesh_ids(p("protein")), regenerate)
-    _maybe_run(p("anatomy"), lambda: anatomy.write_mesh_ids(p("anatomy")), regenerate)
-    _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
-    _maybe_run(p("taxon"), lambda: taxon.write_mesh_ids(p("taxon")), regenerate)
+    writers = {
+        "chemicals": chemicals.write_mesh_ids,
+        "protein": protein.write_mesh_ids,
+        "anatomy": anatomy.write_mesh_ids,
+        "diseasephenotype": diseasephenotype.write_mesh_ids,
+        "taxon": taxon.write_mesh_ids,
+    }
+    for name, write in writers.items():
+        _maybe_run(
+            p(name), lambda write=write, name=name: write(p(name), mesh_registry), regenerate, inputs=[mesh_registry]
+        )
 
     return {
         "chemicals": p("chemicals"),
@@ -342,46 +392,70 @@ def umls_rrf_files():
 
 
 @pytest.fixture(scope="session")
-def umls_pipeline_outputs(umls_rrf_files, regenerate):
+def umls_pipeline_outputs(umls_rrf_files, mesh_pipeline_outputs, mesh_registry, regenerate):
     """Run write_umls_ids for all seven compendia; returns dict of output paths.
 
-    Output files are written to babel_outputs/intermediate/{type}/ids/UMLS and
-    reused on subsequent runs unless --regenerate is passed.
+    The five MeSH-owning pipelines (config.yaml: umls_mesh_owning_pipelines) apply MeSH ownership, so this
+    writes gene's and process's ids/UMLS first, then the umls_mesh_ownership rule's file from those and the
+    five MeSH ids files (mesh_pipeline_outputs, i.e. mesh.nt), then the other five. Output files are written to
+    the Snakemake paths and reused on subsequent runs unless --regenerate is passed or an input is newer: in
+    particular an ids/UMLS written before the ownership file existed is regenerated.
     """
     from src.createcompendia import (  # deferred: gene and processactivitypathway are not in the module-level imports to avoid loading every compendium at collection time; they are only needed for UMLS
         gene,
         processactivitypathway,
     )
+    from src.datahandlers import umls  # deferred: same rationale as gene/processactivitypathway above
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
 
     mrconso = umls_rrf_files["mrconso"]
     mrsty = umls_rrf_files["mrsty"]
     cfg = get_config()
     badumlsfile = os.path.join(cfg["input_directory"], "badumls")
+    ownership = os.path.join(cfg["intermediate_directory"], "umls", "mesh_ownership.tsv")
 
     def p(compendium):
         return _intermediate_id_path(compendium, "UMLS")
 
-    _maybe_run(p("chemicals"), lambda: chemicals.write_umls_ids(mrsty, p("chemicals")), regenerate)
-    _maybe_run(p("protein"), lambda: protein.write_umls_ids(mrsty, p("protein")), regenerate)
-    _maybe_run(p("anatomy"), lambda: anatomy.write_umls_ids(mrsty, p("anatomy")), regenerate)
-    _maybe_run(
-        p("diseasephenotype"),
-        lambda: diseasephenotype.write_umls_ids(mrsty, p("diseasephenotype"), badumlsfile),
-        regenerate,
-    )
+    _maybe_run(p("gene"), lambda: gene.write_umls_ids(mrconso, mrsty, p("gene")), regenerate, inputs=[mrconso, mrsty])
     _maybe_run(
         p("processactivitypathway"),
         lambda: processactivitypathway.write_umls_ids(mrsty, p("processactivitypathway")),
         regenerate,
+        inputs=[mrsty],
     )
-    _maybe_run(p("taxon"), lambda: taxon.write_umls_ids(mrsty, p("taxon")), regenerate)
-    _maybe_run(p("gene"), lambda: gene.write_umls_ids(mrconso, mrsty, p("gene")), regenerate)
 
-    return {
-        name: p(name)
-        for name in ["chemicals", "protein", "anatomy", "diseasephenotype", "processactivitypathway", "taxon", "gene"]
+    # The same arguments rule umls_mesh_ownership passes, keyed by the config's pipeline (directory) names.
+    mesh_ids_by_dir = {_snakemake_dir(name): path for name, path in mesh_pipeline_outputs.items()}
+    mesh_ids_by_pipeline = {pipeline: mesh_ids_by_dir[pipeline] for pipeline in cfg["umls_mesh_owning_pipelines"]}
+    non_mesh_umls_ids = [p("gene"), p("processactivitypathway")]
+    _maybe_run(
+        ownership,
+        lambda: umls.write_mesh_ownership(
+            mrconso,
+            mesh_ids_by_pipeline,
+            ownership,
+            blocklist_files_by_pipeline={"disease": badumlsfile},
+            non_mesh_umls_ids_files=non_mesh_umls_ids,
+            mesh_registry=mesh_registry,
+        ),
+        regenerate,
+        inputs=[mrconso, badumlsfile, mesh_registry, *mesh_ids_by_pipeline.values(), *non_mesh_umls_ids],
+    )
+
+    writers = {
+        "chemicals": lambda: chemicals.write_umls_ids(mrsty, p("chemicals"), mesh_ownership=ownership),
+        "protein": lambda: protein.write_umls_ids(mrsty, p("protein"), mesh_ownership=ownership),
+        "anatomy": lambda: anatomy.write_umls_ids(mrsty, p("anatomy"), mesh_ownership=ownership),
+        "diseasephenotype": lambda: diseasephenotype.write_umls_ids(
+            mrsty, p("diseasephenotype"), badumlsfile, mesh_ownership=ownership
+        ),
+        "taxon": lambda: taxon.write_umls_ids(mrsty, p("taxon"), mesh_ownership=ownership),
     }
+    for name, write in writers.items():
+        _maybe_run(p(name), write, regenerate, inputs=[mrsty, ownership])
+
+    return {name: p(name) for name in [*writers, "gene", "processactivitypathway"]}
 
 
 # ---------------------------------------------------------------------------
@@ -423,6 +497,50 @@ def omim_pipeline_outputs(omim_mim2gene, regenerate):
     _maybe_run(p("gene"), lambda: gene.write_omim_ids(infile, p("gene")), regenerate)
 
     return {"diseasephenotype": p("diseasephenotype"), "gene": p("gene")}
+
+
+# ---------------------------------------------------------------------------
+# NCBIGene download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def ncbigene_gene_info():
+    """Download babel_downloads/NCBIGene/gene_info.gz, or fail if unavailable.
+
+    This is a large file (>1 GB compressed); dependent tests are marked `slow`.
+    """
+    from src.datahandlers.ncbigene import pull_ncbigene  # deferred: only import when NCBIGene tests are requested
+
+    return _download_or_fail(
+        "NCBIGene gene_info.gz",
+        lambda: pull_ncbigene(["gene_info.gz"]),
+        make_local_name("gene_info.gz", subpath="NCBIGene"),
+    )
+
+
+@pytest.fixture(scope="session")
+def ncbigene_pipeline_outputs(ncbigene_gene_info, regenerate):
+    """Run pull_ncbigene_labels_synonyms_and_taxa; returns {labels, synonyms, taxa, descriptions} paths.
+
+    Output files go to babel_downloads/NCBIGene/ and are reused on subsequent runs unless
+    --regenerate is passed.  Processing the full gene_info.gz is slow (millions of rows), so
+    the four outputs are generated together in one pass.
+    """
+    from src.datahandlers.ncbigene import pull_ncbigene_labels_synonyms_and_taxa  # deferred
+
+    labels = make_local_name("labels", subpath="NCBIGene")
+    synonyms = make_local_name("synonyms", subpath="NCBIGene")
+    taxa = make_local_name("taxa", subpath="NCBIGene")
+    descriptions = make_local_name("descriptions", subpath="NCBIGene")
+
+    _maybe_run(
+        [labels, synonyms, taxa, descriptions],
+        lambda: pull_ncbigene_labels_synonyms_and_taxa(ncbigene_gene_info, labels, synonyms, taxa, descriptions),
+        regenerate,
+    )
+
+    return {"labels": labels, "synonyms": synonyms, "taxa": taxa, "descriptions": descriptions}
 
 
 # ---------------------------------------------------------------------------
@@ -504,6 +622,77 @@ def go_pipeline_outputs(ubergraph_connection, regenerate):
 
 
 # ---------------------------------------------------------------------------
+# EMAPA / MP processing fixtures (use UberGraph, no file download)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def emapa_pipeline_outputs(ubergraph_connection, regenerate):
+    """Run EMAPA anatomy ID extraction and ensure EMAPA concord generation is available."""
+
+    id_path = _intermediate_id_path("anatomy", "EMAPA")
+    concord_path = _intermediate_concord_path("anatomy", "EMAPA")
+
+    _maybe_run(id_path, lambda: anatomy.write_emapa_ids(id_path), regenerate)
+    _maybe_run(
+        concord_path,
+        lambda: _write_emapa_concord(concord_path),
+        regenerate,
+    )
+
+    return {"anatomy": id_path}
+
+
+def _write_emapa_concord(concord_path: str) -> None:
+    """Build the EMAPA concord exactly as build_anatomy_obo_relationships() does.
+
+    Delegating to anatomy.build_emapa_obo_relationships() is what keeps the part_of
+    traversal and the ignore_list in step with the real build. Calling build_sets()
+    directly here once wrote a subClassOf-only, unfiltered concord to this same stable
+    intermediate path, which a later Snakemake run would then treat as up to date.
+    """
+    os.makedirs(os.path.dirname(concord_path), exist_ok=True)
+    with open(concord_path, "w") as emapa_file:
+        anatomy.build_emapa_obo_relationships({EMAPA: emapa_file})
+
+
+@pytest.fixture(scope="session")
+def mp_pipeline_outputs(ubergraph_connection, regenerate):
+    """Run MP disease/phenotype ID extraction and ensure MP concord generation is available."""
+
+    id_path = _intermediate_id_path("diseasephenotype", "MP")
+    concord_path = _intermediate_concord_path("diseasephenotype", "MP")
+
+    _maybe_run(id_path, lambda: diseasephenotype.write_mp_ids(id_path), regenerate)
+    _maybe_run(
+        concord_path,
+        lambda: _write_mp_concord(concord_path),
+        regenerate,
+    )
+
+    return {"diseasephenotype": id_path}
+
+
+def _write_mp_concord(concord_path: str) -> None:
+    """Build the MP concord exactly as build_disease_obo_relationships() does.
+
+    MP_XREF_ALLOWED_PREFIXES is not optional here. Without it this writes the raw ~663-row xref
+    dump (anatomy, processes, citations, Wikipedia URLs) to the same stable intermediate path the
+    real build uses, so a later Snakemake run would treat the unfiltered file as up to date and
+    glom category-error xrefs as equivalences. It would also leave the allowlist -- the whole point
+    of MP's ingest -- untested.
+    """
+    os.makedirs(os.path.dirname(concord_path), exist_ok=True)
+    with open(concord_path, "w") as mp_file:
+        build_sets(
+            f"{MP}:0000001",
+            {MP: mp_file},
+            "xref",
+            allowed_prefixes=diseasephenotype.MP_XREF_ALLOWED_PREFIXES,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Vocabulary registry + parametrized fixture for test_vocabulary_partitioning.py
 # ---------------------------------------------------------------------------
 
@@ -516,6 +705,8 @@ VOCABULARY_REGISTRY = {
     "OMIM": "omim_pipeline_outputs",
     "NCIT": "ncit_pipeline_outputs",
     "GO": "go_pipeline_outputs",
+    "EMAPA": "emapa_pipeline_outputs",
+    "MP": "mp_pipeline_outputs",
     "EC": "ec_ids_outputs",
     "CLO": "clo_ids_outputs",
     "EFO": "efo_ids_outputs",
@@ -529,7 +720,7 @@ VOCABULARY_REGISTRY = {
 # wrapper fixtures (ec_ids_outputs, clo_ids_outputs, efo_ids_outputs) defined
 # near the bottom of this file.
 #
-# Rhea and ChEMBL are NOT registered: they produce labels/concords/smiles but
+# Rhea, ChEMBL and NCBIGene are NOT registered: they produce labels/concords/smiles/synonyms but
 # no IDs file, so they cannot be exercised by test_vocabulary_partitioning.py
 # without adding write_X_ids() functions first.
 # See https://github.com/NCATSTranslator/Babel/issues/749
@@ -559,21 +750,32 @@ def ec_pipeline_outputs(ec_rdf_file, regenerate):
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
 
     cfg = get_config()
-    labels = os.path.join(cfg["download_directory"], "EC", "labels")
-    synonyms = os.path.join(cfg["download_directory"], "EC", "synonyms")
-    ids = _intermediate_id_path("processactivitypathway", "EC")
+    return run_ec_entry_points(
+        ec_rdf_file,
+        labels=os.path.join(cfg["download_directory"], "EC", "labels"),
+        synonyms=os.path.join(cfg["download_directory"], "EC", "synonyms"),
+        ids=_intermediate_id_path("processactivitypathway", "EC"),
+        regenerate=regenerate,
+    )
 
-    from src.datahandlers.ec import ECgraph  # deferred: avoids loading RDF at import time
 
-    needs_labels = regenerate or not os.path.exists(labels) or not os.path.exists(synonyms)
-    needs_ids = regenerate or not os.path.exists(ids)
-    if needs_labels or needs_ids:
-        ecgraph = ECgraph()
-        if needs_labels:
-            os.makedirs(os.path.dirname(labels), exist_ok=True)
-            ecgraph.pull_EC_labels_and_synonyms(labels, synonyms)
-        _maybe_run(ids, lambda: ecgraph.pull_EC_ids(ids), regenerate)
+def run_ec_entry_points(rdf_file: str, labels: str, synonyms: str, ids: str, regenerate: bool) -> dict:
+    """Write EC's labels, synonyms and ids from rdf_file; returns {labels, synonyms, ids}.
 
+    Calls the same functions as rules get_EC_labels and process_ec_ids, rather than building
+    ECgraph here: an earlier copy of the rules' logic in this fixture fell out of step when ECgraph
+    started taking its path, and nothing noticed because CI skips pipeline tests. Each output is
+    rebuilt when rdf_file is newer than it, as Snakemake would. The cost is that enzyme.rdf is
+    loaded twice when both outputs are missing.
+
+    A plain function so test_ec.py's unit test can check these calls against the entry points'
+    signatures without downloading anything.
+    """
+    from src.createcompendia import processactivitypathway as pap  # deferred, like the imports above
+    from src.datahandlers import ec
+
+    _maybe_run([labels, synonyms], lambda: ec.make_labels(rdf_file, labels, synonyms), regenerate, inputs=[rdf_file])
+    _maybe_run(ids, lambda: pap.write_ec_ids(rdf_file, ids), regenerate, inputs=[rdf_file])
     return {"labels": labels, "synonyms": synonyms, "ids": ids}
 
 
@@ -604,21 +806,33 @@ def rhea_pipeline_outputs(rhea_rdf_file, regenerate):
     from src.util import get_config  # deferred
 
     cfg = get_config()
-    labels = os.path.join(cfg["download_directory"], "RHEA", "labels")
-    concords = os.path.join(cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "RHEA")
-    metadata_yaml = os.path.join(
-        cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "metadata-RHEA.yaml"
+    concords_dir = os.path.join(cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords")
+    return run_rhea_entry_points(
+        rhea_rdf_file,
+        labels=os.path.join(cfg["download_directory"], "RHEA", "labels"),
+        concords=os.path.join(concords_dir, "RHEA"),
+        metadata_yaml=os.path.join(concords_dir, "metadata-RHEA.yaml"),
+        regenerate=regenerate,
     )
 
-    from src.datahandlers.rhea import Rhea  # deferred
 
-    needs_labels = regenerate or not os.path.exists(labels)
-    needs_concords = regenerate or not os.path.exists(concords)
-    if needs_labels or needs_concords:
-        rhea = Rhea()
-        _maybe_run(labels, lambda: rhea.pull_rhea_labels(labels), regenerate)
-        _maybe_run(concords, lambda: rhea.pull_rhea_ec_concs(concords, metadata_yaml), regenerate)
+def run_rhea_entry_points(rdf_file: str, labels: str, concords: str, metadata_yaml: str, regenerate: bool) -> dict:
+    """Write Rhea's labels and EC concords from rdf_file; returns {labels, concords}.
 
+    Calls the same functions as rules get_rhea_labels and get_process_rhea_relationships, and
+    rebuilds each output when rdf_file is newer than it -- see run_ec_entry_points() for why. The
+    concords and their metadata YAML are one output, since one call writes both.
+    """
+    from src.createcompendia import processactivitypathway as pap  # deferred
+    from src.datahandlers import rhea
+
+    _maybe_run(labels, lambda: rhea.make_labels(rdf_file, labels), regenerate, inputs=[rdf_file])
+    _maybe_run(
+        [concords, metadata_yaml],
+        lambda: pap.build_process_rhea_relationships(rdf_file, concords, metadata_yaml),
+        regenerate,
+        inputs=[rdf_file],
+    )
     return {"labels": labels, "concords": concords}
 
 

@@ -10,6 +10,7 @@ Tests are organized along two independent axes:
 | Directory | What lives there |
 |-----------|-----------------|
 | `tests/` (root) | Core utility tests: `glom`, `LabeledID`, `NodeFactory`, `ThrottledRequester`, FTP utilities, UberGraph, and gene-protein conflation |
+| `tests/utils/` | One test file per module in `src/utils/` (`test_duckdb_setup.py`, `test_ftp.py`, `test_memory.py`) |
 | `tests/datahandlers/` | One test file per module in `src/datahandlers/` |
 | `tests/datahandlers/pyoxigraph/` | Smoke tests for the pyoxigraph API surface itself (bulk_load formats, SPARQL row access). Future subdirectories will follow the same pattern for UberGraph, ENSEMBL, etc. |
 | `tests/pipeline/` | Full pipeline integration tests that call `write_*_ids()` functions and check the resulting intermediate files; source data is auto-downloaded or skipped per vocabulary (see [Pipeline Tests](pipeline/README.md)) |
@@ -40,6 +41,22 @@ considering), see [`docs/Testing.md`](../docs/Testing.md).
   [New pipeline tests](pipeline/README.md#new-pipeline-tests) in the pipeline README.
 - **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
   marked `pipeline`.
+- **A developer tool under `src/tools/`** → `unit` test in `tests/tools/<tool>/`, mirroring the
+  tool's own package name (e.g. `tests/tools/slurm/test_parse.py`). Test only the CLI layer here:
+  a tool's reusable logic lives in `src/` and is tested beside it (e.g. `src/model/glom_diff.py`
+  → `tests/model/test_glom_diff.py`). See [Developer tools](../docs/tools/README.md).
+
+**Touching a data source that has no pipeline test? Consider writing one.** It is more work up
+front, but it pays off three ways and is worth biting the bullet for:
+
+- It forces you to write smaller **`network` tests** (e.g. that the upstream listing still returns
+  files, that the header columns Babel reads are still where it expects) that can run regularly and
+  catch an upstream format change *before* it silently corrupts output — see
+  `tests/pipeline/test_complexportal.py` (header-column assertion) and the `network` test in
+  `tests/datahandlers/test_complexportal.py`.
+- It validates the handler's outputs end-to-end against real data, using the shared
+  `assert_*_file_valid` helpers.
+- It becomes the place to hang later assertions about that source's compendium output.
 
 See [Future Plans](#future-plans) at the bottom of this file for a more detailed roadmap of
 planned test locations and conventions.
@@ -63,10 +80,15 @@ Tests are tagged with marks to control which subset runs in a given context:
 |------------|--------------------------------------------------------------------------|-----------|------------------|---------|
 | `unit`     | Pure functions, in-memory logic, small fixtures in `tests/data/`         | No        | Seconds          | 30 s    |
 | `network`  | Requires live internet (FTP, SPARQL, BioMart, external APIs)             | Yes       | Seconds–minutes  | 600 s   |
-| `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             | 600 s   |
-| `pipeline` | Calls `write_*_ids()` directly; source data is auto-downloaded or the test skips — no manual setup required for most vocabularies | Sometimes | Minutes–hours    | 3600 s  |
+| `slow`     | Genuinely long-running — a scan of a full 70M-row pipeline output, a multi-GB RDF load | Sometimes | Many minutes–hours | 3600 s |
+| `pipeline` | Calls `write_*_ids()` directly; source data is auto-downloaded or the test skips — no manual setup required for most vocabularies | Sometimes | Minutes          | 900 s   |
 
-You can adjust the timeout for marks in [conftest.py](conftest.py).
+A test carrying more than one mark gets the **longest** of their timeouts, so `slow` is how a
+pipeline test that really does need an hour asks for one — the plain `pipeline` budget assumes the
+download is already cached and the test itself finishes well inside 15 minutes. Add `slow` when it
+won't. You can adjust the per-mark timeouts in [conftest.py](conftest.py), and disable the timeout
+entirely for a run with `pytest --timeout=0` (pytest-timeout treats 0 as "no limit"); a single test
+can opt out with `@pytest.mark.timeout(0)`, which conftest leaves alone.
 
 There is also a parametrized guard marker, `min_memory_gb(n)`, that combines with the marks
 above rather than replacing them. A test tagged `@pytest.mark.min_memory_gb(n)` is auto-skipped
@@ -114,10 +136,11 @@ pipeline tests run in a single worker while unit/slow/network tests still parall
 
 ### Core
 
-- **`test_glom.py`** (`unit`) — Tests the `glom` utility, which merges pairwise identifier
-  sets into equivalence cliques (union-find). Covers basic merging, iterative
-  multi-call usage, tuple vs. set inputs, and the expected `ValueError` when sets
-  contain more than two members.
+- **`test_glom.py`** (`unit`) — The contract for `glom()`, which merges pairwise equivalences
+  into cliques: basic merging, the shape of the dict it builds, input shapes, the
+  `unique_prefixes` and `close` refusals, forbidden prefixes, and the quirks a replacement must
+  reproduce. A short reference implementation is checked against `glom()` over randomized inputs,
+  and is the specification to test any replacement (such as a Rust port) against.
 
 - **`test_LabeledID.py`** (`unit`) — Tests that `LabeledID` objects (a CURIE paired with a
   human-readable label) compare correctly against bare strings and behave properly
@@ -150,9 +173,27 @@ For handlers that produce label/synonym files, add a module-scoped `*_output` fi
 `tmp_path_factory` that calls the extraction method once and stores the file contents as a dict.
 Individual tests then receive the pre-computed output rather than re-running the extraction.
 
+The **root** `tests/conftest.py` exports format-validation helpers shared by both datahandler and
+pipeline tests: `assert_labels_file_valid`, `assert_synonyms_file_valid`, `assert_ids_file_valid`,
+`assert_concordance_file_valid`, `assert_taxa_file_valid`, and `assert_descriptions_file_valid`.
+Each asserts the file is non-empty and column-shaped correctly and returns the parsed rows. Use
+these (and `read_tsv`) instead of hand-rolling TSV checks; when a handler grows a new output kind
+(as ComplexPortal did for taxa and descriptions), add the matching helper here rather than keeping
+a private one in the test file.
+
 - **`datahandlers/test_mesh.py`** (`unit`) — Unit tests for `src/datahandlers/mesh.py`.
   Covers `write_ids()` parameter validation, SCR filtering logic (mock-based), and
   `Mesh.get_scr_terms_mapped_to_trees()` using an inline pyoxigraph store.
+
+- **`datahandlers/test_complexportal.py`** (`unit`, one `network`) — Unit tests for
+  `src/datahandlers/complexportal.py`. Covers HTML directory-listing parsing (only `.tsv`
+  hrefs returned, sorted), download + manifest writing (mocked), and the cross-species
+  deduplication rules for every output (labels by identifier with first-seen winning, synonyms
+  and descriptions by pair, taxa keeping all `(id, taxon)` pairs, IDs including accessions with
+  an empty label). Test rows are built from the real 19-column header via `COMPLEXTAB_COLUMNS`/
+  `COMPLEXTAB_HEADER` imported from the source module, so a column-layout change in source is
+  reflected in the fixtures automatically. The single `network` test hits the live EBI listing
+  and asserts it returns at least one sorted `.tsv` file.
 
 - **`datahandlers/test_ensembl.py`** (`network`, `xfail`) — Integration test for the Ensembl
   BioMart data handler. Pulls real data from BioMart, verifies that batched downloads
@@ -187,6 +228,15 @@ and how to add new checks or vocabularies.
   **`pipeline/test_clo.py`**, **`pipeline/test_efo.py`** (`pipeline`) — Output format and
   content checks for the EC, Rhea, ChEMBL, CLO, and EFO data handlers.
 
+- **`pipeline/test_complexportal.py`** (`pipeline`) — Downloads all ComplexPortal TSV files and
+  validates the `labels`, `synonyms`, `taxa`, and `descriptions` outputs with the shared
+  `assert_*_file_valid` helpers. Two guards worth copying for other sources: a **header-column
+  assertion** that pins the index of every column Babel reads, so an upstream format change is
+  caught here rather than silently corrupting the taxon/description extraction; and a
+  **cross-file consistency** test that re-reads every source TSV and confirms each `(CURIE,
+  taxon)` pair survives into the taxa output while labels and synonyms stay deduplicated (using
+  `collections.Counter`, not `O(n²)` `list.count()`).
+
 - **`pipeline/checks/`** (`pipeline`) — Per-compendium regression assertions tied to GitHub
   issues (ID-presence and direct cross-reference checks), designed for TDD. See
   [`tests/pipeline/README.md`](pipeline/README.md#pipeline-checks) for the full guide.
@@ -200,6 +250,13 @@ and how to add new checks or vocabularies.
 - **`test_ftp.py`** (`network`) — Tests FTP download utilities (`pull_via_ftp`) against the
   NCBI FTP server. Covers pulling plain text and gzipped files to memory or disk
   with optional decompression. Requires `--network` to run.
+
+- **`test_docs_links.py`** (`unit`) — Checks the links in every tracked Markdown file and in the
+  source that reports URLs to users (snakefiles, `CITATION.cff`, notebooks): relative links and
+  heading anchors must resolve on disk, and no link may point at a `master` branch or at the
+  pre-rename `TranslatorSRI` org. Entirely offline — nothing fetches a URL, because a test that
+  fails when GitHub is slow is a test people learn to ignore. Ported from NameResolution's test of
+  the same name; keep the three repos' copies in sync.
 
 - **`test_uber.py`** (`network`) — Tests the `UberGraph` class for querying ontology
   subclasses and cross-references via SPARQL. Covers direct and indirect subclass retrieval,

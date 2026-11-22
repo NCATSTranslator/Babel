@@ -7,12 +7,13 @@ import pytest
 
 from src.categories import DISEASE
 from src.datahandlers.efo import EFOgraph
-from src.prefixes import EFO
+from src.prefixes import EFO, MP
 from tests.datahandlers.conftest import RDFS_NS, SKOS_NS, lit, make_graph_from_store, nn, quad
 
 _EFO_NS = "http://www.ebi.ac.uk/efo/EFO_"
 _MONDO_NS = "http://purl.obolibrary.org/obo/MONDO_"
 _MONDOH_NS = "http://purl.obolibrary.org/obo/mondo#"
+_MP_NS = "http://purl.obolibrary.org/obo/MP_"
 _OBO_NS = "http://www.geneontology.org/formats/oboInOwl#"
 _ORPHANET_IRI = "http://www.orpha.net/ORDO/Orphanet_123456"
 
@@ -23,8 +24,15 @@ def _make_efo_store() -> pyoxigraph.Store:
     EFO:0000001  — root entity; prefLabel + altLabel + lang-tagged rdfs:label
                    + SKOS exactMatch to MONDO:0001234
                    + SKOS exactMatch to Orphanet (should be filtered)
+                   + SKOS exactMatch to MP:0002975 (dropped only when MP prefix excluded)
                    + hasDbXref "MESH:D001234" (valid CURIE string xref)
+                   + hasDbXref "MP:0001625" (dropped only when MP prefix excluded)
                    + hasDbXref "not-a-curie" (invalid, should be skipped)
+    EFO:0011048  — hasDbXref " MedDRA:10059516", copied verbatim (leading space included) from
+                   EFO_0011048 "dermatological toxicity" in EFO 3.95.0's efo.owl
+    EFO:0803478  — hasDbXref "KEGG COMPOUND:C20409", and
+    EFO:0004358  — hasDbXref "PERSON: Dani Welter", both copied verbatim from EFO 3.95.0's efo.owl:
+                   free text that merely contains a colon (#1117), so skipped as malformed
 
     EFO:0001234  — subClassOf EFO:0000001
     EFO:NOTANEFO — non-EFO_ IRI; should be skipped by label/id methods
@@ -45,11 +53,17 @@ def _make_efo_store() -> pyoxigraph.Store:
 
     store.add(quad(root, nn(f"{SKOS_NS}exactMatch"), nn(f"{_MONDO_NS}0001234")))
     store.add(quad(root, nn(f"{SKOS_NS}exactMatch"), nn(_ORPHANET_IRI)))
+    store.add(quad(root, nn(f"{SKOS_NS}exactMatch"), nn(f"{_MP_NS}0002975")))
     # mondo#exactMatch is normalised to skos:exactMatch in output
     store.add(quad(root, nn(f"{_MONDOH_NS}exactMatch"), nn(f"{_MONDO_NS}9999999")))
 
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("MESH:D001234")))
+    store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("MP:0001625")))
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("not-a-curie")))
+
+    store.add(quad(nn(f"{_EFO_NS}0011048"), nn(f"{_OBO_NS}hasDbXref"), lit(" MedDRA:10059516")))
+    store.add(quad(nn(f"{_EFO_NS}0803478"), nn(f"{_OBO_NS}hasDbXref"), lit("KEGG COMPOUND:C20409")))
+    store.add(quad(nn(f"{_EFO_NS}0004358"), nn(f"{_OBO_NS}hasDbXref"), lit("PERSON: Dani Welter")))
 
     return store
 
@@ -139,6 +153,26 @@ def test_get_exacts_filters_orphanet(efograph):
         assert "orphanet" not in line.lower(), f"Unexpected Orphanet line: {line}"
 
 
+@pytest.mark.unit
+def test_get_exacts_excludes_mp_prefix(efograph):
+    """With MP in excluded_target_prefixes, an EFO->MP exactMatch should be dropped while
+    other exactMatch targets (MONDO) are still written."""
+    out = io.StringIO()
+    efograph.get_exacts("EFO:0000001", out, excluded_target_prefixes=[MP])
+    written = out.getvalue()
+    assert f"{MP}:0002975" not in written
+    assert "EFO:0000001\tskos:exactMatch\tMONDO:0001234" in written
+
+
+@pytest.mark.unit
+def test_get_exacts_default_keeps_mp(efograph):
+    """With no exclusion (the default), the EFO->MP exactMatch is emitted — the filter is opt-in
+    and the handler's default behavior is unchanged."""
+    out = io.StringIO()
+    efograph.get_exacts("EFO:0000001", out)
+    assert f"EFO:0000001\tskos:exactMatch\t{MP}:0002975" in out.getvalue()
+
+
 # ---------------------------------------------------------------------------
 # get_xrefs
 # ---------------------------------------------------------------------------
@@ -152,7 +186,74 @@ def test_get_xrefs_writes_valid_curie(efograph):
 
 
 @pytest.mark.unit
+def test_get_xrefs_strips_whitespace_from_xref(efograph):
+    """Should write a whitespace-padded xref literal as a clean CURIE, since the shared concord
+    parser rejects a padded column (and every concord reader now uses it). Once unpadded, the
+    prefix is normalized like any other MedDRA xref; with the space, opt_to_curie() left it alone
+    and the 2025dec11 concord carried " MedDRA:10059516"."""
+    out = io.StringIO()
+    efograph.get_xrefs("EFO:0011048", out)
+    assert out.getvalue() == "EFO:0011048\toboInOwl:hasDbXref\tMEDDRA:10059516\n"
+
+
+@pytest.mark.unit
+def test_get_xrefs_unquotes_language_tagged_xref():
+    """Should write a language-tagged xref literal as its bare value, as parse_rdf_literal() does.
+
+    Hypothetical: EFO 3.95.0 has no language-tagged hasDbXref, so this row is not copied from it.
+    Slicing off the first and last characters, as get_xrefs() used to, gave `MESH:D001234"@e`.
+    """
+    store = pyoxigraph.Store()
+    store.add(quad(nn(f"{_EFO_NS}0000002"), nn(f"{_OBO_NS}hasDbXref"), lit("MESH:D001234", language="en")))
+    out = io.StringIO()
+    make_graph_from_store(EFOgraph, store).get_xrefs("EFO:0000002", out)
+    assert out.getvalue() == "EFO:0000002\toboInOwl:hasDbXref\tMESH:D001234\n"
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("efo_id", ["EFO:0803478", "EFO:0004358"])
+def test_get_xrefs_skips_and_counts_malformed_curies(efograph, efo_id):
+    """Should skip a free-text xref that only looks like a CURIE ("KEGG COMPOUND:C20409",
+    "PERSON: Dani Welter"), since write_compendium() rejects it as malformed, and return the count
+    so make_concords() can record it in the concord metadata (#1117)."""
+    out = io.StringIO()
+    assert efograph.get_xrefs(efo_id, out) == 1
+    assert out.getvalue() == ""
+
+
+@pytest.mark.unit
+def test_get_xrefs_counts_nothing_for_well_formed_xrefs(efograph):
+    """Should return 0 when every xref is written or skipped for another reason (an excluded
+    prefix, or not a CURIE at all), so the metadata count means "malformed" and nothing else."""
+    out = io.StringIO()
+    # "not-a-curie" is rejected earlier, by opt_to_curie(), and MP:0001625 by the exclusion.
+    assert efograph.get_xrefs("EFO:0000001", out, excluded_target_prefixes=[MP]) == 0
+    assert "MESH:D001234" in out.getvalue()
+
+
+@pytest.mark.unit
 def test_get_xrefs_skips_non_curie(efograph):
     out = io.StringIO()
     efograph.get_xrefs("EFO:0000001", out)
     assert "not-a-curie" not in out.getvalue()
+
+
+@pytest.mark.unit
+def test_get_xrefs_excludes_mp_prefix(efograph):
+    """With MP in excluded_target_prefixes, an EFO->MP hasDbXref should be dropped while other
+    xref targets (MESH) are still written. This is how EFO->MP links are kept out of
+    concords/EFO so MP stays disjoint from EFO (see docs/sources/MP/disjointness.md)."""
+    out = io.StringIO()
+    efograph.get_xrefs("EFO:0000001", out, excluded_target_prefixes=[MP])
+    written = out.getvalue()
+    assert f"{MP}:0001625" not in written
+    assert "EFO:0000001\toboInOwl:hasDbXref\tMESH:D001234" in written
+
+
+@pytest.mark.unit
+def test_get_xrefs_default_keeps_mp(efograph):
+    """With no exclusion (the default), the EFO->MP hasDbXref is emitted — the filter is opt-in
+    and the handler's default behavior is unchanged."""
+    out = io.StringIO()
+    efograph.get_xrefs("EFO:0000001", out)
+    assert f"EFO:0000001\toboInOwl:hasDbXref\t{MP}:0001625" in out.getvalue()

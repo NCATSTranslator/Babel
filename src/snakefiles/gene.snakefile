@@ -197,11 +197,15 @@ rule gene_compendia:
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["gene_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["gene_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/gene_compendia.tsv"
     resources:
         runtime="6h",
         mem="256G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["gene_unique_prefixes"],
     run:
         gene.build_gene_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
 

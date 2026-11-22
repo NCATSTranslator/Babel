@@ -1,7 +1,7 @@
-"""Tests for the config/rule drift check in src/snakefiles/util.py.
+"""Tests for the helpers shared across the Snakemake files (src/snakefiles/util.py).
 
-These load small Snakefiles through the Snakemake API (in-process, ~0.1s each) rather than faking the workflow
-object, so that output matching is Snakemake's own: wildcard outputs, path modifiers and so on.
+The config/rule drift check tests load small Snakefiles through the Snakemake API (in-process, ~0.1s each) rather
+than faking the workflow object, so that output matching is Snakemake's own: wildcard outputs, path modifiers and so on.
 """
 
 import json
@@ -12,7 +12,29 @@ from snakemake.api import SnakemakeApi
 from snakemake.exceptions import WorkflowError
 from snakemake.settings.types import ConfigSettings, OutputSettings, ResourceSettings
 
-from src.snakefiles.util import ID_PREFIX_LISTS
+from src.snakefiles.util import ID_PREFIX_LISTS, duckdb_memory_limit_mb
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "mem_mb,expected",
+    [
+        # Snakemake parses a rule's mem= with decimal suffixes, so mem="128G" reaches us as
+        # mem_mb=128000, not 131072. These are the values the pipeline actually passes in.
+        (128000, 96000),  # mem="128G" * 0.75
+        (512000, 384000),  # mem="512G" * 0.75
+        (1001, 750),  # a non-round allocation truncates rather than rounding up
+    ],
+)
+def test_duckdb_memory_limit_mb(mem_mb, expected):
+    """Should take resources.mem_mb (a plain int) and return `fraction` of it in MB, truncated.
+
+    Not resources.mem: Snakemake stores every sized resource as mem_mb internally and re-exposes
+    `mem` through humanfriendly formatting for display, so our "512G" rule setting comes back as
+    the string "512 GB". mem_mb sidesteps that round-trip entirely.
+    """
+    assert duckdb_memory_limit_mb(mem_mb) == expected
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 

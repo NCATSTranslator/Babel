@@ -1,74 +1,59 @@
 # The DuckDB exporter can be used to export particular intermediate files into the
 # in-process database engine DuckDB (https://duckdb.org) for future querying.
 import os.path
+import stat
 import tempfile
+from pathlib import Path
 
 import duckdb
 
-from src.util import get_config, get_logger
+from src.model.intermediates import METADATA_DIRECTORY_FILENAME, metadata_subject_filename
+from src.util import ensure_parent_dir, get_logger
+from src.utils.duckdb_setup import connect_duckdb, log_duckdb_settings_on_error
 
 logger = get_logger(__name__)
+
 
 # Some configuration items for controlling loads.
 MIN_FILE_SIZE_FOR_SPLITTING_LOAD = 44_000_000_000
 CHUNK_LINE_SIZE = 60_000_000
 
 
-def setup_duckdb(duckdb_filename, duckdb_config=None):
+def _prepare_duckdb_output(duckdb_filename):
+    """Refuse to clobber an existing DuckDB file and ensure its parent directory exists.
+
+    Shared by every exporter that writes a fresh DuckDB scratch file before emitting Parquet.
     """
-    Set up a DuckDB instance using the settings in the config.
-
-    :return: The DuckDB instance to be used.
-    """
-    if not duckdb_config:
-        duckdb_config = {}
-
-    # We want to use (1) the global duckdb_config, then (2) the duckdb_config passed to this function.
-    complete_duckdb_config = {**get_config().get("duckdb_config", {}), **duckdb_config}
-    db = duckdb.connect(duckdb_filename, config=complete_duckdb_config)
-
-    # Apply some Babel-wide settings to DuckDB.
-    config = get_config()
-    if "tmp_directory" in config:
-        db.execute(f"SET temp_directory = '{config['tmp_directory']}'")
-        db.execute("SET max_temp_directory_size = '500GB';")
-
-    # We need to set local settings after the connection has been opened.
-    db.execute("SET enable_progress_bar=true")
-
-    # Display all the settings.
-    settings = db.sql("SELECT * FROM duckdb_settings()")
-    logger.info("DuckDB connected with the following settings:")
-    for row in settings.fetchall():
-        logger.info(f" - {row[0]}: {row[1]}")
-
-    return db
+    if os.path.exists(duckdb_filename):
+        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+    ensure_parent_dir(duckdb_filename)
 
 
-def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, duckdb_filename):
+def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, edge_parquet_filename, duckdb_filename):
     """
     Export a compendium to a Parquet file via a DuckDB.
 
     :param compendium_filename: The compendium filename to read.
     :param clique_parquet_filename: The filename for the Clique.parquet file.
-    :param duckdb_filename: The DuckDB filename to write. We will write the Parquet files into the directory that
-        this file is located in.
+    :param edge_parquet_filename: The filename for the Edge.parquet file.
+    :param duckdb_filename: The DuckDB filename to write.
+
+    The Node.parquet file is written alongside clique_parquet_filename (same directory); the
+    Clique and Edge Parquet paths are passed explicitly so the Snakemake rule and this function
+    agree on them and Snakemake can track them as declared outputs.
     """
 
-    # Make sure that duckdb_filename doesn't exist.
-    if os.path.exists(duckdb_filename):
-        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+    _prepare_duckdb_output(duckdb_filename)
 
-    duckdb_dir = os.path.dirname(duckdb_filename)
-    os.makedirs(duckdb_dir, exist_ok=True)
-
-    # We'll create these two files as well, but we don't report them back to Snakemake for now.
+    # Node.parquet is written alongside the Clique.parquet file and is also declared as a rule
+    # output; the Clique and Edge paths arrive as explicit arguments.
     parquet_dir = os.path.dirname(clique_parquet_filename)
-    os.makedirs(parquet_dir, exist_ok=True)
-    edge_parquet_filename = os.path.join(parquet_dir, "Edge.parquet")
+    ensure_parent_dir(clique_parquet_filename)
+    ensure_parent_dir(edge_parquet_filename)
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
-    with setup_duckdb(duckdb_filename) as db:
+    compendium_basename = os.path.basename(compendium_filename)
+    with connect_duckdb(duckdb_filename) as db:
         # Step 1. Create a Nodes table with all the nodes from compendium_filename.
         db.sql(
             """CREATE TABLE Node (curie STRING, curie_prefix STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])"""
@@ -80,8 +65,11 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             logger.info(
                 f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in a single direct ingest."
             )
-            db.execute(
-                """INSERT INTO Node
+            with log_duckdb_settings_on_error(
+                db, f"export_compendia_to_parquet: load Node table from {compendium_basename} (single ingest)"
+            ):
+                db.execute(
+                    """INSERT INTO Node
                           WITH extracted AS (
                               SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
                               FROM read_json($1, format='newline_delimited') AS clique,
@@ -95,8 +83,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                               extracted_list[3] AS description,
                               extracted_list[4] AS taxa
                           FROM extracted""",
-                [compendium_filename],
-            )
+                    [compendium_filename],
+                )
         else:
             logger.info(
                 f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in multiple chunks of {CHUNK_LINE_SIZE:,} lines:"
@@ -125,8 +113,12 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
 
             logger.info(f"Loaded {len(chunk_filenames)} containing {lines_added:,} lines into chunk files.")
             for chunk_filename in chunk_filenames:
-                db.execute(
-                    """INSERT INTO Node
+                with log_duckdb_settings_on_error(
+                    db,
+                    f"export_compendia_to_parquet: load Node table from {compendium_basename} (chunk {chunk_filename})",
+                ):
+                    db.execute(
+                        """INSERT INTO Node
                               WITH extracted AS (
                                   SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
                                   FROM read_json($1, format='newline_delimited') AS clique,
@@ -140,8 +132,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                                   extracted_list[3] AS description,
                                   extracted_list[4] AS taxa
                               FROM extracted""",
-                    [chunk_filename],
-                )
+                        [chunk_filename],
+                    )
                 logger.info(f" - Loaded chunk file {chunk_filename} into DuckDB.")
                 os.remove(chunk_filename)
                 logger.info(f" - Deleted chunk file {chunk_filename}.")
@@ -152,47 +144,66 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             node_count = db.execute("SELECT COUNT(*) FROM Node").fetchone()[0]
             logger.info(f" - Identifier count: {node_count:,}.")
 
-        db.table("Node").write_parquet(node_parquet_filename)
+        with log_duckdb_settings_on_error(
+            db, f"export_compendia_to_parquet: write Node Parquet for {compendium_basename}"
+        ):
+            db.table("Node").write_parquet(node_parquet_filename)
 
         # Step 2. Create a Cliques table with all the cliques from this file.
         db.sql("""CREATE TABLE Clique
                 (clique_leader STRING, preferred_name STRING, clique_identifier_count INT, biolink_type STRING,
                 information_content FLOAT)""")
-        db.execute(
-            """INSERT INTO Clique SELECT
-                        json_extract_string(identifiers, '$[0].i') AS clique_leader,
-                        preferred_name,
-                        len(identifiers) AS clique_identifier_count,
-                        type AS biolink_type,
-                        ic AS information_content
-                    FROM read_json(?, format='newline_delimited')""",
-            [compendium_filename],
-        )
-        db.table("Clique").write_parquet(clique_parquet_filename)
+        with log_duckdb_settings_on_error(
+            db, f"export_compendia_to_parquet: build and write Clique table for {compendium_basename}"
+        ):
+            db.execute(
+                """INSERT INTO Clique SELECT
+                            json_extract_string(identifiers, '$[0].i') AS clique_leader,
+                            preferred_name,
+                            len(identifiers) AS clique_identifier_count,
+                            type AS biolink_type,
+                            ic AS information_content
+                        FROM read_json(?, format='newline_delimited')""",
+                [compendium_filename],
+            )
+            db.table("Clique").write_parquet(clique_parquet_filename)
 
         # Step 2. Create an Edge table with all the clique/CURIE relationships from this file.
+        #
+        # biolink_type is denormalized onto every edge here, where it is free: it is the same
+        # top-level ``type`` field the Clique build above already reads, and each compendium record
+        # carries it inline. Storing it per-edge lets the cross-compendium curie report group by
+        # (curie_prefix, biolink_type) with a plain scan instead of joining the full Edge table
+        # (~1.5B rows) against the Clique table (~200M rows) -- a large-vs-large join that OOM-killed
+        # the report rule even on a largemem node.
         db.sql(
-            "CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING, clique_leader_prefix STRING, curie_prefix STRING)"
+            """CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING,
+                clique_leader_prefix STRING, curie_prefix STRING, biolink_type STRING)"""
         )
-        db.execute(
-            """INSERT INTO Edge
-                WITH unnested AS (
+        with log_duckdb_settings_on_error(
+            db, f"export_compendia_to_parquet: build and write Edge table for {compendium_basename}"
+        ):
+            db.execute(
+                """INSERT INTO Edge
+                    WITH unnested AS (
+                        SELECT
+                            json_extract_string(identifiers, '$[0].i') AS clique_leader,
+                            UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
+                            'None' AS conflation,
+                            type AS biolink_type
+                        FROM read_json(?, format='newline_delimited')
+                    )
                     SELECT
-                        json_extract_string(identifiers, '$[0].i') AS clique_leader,
-                        UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
-                        'None' AS conflation
-                    FROM read_json(?, format='newline_delimited')
-                )
-                SELECT
-                    clique_leader,
-                    curie,
-                    conflation,
-                    split_part(clique_leader, ':', 1) AS clique_leader_prefix,
-                    split_part(curie, ':', 1) AS curie_prefix
-                FROM unnested""",
-            [compendium_filename],
-        )
-        db.table("Edge").write_parquet(edge_parquet_filename)
+                        clique_leader,
+                        curie,
+                        conflation,
+                        split_part(clique_leader, ':', 1) AS clique_leader_prefix,
+                        split_part(curie, ':', 1) AS curie_prefix,
+                        biolink_type
+                    FROM unnested""",
+                [compendium_filename],
+            )
+            db.table("Edge").write_parquet(edge_parquet_filename)
 
 
 def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_filename, parquet_filename):
@@ -207,18 +218,19 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
     :param duckdb_filename: A temporary DuckDB file to use during export.
     :param parquet_filename: The output Parquet file path.
     """
-    if os.path.exists(duckdb_filename):
-        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+    _prepare_duckdb_output(duckdb_filename)
+    ensure_parent_dir(parquet_filename)
 
-    os.makedirs(os.path.dirname(duckdb_filename), exist_ok=True)
-    os.makedirs(os.path.dirname(parquet_filename), exist_ok=True)
-
-    with setup_duckdb(duckdb_filename) as db:
+    with connect_duckdb(duckdb_filename) as db:
         db.sql(
             "CREATE TABLE Conflation (conflation_type STRING, conflation_leader STRING, curie STRING, curie_prefix STRING)"
         )
-        db.execute(
-            """INSERT INTO Conflation
+        with log_duckdb_settings_on_error(
+            db,
+            f"export_conflation_to_parquet: build and write {conflation_type} Conflation from {os.path.basename(conflation_filename)}",
+        ):
+            db.execute(
+                """INSERT INTO Conflation
                 WITH raw AS (
                     SELECT column0 AS line_text
                     FROM read_csv(?, header=False, columns={'column0': 'VARCHAR'})
@@ -237,59 +249,208 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
                     curie,
                     split_part(curie, ':', 1) AS curie_prefix
                 FROM unnested""",
-            [conflation_filename, conflation_type],
-        )
-        db.table("Conflation").write_parquet(parquet_filename)
+                [conflation_filename, conflation_type],
+            )
+            db.table("Conflation").write_parquet(parquet_filename)
 
 
-def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_parquet_filename):
+def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_parquet_filename, memory_limit_mb=None):
     """
     Export a synonyms file to a DuckDB directory.
 
-    :param synonyms_filename: The synonym file (in JSONL) to export to Parquet.
+    :param synonyms_filename_gz: The synonym file (gzipped JSONL) to export to Parquet.
     :param duckdb_filename: A DuckDB file to temporarily store data in.
-    :param synonyms_parquet_filename: The Parquet file to store the synoynms in.
+    :param synonyms_parquet_filename: The Parquet file to store the synonyms in.
+    :param memory_limit_mb: DuckDB memory limit in MB. When set, overrides DuckDB's default
+        (75% of system RAM), which can exceed the SLURM allocation on shared HPC nodes.
     """
 
-    # Make sure that duckdb_filename doesn't exist.
-    if os.path.exists(duckdb_filename):
-        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+    _prepare_duckdb_output(duckdb_filename)
 
-    duckdb_dir = os.path.dirname(duckdb_filename)
-    os.makedirs(duckdb_dir, exist_ok=True)
+    duckdb_config = {}
+    if memory_limit_mb is not None:
+        duckdb_config["memory_limit"] = f"{memory_limit_mb}MB"
 
-    with setup_duckdb(duckdb_filename) as db:
-        # Step 1. Load the entire synonyms file.
+    with connect_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
         synonyms_jsonl = db.read_json(synonyms_filename_gz, format="newline_delimited")
 
-        # Step 2. Create a Cliques table with all the cliques from this file.
-        # db.sql("CREATE TABLE Cliques (curie TEXT PRIMARY KEY, label TEXT, clique_identifier_count INT, biolink_type TEXT)")
-        # db.sql("INSERT INTO Cliques (curie, label, clique_identifier_count, biolink_type) " +
-        #       "SELECT curie, replace(preferred_name, '\"\"\"', '\"') AS label, clique_identifier_count, " +
-        #       "CONCAT('biolink:', json_extract_string(types, '$[0]')) AS biolink_type FROM synonyms_jsonl")
-
-        # Step 3. Create a Synonyms table with all the cliques from this file.
-        db.sql("""CREATE TABLE Synonym (clique_leader STRING, preferred_name STRING, preferred_name_lc STRING,
-            biolink_type STRING, label STRING, label_lc STRING)""")
-
-        # We can't execute the following INSERT statement unless we have at least one row in the input data.
-        # So let's test that now.
+        # We can't execute the following query unless we have at least one row in the input data.
         result = db.execute("SELECT COUNT(*) AS row_count FROM synonyms_jsonl").fetchone()
         row_count = result[0]
 
-        # Assuming we have data in synonyms_jsonl, write it out now.
         if row_count > 0:
-            db.sql("""INSERT INTO Synonym
-                SELECT curie AS clique_leader, preferred_name,
-                    LOWER(preferred_name) AS preferred_name_lc,
-                    CONCAT('biolink:', json_extract_string(types, '$[0]')) AS biolink_type,
-                    unnest(names) AS label, LOWER(label) AS label_lc
-                FROM synonyms_jsonl""")
+            # Write directly to Parquet without an intermediate in-memory Synonym table.
+            # INSERT INTO a table would materialise all unnested rows in RAM; .write_parquet()
+            # streams row groups to disk so peak memory stays proportional to one row group.
+            with log_duckdb_settings_on_error(
+                db, f"export_synonyms_to_parquet: write Parquet from {os.path.basename(synonyms_filename_gz)}"
+            ):
+                db.sql("""
+                    SELECT curie AS clique_leader, preferred_name,
+                        LOWER(preferred_name) AS preferred_name_lc,
+                        CONCAT('biolink:', json_extract_string(types, '$[0]')) AS biolink_type,
+                        unnest(names) AS label, LOWER(label) AS label_lc
+                    FROM synonyms_jsonl
+                """).write_parquet(synonyms_parquet_filename)
+        else:
+            db.sql("""
+                SELECT NULL::VARCHAR AS clique_leader, NULL::VARCHAR AS preferred_name,
+                    NULL::VARCHAR AS preferred_name_lc, NULL::VARCHAR AS biolink_type,
+                    NULL::VARCHAR AS label, NULL::VARCHAR AS label_lc
+                WHERE FALSE
+            """).write_parquet(synonyms_parquet_filename)
 
-        # Step 3. Export as Parquet files.
-        db.sql(
-            "SELECT clique_leader, preferred_name, preferred_name_lc, biolink_type, label, label_lc FROM Synonym"
-        ).write_parquet(synonyms_parquet_filename)
-
-        # Cleanup
         synonyms_jsonl.close()
+
+
+def _insert_metadata(db, path, subject_filename):
+    """Insert one metadata sidecar file into the Metadata table, recording the subject it
+    describes and the full path to that subject.
+
+    For a `metadata-<subject>.yaml` sidecar, the subject path is the sibling file it describes; for
+    a bare `metadata.yaml`, which describes its directory, the subject path is that directory.
+    """
+    logger.info(f"Loading metadata from {path} describing subject {subject_filename}")
+    if path.name.lower() == METADATA_DIRECTORY_FILENAME:
+        subject_file_path = path.parent
+    else:
+        subject_file_path = path.parent / subject_filename
+    db.execute(
+        "INSERT INTO Metadata VALUES (?, ?, ?, ?)",
+        [str(path), subject_filename, str(subject_file_path), path.read_text(encoding="utf-8")],
+    )
+
+
+def _iter_loadable_files(root, kind):
+    """Yield `(path, subject_filename)` for each non-empty file of the given `kind`
+    ('concords' or 'ids') under `root`.
+
+    Directories and empty files are skipped. `subject_filename` is the metadata subject for a
+    metadata sidecar file (see `metadata_subject_filename()` in `src/model/intermediates.py`) and `None` for a data file the caller
+    should bulk-load; the caller routes on it. The generator has no side effects so partial
+    consumption can't silently drop metadata.
+    """
+    for path in root.glob(f"**/{kind}/**/*"):
+        # One stat() serves both the directory and the empty-file checks.
+        st = path.stat()
+        if stat.S_ISDIR(st.st_mode):
+            logger.info(f"Skipping directory {path}")
+            continue
+        if st.st_size == 0:
+            logger.warning(f"Skipping empty {kind} file {path}")
+            continue
+
+        yield path, metadata_subject_filename(path.name)
+
+
+def export_intermediates_to_parquet(
+    intermediate_directory,
+    duckdb_filename,
+    ids_parquet_filename,
+    concords_parquet_filename,
+    metadata_parquet_filename,
+    memory_limit_mb=None,
+):
+    """
+    Export all the intermediate files into Parquet files, which will be easier to download and manipulate
+    than the multiple original files.
+
+    The `filename` column in every output table is the absolute path of the source file, so
+    `intermediate_directory` is resolved to an absolute path before globbing (config passes it in
+    relative to the run directory).
+
+    :param intermediate_directory: The intermediate directory containing the concords.
+    :param duckdb_filename: A DuckDB file to temporarily store data in.
+    :param ids_parquet_filename: The Parquet file to store the IDs.
+    :param concords_parquet_filename: The Parquet file to store the concords.
+    :param metadata_parquet_filename: The Parquet file to store the ID and concord metadata in.
+    :param memory_limit_mb: DuckDB memory limit in MB. When set, overrides DuckDB's default
+        (75% of system RAM), which can exceed the SLURM allocation on shared HPC nodes.
+    """
+
+    _prepare_duckdb_output(duckdb_filename)
+    # DuckDB's write_parquet won't create missing parent directories, so ensure each output's
+    # directory exists -- this exporter is public and its Parquet paths need not share a directory.
+    for parquet_filename in (ids_parquet_filename, concords_parquet_filename, metadata_parquet_filename):
+        ensure_parent_dir(parquet_filename)
+
+    duckdb_config = {}
+    if memory_limit_mb is not None:
+        duckdb_config["memory_limit"] = f"{memory_limit_mb}MB"
+
+    with connect_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
+        # We don't include labels here: the Node-writing code currently emits only nulls for them,
+        # so there is nothing useful to join against.
+        db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
+        db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING)""")
+        db.sql(
+            """CREATE TABLE Metadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)"""
+        )
+
+        # Resolve to an absolute path so every `filename` value (and the metadata subject paths
+        # derived from it) is absolute, as the DataFormats docs promise -- config passes the
+        # intermediate directory in relative to the run directory.
+        intermediate_path = Path(intermediate_directory).resolve()
+
+        # Load concord files. A line that isn't three tab-separated columns fails the export, just as
+        # it fails every other concord reader (src/model/intermediates.py:parse_concord_line). This load
+        # used to skip such lines (ignore_errors + store_rejects, logged as warnings) on the grounds
+        # that write_concord_metadata() also skipped them; it no longer does, and an export that
+        # quietly drops rows the build would have rejected publishes a Concord table that disagrees
+        # with the compendia. read_csv's strict mode is a backstop, not a second copy of the parser:
+        # it checks the column count but accepts a trailing tab, and doesn't look for the empty or
+        # padded columns parse_concord_line() rejects (tests/test_duckdb_exporters.py pins this).
+        # Every concord a compendium reads has already been through that parser by the time this
+        # export runs, so re-scanning ~15 GB of concords in Python here would buy nothing.
+        for concord_path, subject_filename in _iter_loadable_files(intermediate_path, "concords"):
+            if subject_filename is not None:
+                _insert_metadata(db, concord_path, subject_filename)
+                continue
+            logger.info(f"Loading concords from {concord_path}")
+            try:
+                db.execute(
+                    "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj "
+                    "FROM read_csv($1, delim='\\t', header=false, quote='', "
+                    "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
+                    [str(concord_path)],
+                )
+            except duckdb.InvalidInputException as err:
+                raise RuntimeError(f"Malformed concord file {concord_path}: {err}") from err
+
+        # Load identifier files.
+        for ids_path, subject_filename in _iter_loadable_files(intermediate_path, "ids"):
+            if subject_filename is not None:
+                _insert_metadata(db, ids_path, subject_filename)
+                continue
+            # ID files sometimes have a single column and sometimes have two, so we need to
+            # determine which one this is. This is a cheap heuristic: it inspects only the first
+            # two lines, not the whole file. A later line with a different column count is not
+            # caught here and will instead surface as a read_csv error below.
+            with open(ids_path, encoding="utf-8") as f:
+                first_line = f.readline()
+                second_line = f.readline()
+
+            num_cols = len(first_line.rstrip("\n").split("\t"))
+            if second_line and len(second_line.rstrip("\n").split("\t")) != num_cols:
+                raise RuntimeError(
+                    f"Inconsistent number of columns in {ids_path}: {num_cols} (first line: '{first_line}', second line: '{second_line}')."
+                )
+            if num_cols == 1:
+                logger.info(f"Loading identifiers from {ids_path} without a Biolink type column")
+                select_type, csv_columns = "NULL AS biolink_type", "{'curie': 'VARCHAR'}"
+            elif num_cols == 2:
+                logger.info(f"Loading identifiers from {ids_path} with a Biolink type column")
+                select_type, csv_columns = "biolink_type", "{'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'}"
+            else:
+                raise RuntimeError(
+                    f"Unexpected number of columns in {ids_path}: {num_cols} (first line: '{first_line}')."
+                )
+            db.execute(
+                f"INSERT INTO Identifier SELECT $1 AS filename, csv.curie, {select_type} "
+                f"FROM read_csv($1, delim='\\t', header=false, quote='', columns={csv_columns}) AS csv",
+                [str(ids_path)],
+            )
+
+        db.table("Concord").write_parquet(concords_parquet_filename)
+        db.table("Identifier").write_parquet(ids_parquet_filename)
+        db.table("Metadata").write_parquet(metadata_parquet_filename)

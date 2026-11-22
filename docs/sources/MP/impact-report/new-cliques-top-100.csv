@@ -1,0 +1,101 @@
+pipeline,preferred_id,preferred_label,biolink_type,member_count,equivalent_ids,preferred_id_would_survive,needs_biolink_registration,unsupported_prefixes
+disease,MP:0003632,abnormal nervous system morphology,biolink:PhenotypicFeature,3,MP:0003632|MGI:2173613|MGI:2173617,true,false,MGI
+disease,MP:0003633,abnormal nervous system physiology,biolink:PhenotypicFeature,3,MP:0003633|MGI:2173615|MGI:2173618,true,false,MGI
+disease,MP:0000230,abnormal systemic arterial blood pressure,biolink:PhenotypicFeature,2,MP:0000230|MGI:2173589,true,false,MGI
+disease,MP:0000462,abnormal digestive system morphology,biolink:PhenotypicFeature,2,MP:0000462|MGI:2173601,true,false,MGI
+disease,MP:0001544,abnormal cardiovascular system physiology,biolink:PhenotypicFeature,2,MP:0001544|MGI:2173590,true,false,MGI
+disease,MP:0001663,abnormal digestive system physiology,biolink:PhenotypicFeature,2,MP:0001663|MGI:2173602,true,false,MGI
+disease,MP:0001963,abnormal hearing physiology,biolink:PhenotypicFeature,2,MP:0001963|MGI:2173555,true,false,MGI
+disease,MP:0002061,abnormal aggression-related behavior,biolink:PhenotypicFeature,2,MP:0002061|MGI:2173566,true,false,MGI
+disease,MP:0002062,abnormal associative learning,biolink:PhenotypicFeature,2,MP:0002062|MGI:2173567,true,false,MGI
+disease,MP:0002063,abnormal learning/memory/conditioning,biolink:PhenotypicFeature,2,MP:0002063|MGI:2173568,true,false,MGI
+disease,MP:0002064,seizures,biolink:PhenotypicFeature,2,MP:0002064|MGI:2173569,true,false,MGI
+disease,MP:0002065,abnormal fear/anxiety-related behavior,biolink:PhenotypicFeature,2,MP:0002065|MGI:2173570,true,false,MGI
+disease,MP:0002066,abnormal motor capabilities/coordination/movement,biolink:PhenotypicFeature,2,MP:0002066|MGI:2173571,true,false,MGI
+disease,MP:0002067,abnormal sensory capabilities/reflexes/nociception,biolink:PhenotypicFeature,2,MP:0002067|MGI:2173572,true,false,MGI
+disease,MP:0002068,abnormal parental behavior,biolink:PhenotypicFeature,2,MP:0002068|MGI:2173573,true,false,MGI
+disease,MP:0002069,abnormal consumption behavior,biolink:PhenotypicFeature,2,MP:0002069|MGI:2173574,true,false,MGI
+disease,MP:0002073,abnormal hair growth,biolink:PhenotypicFeature,2,MP:0002073|MGI:2173539,true,false,MGI
+disease,MP:0002074,abnormal hair texture,biolink:PhenotypicFeature,2,MP:0002074|MGI:2173540,true,false,MGI
+disease,MP:0002075,abnormal coat/hair pigmentation,biolink:PhenotypicFeature,2,MP:0002075|MGI:2173541,true,false,MGI
+disease,MP:0002078,abnormal glucose homeostasis,biolink:PhenotypicFeature,2,MP:0002078|MGI:2173579,true,false,MGI
+disease,MP:0002080,prenatal lethality,biolink:PhenotypicFeature,2,MP:0002080|MGI:2173525,true,false,MGI
+disease,MP:0002081,perinatal lethality,biolink:PhenotypicFeature,2,MP:0002081|MGI:2173526,true,false,MGI
+disease,MP:0002082,postnatal lethality,biolink:PhenotypicFeature,2,MP:0002082|MGI:2173527,true,false,MGI
+disease,MP:0002083,premature death,biolink:PhenotypicFeature,2,MP:0002083|MGI:2173528,true,false,MGI
+disease,MP:0002084,abnormal developmental patterning,biolink:PhenotypicFeature,2,MP:0002084|MGI:2173529,true,false,MGI
+disease,MP:0002085,abnormal embryonic tissue morphology,biolink:PhenotypicFeature,2,MP:0002085|MGI:2173530,true,false,MGI
+disease,MP:0002086,abnormal extraembryonic tissue morphology,biolink:PhenotypicFeature,2,MP:0002086|MGI:2173531,true,false,MGI
+disease,MP:0002088,abnormal embryonic growth/weight/body size,biolink:PhenotypicFeature,2,MP:0002088|MGI:2173533,true,false,MGI
+disease,MP:0002089,abnormal postnatal growth/weight/body size,biolink:PhenotypicFeature,2,MP:0002089|MGI:2173534,true,false,MGI
+disease,MP:0002092,abnormal eye morphology,biolink:PhenotypicFeature,2,MP:0002092|MGI:2173536,true,false,MGI
+disease,MP:0002095,abnormal skin pigmentation,biolink:PhenotypicFeature,2,MP:0002095|MGI:2173544,true,false,MGI
+disease,MP:0002098,abnormal vibrissa morphology,biolink:PhenotypicFeature,2,MP:0002098|MGI:2173547,true,false,MGI
+disease,MP:0002100,abnormal tooth morphology,biolink:PhenotypicFeature,2,MP:0002100|MGI:2173553,true,false,MGI
+disease,MP:0002102,abnormal ear morphology,biolink:PhenotypicFeature,2,MP:0002102|MGI:2173556,true,false,MGI
+disease,MP:0002106,abnormal muscle physiology,biolink:PhenotypicFeature,2,MP:0002106|MGI:2173559,true,false,MGI
+disease,MP:0002108,abnormal muscle morphology,biolink:PhenotypicFeature,2,MP:0002108|MGI:2173558,true,false,MGI
+disease,MP:0002109,abnormal limb morphology,biolink:PhenotypicFeature,2,MP:0002109|MGI:2173549,true,false,MGI
+disease,MP:0002110,abnormal digit morphology,biolink:PhenotypicFeature,2,MP:0002110|MGI:2173550,true,false,MGI
+disease,MP:0002111,abnormal tail morphology,biolink:PhenotypicFeature,2,MP:0002111|MGI:2173551,true,false,MGI
+disease,MP:0002113,abnormal skeleton development,biolink:PhenotypicFeature,2,MP:0002113|MGI:2173561,true,false,MGI
+disease,MP:0002114,abnormal axial skeleton morphology,biolink:PhenotypicFeature,2,MP:0002114|MGI:2173562,true,false,MGI
+disease,MP:0002115,abnormal limb bone morphology,biolink:PhenotypicFeature,2,MP:0002115|MGI:2173563,true,false,MGI
+disease,MP:0002116,abnormal craniofacial bone morphology,biolink:PhenotypicFeature,2,MP:0002116|MGI:2173564,true,false,MGI
+disease,MP:0002118,abnormal lipid homeostasis,biolink:PhenotypicFeature,2,MP:0002118|MGI:2173578,true,false,MGI
+disease,MP:0002123,abnormal definitive hematopoiesis,biolink:PhenotypicFeature,2,MP:0002123|MGI:2173583,true,false,MGI
+disease,MP:0002127,abnormal cardiovascular system morphology,biolink:PhenotypicFeature,2,MP:0002127|MGI:2173587,true,false,MGI
+disease,MP:0002128,abnormal blood circulation,biolink:PhenotypicFeature,2,MP:0002128|MGI:2173588,true,false,MGI
+disease,MP:0002132,abnormal respiratory system morphology,biolink:PhenotypicFeature,2,MP:0002132|MGI:2173592,true,false,MGI
+disease,MP:0002133,abnormal respiratory system physiology,biolink:PhenotypicFeature,2,MP:0002133|MGI:2173593,true,false,MGI
+disease,MP:0002135,abnormal kidney morphology,biolink:PhenotypicFeature,2,MP:0002135|MGI:2173595,true,false,MGI
+disease,MP:0002136,abnormal kidney physiology,biolink:PhenotypicFeature,2,MP:0002136|MGI:2173596,true,false,MGI
+disease,MP:0002138,abnormal hepatobiliary system morphology,biolink:PhenotypicFeature,2,MP:0002138|MGI:2173598,true,false,MGI
+disease,MP:0002139,abnormal hepatobiliary system physiology,biolink:PhenotypicFeature,2,MP:0002139|MGI:2173599,true,false,MGI
+disease,MP:0002144,abnormal B cell differentiation,biolink:PhenotypicFeature,2,MP:0002144|MGI:2173604,true,false,MGI
+disease,MP:0002145,abnormal T cell differentiation,biolink:PhenotypicFeature,2,MP:0002145|MGI:2173605,true,false,MGI
+disease,MP:0002148,abnormal hypersensitivity reaction,biolink:PhenotypicFeature,2,MP:0002148|MGI:2173608,true,false,MGI
+disease,MP:0002151,abnormal neural tube morphology,biolink:PhenotypicFeature,2,MP:0002151|MGI:2173611,true,false,MGI
+disease,MP:0002152,abnormal brain morphology,biolink:PhenotypicFeature,2,MP:0002152|MGI:2173612,true,false,MGI
+disease,MP:0002160,abnormal reproductive system morphology,biolink:PhenotypicFeature,2,MP:0002160|MGI:2173620,true,false,MGI
+disease,MP:0002161,abnormal fertility/fecundity,biolink:PhenotypicFeature,2,MP:0002161|MGI:2173621,true,false,MGI
+disease,MP:0002163,abnormal gland morphology,biolink:PhenotypicFeature,2,MP:0002163|MGI:2173623,true,false,MGI
+disease,MP:0002164,abnormal gland physiology,biolink:PhenotypicFeature,2,MP:0002164|MGI:2173624,true,false,MGI
+disease,MP:0002166,abnormal tumor susceptibility,biolink:PhenotypicFeature,2,MP:0002166|MGI:2173626,true,false,MGI
+disease,MP:0002169,no abnormal phenotype detected,biolink:PhenotypicFeature,2,MP:0002169|MGI:2173629,true,false,MGI
+disease,MP:0002207,abnormal long-term potentiation,biolink:PhenotypicFeature,2,MP:0002207|MGI:2173614,true,false,MGI
+disease,MP:0002447,abnormal erythrocyte morphology,biolink:PhenotypicFeature,2,MP:0002447|MGI:2173584,true,false,MGI
+disease,MP:0002551,abnormal blood coagulation,biolink:PhenotypicFeature,2,MP:0002551|MGI:2173585,true,false,MGI
+disease,MP:0002766,situs inversus,biolink:PhenotypicFeature,2,MP:0002766|MPATH:720,true,false,MPATH
+disease,MP:0002767,situs ambiguus,biolink:PhenotypicFeature,2,MP:0002767|MPATH:711,true,false,MPATH
+disease,MP:0004133,heterotaxia,biolink:PhenotypicFeature,2,MP:0004133|MPATH:712,true,false,MPATH
+disease,MP:0009875,absent interdigital cell death,biolink:PhenotypicFeature,2,MP:0009875|MGI:llw2,true,false,MGI
+disease,MP:0011253,situs inversus with levocardia,biolink:PhenotypicFeature,2,MP:0011253|MPATH:714,true,false,MPATH
+disease,MP:0000001,mammalian phenotype,biolink:PhenotypicFeature,1,MP:0000001,true,false,
+disease,MP:0000003,abnormal adipose tissue morphology,biolink:PhenotypicFeature,1,MP:0000003,true,false,
+disease,MP:0000005,increased brown adipose tissue amount,biolink:PhenotypicFeature,1,MP:0000005,true,false,
+disease,MP:0000008,increased white adipose tissue amount,biolink:PhenotypicFeature,1,MP:0000008,true,false,
+disease,MP:0000010,abnormal abdominal fat pad morphology,biolink:PhenotypicFeature,1,MP:0000010,true,false,
+disease,MP:0000013,abnormal adipose tissue distribution,biolink:PhenotypicFeature,1,MP:0000013,true,false,
+disease,MP:0000015,abnormal ear pigmentation,biolink:PhenotypicFeature,1,MP:0000015,true,false,
+disease,MP:0000017,big ears,biolink:PhenotypicFeature,1,MP:0000017,true,false,
+disease,MP:0000018,small ears,biolink:PhenotypicFeature,1,MP:0000018,true,false,
+disease,MP:0000019,thick ears,biolink:PhenotypicFeature,1,MP:0000019,true,false,
+disease,MP:0000020,scaly ears,biolink:PhenotypicFeature,1,MP:0000020,true,false,
+disease,MP:0000021,prominent ears,biolink:PhenotypicFeature,1,MP:0000021,true,false,
+disease,MP:0000022,abnormal ear shape,biolink:PhenotypicFeature,1,MP:0000022,true,false,
+disease,MP:0000023,abnormal ear position,biolink:PhenotypicFeature,1,MP:0000023,true,false,
+disease,MP:0000024,lowered ear position,biolink:PhenotypicFeature,1,MP:0000024,true,false,
+disease,MP:0000025,otic hypertelorism,biolink:PhenotypicFeature,1,MP:0000025,true,false,
+disease,MP:0000026,abnormal inner ear morphology,biolink:PhenotypicFeature,1,MP:0000026,true,false,
+disease,MP:0000028,abnormal pars superior vestibularis morphology,biolink:PhenotypicFeature,1,MP:0000028,true,false,
+disease,MP:0000029,abnormal malleus morphology,biolink:PhenotypicFeature,1,MP:0000029,true,false,
+disease,MP:0000030,abnormal tympanic ring morphology,biolink:PhenotypicFeature,1,MP:0000030,true,false,
+disease,MP:0000031,abnormal cochlea morphology,biolink:PhenotypicFeature,1,MP:0000031,true,false,
+disease,MP:0000032,cochlear degeneration,biolink:PhenotypicFeature,1,MP:0000032,true,false,
+disease,MP:0000033,absent scala media,biolink:PhenotypicFeature,1,MP:0000033,true,false,
+disease,MP:0000034,abnormal inner ear vestibule morphology,biolink:PhenotypicFeature,1,MP:0000034,true,false,
+disease,MP:0000035,abnormal membranous labyrinth morphology,biolink:PhenotypicFeature,1,MP:0000035,true,false,
+disease,MP:0000036,absent semicircular canals,biolink:PhenotypicFeature,1,MP:0000036,true,false,
+disease,MP:0000037,abnormal lateral semicircular canal morphology,biolink:PhenotypicFeature,1,MP:0000037,true,false,
+disease,MP:0000039,abnormal otic capsule morphology,biolink:PhenotypicFeature,1,MP:0000039,true,false,

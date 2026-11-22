@@ -1,122 +1,15 @@
 # Babel Issue Triage
 
-This document describes how issues in the [Babel issue tracker] are triaged and prioritized using
-the [Babel sprints GitHub project]. It is written for two audiences:
+This document is a guide for Babel developers and project managers triaging and prioritizing
+issues in the [Babel issue tracker] using the [Babel sprints GitHub project].
 
-- **Part 1: For users of Babel outputs** — how to file a useful bug report, how to assign
-  priority, impact and size when you file an issue, and how to read the project board to estimate
-  when your issue is likely to be addressed.
-- **Part 2: For Babel developers** — how to triage incoming issues, how to add automated tests,
-  and how to select issues for the next sprint.
+For guidance on how to file an issue — including what to include, how to fill in priority,
+impact and size, and how to track when your issue will be addressed — see
+[docs/NewIssue.md](./NewIssue.md).
 
 ---
 
-## Part 1: Reporting and tracking issues (for users)
-
-### Filing a bug report
-
-Before filing an issue, check whether a similar issue already exists in the
-[Babel issue tracker]. If it does, you can add a comment with additional examples or "+1" the
-issue to signal that it affects you too. You can also add your issue as a sub-issue of an existing
-issue if the same underlying bug seems to be the cause.
-
-When filing a new issue, please include:
-
-- The identifiers or concept names that are behaving incorrectly (ideally as a table or TSV/CSV
-  attachment).
-- What you expected Babel to return and what it actually returned.
-- Which frontend you noticed the problem in: [Node Normalizer], [Name Resolver], or direct
-  inspection of Babel output files.
-- Any additional context that will help replicate the problem.
-
-### Assigning priority, impact and size
-
-When you file an issue, please fill in three fields in the [Babel sprints GitHub project] to
-help us understand how urgently it needs to be addressed. If you are unsure about any of these,
-please leave them blank. Developers will fill them in during triage.
-
-#### Priority
-
-How urgent is this to fix?
-
-| Value        | Meaning                                                                                                               |
-|--------------|-----------------------------------------------------------------------------------------------------------------------|
-| **Critical** | Causes outright failures or produces seriously wrong results that are actively misleading downstream users right now. |
-| **High**     | Significantly degrades the quality or usability of Babel outputs, but a workaround exists.                            |
-| **Medium**   | A noticeable quality problem, but not one that breaks workflows.                                                      |
-| **Low**      | A minor issue or a nice-to-have improvement.                                                                          |
-
-#### Impact
-
-How beneficial will fixing this issue be to Babel users?
-
-| Value        | Meaning                                                                                                    |
-|--------------|------------------------------------------------------------------------------------------------------------|
-| **Enormous** | Will significantly improve clique or output quality, or will make future development substantially easier. |
-| **High**     | Will provide a large benefit to users or developers.                                                       |
-| **Medium**   | Will provide a moderate benefit to users or developers.                                                    |
-| **Low**      | Will provide a small benefit to users or developers.                                                       |
-
-#### Size
-
-How much effort do you think this fix will require? (This is an estimate; developers may adjust it.)
-
-| Value  | Approximate effort                                                        |
-|--------|---------------------------------------------------------------------------|
-| **XS** | Trivial change — a configuration tweak or a one-line fix.                 |
-| **S**  | Small — a few hours of focused work.                                      |
-| **M**  | Medium — up to a day or two of work.                                      |
-| **L**  | Large — requires investigation and several days of implementation.        |
-| **XL** | Extra large — a substantial piece of work that may span multiple sprints. |
-
-### Grouping related issues
-
-If your issue looks like it may be caused by the same underlying bug as an existing issue, you
-can set the **Parent issue** field to that issue. This helps developers see patterns and fix
-related issues together.
-
-You can also set the **Component** property to identify which part of Babel is affected:
-
-| Component               | What it covers                                                |
-|-------------------------|---------------------------------------------------------------|
-| Process                 | The overall pipeline for running Babel                        |
-| Cliques and identifiers | What identifiers are or are not in a clique                   |
-| Downloaders             | Code that downloads source data                               |
-| Metadata                | Information content, taxon, or other metadata stored on nodes |
-| Biolink types           | How Biolink semantic types are assigned to cliques            |
-| Conflations             | GeneProtein and DrugChemical conflation                       |
-| Preferred labels        | How preferred labels are chosen                               |
-| Synonyms                | Which synonyms are included                                   |
-| New data sources        | Requests to add a new data source                             |
-| Validation and reports  | Validating Babel output or producing a report                 |
-| Documentation           | Improving or fixing Babel documentation                       |
-| NodeNorm                | [Node Normalizer] frontend                                    |
-| NameRes                 | [Name Resolver] frontend                                      |
-
-### Tracking when your issue will be addressed
-
-Babel development is organized into two-week **sprints** using the
-[Babel sprints GitHub project]. You can use the project board to see:
-
-- **Backlog** — issues that have been triaged and are waiting to be scheduled.
-- **Ready** — issues that are queued for the current or next sprint.
-- **In progress** — issues being actively worked on right now.
-- **Needs review** — issues with a pull request awaiting review.
-- **Done** — issues completed in recent sprints.
-
-At the start of each sprint, leftover items from the previous sprint are carried forward, and
-then the highest-priority issues from the backlog are added. If an issue is unexpectedly large
-or is displaced by a higher-priority item, it may be deferred to a later sprint. In general, a
-**Critical + Enormous** issue will be scheduled very quickly, while a **Low + Low** issue may
-sit in the backlog for a long time.
-
-To estimate when your issue is likely to be addressed, look at how many **Critical** and **High**
-priority issues are currently in the backlog ahead of yours. Issues are typically ordered by
-priority first and then impact.
-
----
-
-## Part 2: Triage guide (for developers)
+## Triage guide (for developers)
 
 ### Triage checklist
 
@@ -134,9 +27,9 @@ When a new issue arrives, work through the following steps:
    if necessary. If they are blank, set them now based on your assessment. Don't be shy about
    changing them in the future if necessary.
 
-4. **Set the Component field.** Choose the appropriate **Component** value (see table above)
-   if that would be useful. This can help group together related issues and for filtering during
-   sprint planning.
+4. **Set the Component field.** Choose the appropriate **Component** value (see the Component
+   table in [docs/NewIssue.md](./NewIssue.md#grouping-related-issues)) if that would be useful.
+   This can help group together related issues and for filtering during sprint planning.
 
 5. **Link to a parent issue.** If this issue is one instance of a broader known problem (e.g. a
    deprecated identifier source, or a class of missing cliques), set the **Parent issue** field.
@@ -185,36 +78,84 @@ Having text after the fenced code block (or multiple code blocks) is fine too.
 
 #### Available assertion types
 
-You can see an up-to-date list of supported assertions
-[in the Babel Validation repository](https://github.com/TranslatorSRI/babel-validation/blob/3eeeccfb0d15451e45ecade7603404e096b30fb0/src/babel_validation/assertions/README.md).
+The assertion types are defined in [babel-validation][assertion types], whose README is generated
+from the handler classes themselves. That page is canonical: it is always in sync with what the
+harness can actually run, so link to it rather than copying the list here.
 
-<!-- TODO: replace with the actual URL once https://github.com/TranslatorSRI/babel-validation/pull/67 has been merged. -->
+Use `{{BabelTest|Needed}}` as a placeholder if you know a test is needed but do not yet know the
+exact expected values. It always fails, as a reminder.
 
-**NodeNorm assertions:**
+An assertion type that the harness does not recognise is a hard failure regardless of whether the
+issue is open or closed, so a typo or an invented name takes down the whole run rather than
+failing quietly. This document used to carry its own copy of the assertion table, and that copy
+drifted: until the forms were fixed, the preferred-name issue form pre-filled a `HasPreferredName`
+assertion that has never existed. Check a name against the generated README rather than against
+prose.
 
-| Assertion            | What it tests                                                                 |
-|----------------------|-------------------------------------------------------------------------------|
-| `Resolves`           | Each CURIE returns a non-null result from NodeNorm.                           |
-| `DoesNotResolve`     | Each CURIE intentionally fails to normalize.                                  |
-| `ResolvesWith`       | Two or more CURIEs normalize to identical results.                            |
-| `DoesNotResolveWith` | Two or more CURIEs do NOT resolve to the same entity.                         |
-| `HasLabel`           | A CURIE's primary label exactly matches the expected string (case-sensitive). |
-| `ResolvesWithType`   | CURIEs resolve with a specified Biolink semantic type.                        |
+#### Checking an assertion you have written
 
-**NameRes assertions:**
+From a [babel-validation] checkout, one issue at a time:
 
-| Assertion      | What it tests                                                                       |
-|----------------|-------------------------------------------------------------------------------------|
-| `SearchByName` | A CURIE appears in the top N NameRes results for a given text string (default N=5). |
+```shell
+uv run pytest tests/github_issues/test_github_issues.py --target dev --issue 1038 -rsx
+```
 
-**Special:**
+`--issue` accepts `1038`, `Babel#1038` or `NCATSTranslator/Babel#1038`, and resolves only within
+the repositories listed under `Repositories` in `tests/targets.ini`. `--target` is one of `exp`,
+`dev`, `ci`, `ci-es`, `test` or `prod`. A single issue takes a few seconds; every assertion in
+every configured repository against one target takes well under a minute, so there is no reason
+to wait for the nightly run to find out whether an assertion works:
 
-| Assertion | Meaning                                                                          |
-|-----------|----------------------------------------------------------------------------------|
-| `Needed`  | Placeholder marking that a test needs to be written. Always fails as a reminder. |
+```shell
+uv run pytest tests/github_issues/test_github_issues.py --target dev -q -rf
+```
 
-When adding tests to an issue, use `{{BabelTest|Needed}}` as a placeholder if you know a test
-is needed but do not yet know the exact expected values.
+Setup is `uv sync` plus a `GITHUB_TOKEN`. The repositories are public, so a token with **no scopes
+at all** is enough — it is for the rate limit, not for access — and `GITHUB_TOKEN=$(gh auth token)`
+works. Without a token these tests **skip rather than fail**, which is a green run that tested
+nothing; check the summary says they ran.
+
+Two caveats when checking work that was just edited. GitHub's search index lags roughly a minute
+behind an edit, and the discovered issue list is cached, so delete
+`~/.cache/babel-validation/issues_cache.json` before a full run. `--issue` fetches directly and
+bypasses both.
+
+#### What a pass or a failure means
+
+The issue's own state decides the expected outcome, so the two are not read the same way:
+
+- **Open issue** — the bug is not fixed, so its assertions are *expected* to fail and are reported
+  as `xfail`. Writing an assertion for a bug that is still broken is the normal case, not a
+  mistake.
+- **Open issue whose assertions pass** — reported as a failure, because the `xfail` is strict.
+  This is the signal that the bug is fixed and the issue can be closed. It is the main reason to
+  add assertions to issues at all.
+- **Closed issue** — its assertions must pass. A failure here is a regression.
+- **`skipped`** — for one issue, the harness found no assertion in its body, usually a malformed
+  `{{BabelTest|...}}` marker. If *every* issue is skipped, suspect a missing `GITHUB_TOKEN` first
+  (see above); the skip reason that `-rs` prints tells the two apart.
+
+Results for every configured repository, across all six environments, are published daily to the
+[babel-validation dashboard]; filter by the *GitHub issues* kind.
+
+#### Gotchas
+
+- **Writing about the syntax runs it.** A complete `{{BabelTest|...}}` marker is picked up wherever
+  it appears in an issue body — inside backticks and inside quoted blocks included. When quoting an
+  example in an issue, leave the closing braces off.
+- **Issue-form examples go in `placeholder:`, never `value:`.** The forms in
+  `.github/ISSUE_TEMPLATE/` show an example such as
+  `{{BabelTest|ResolvesWith|curie1|curie2|curie3}}` as greyed-out placeholder text, which is not
+  submitted. A `value:` *is* submitted when the
+  reporter leaves the optional field alone, and becomes a real test about identifiers named `curie1`
+  and `curie2` — one that fails for good once the issue is closed. An issue filed from an older
+  version of a form may still carry such a default; delete it or fill it in.
+- **Quote strings in the YAML form.** YAML 1.1 turns an unquoted `no`, `on` or `1.5` into a boolean
+  or a float, which the harness rejects. This bites `HasLabel` labels and `SearchByName` queries.
+- **`HasLabel` is exact and case-sensitive.** `aspirin` does not match `Aspirin`.
+- **One issue's assertions are capped** at 100 assertions, 1,000 parameter lists, 1,000 parameters
+  and 1,000 characters per parameter. Going over fails the whole issue rather than running part of
+  it; split it across several issues.
 
 ### Sprint planning
 
@@ -248,5 +189,5 @@ Sprints are two weeks long. At the start of each sprint:
 [Babel issue tracker]: https://github.com/NCATSTranslator/Babel/issues/
 [Babel sprints GitHub project]: https://github.com/orgs/NCATSTranslator/projects/36
 [babel-validation]: https://github.com/TranslatorSRI/babel-validation
-[Name Resolver]: https://github.com/NCATSTranslator/NameResolution
-[Node Normalizer]: https://github.com/NCATSTranslator/NodeNormalization
+[assertion types]: https://github.com/TranslatorSRI/babel-validation/blob/main/src/babel_validation/assertions/README.md
+[babel-validation dashboard]: https://translatorsri.github.io/babel-validation/

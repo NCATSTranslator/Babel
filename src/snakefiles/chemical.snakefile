@@ -1,4 +1,6 @@
 import src.createcompendia.chemicals as chemicals
+import src.datahandlers.drugbank as drugbank
+import src.datahandlers.ncit as ncit
 import src.assess_compendia as assessments
 import src.snakefiles.util as util
 
@@ -6,12 +8,13 @@ import src.snakefiles.util as util
 rule chemical_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_umls_ids.tsv"
     run:
-        chemicals.write_umls_ids(input.mrsty, output.outfile)
+        chemicals.write_umls_ids(input.mrsty, output.outfile, mesh_ownership=input.mesh_ownership)
 
 
 rule chemical_rxnorm_ids:
@@ -28,12 +31,14 @@ rule chemical_rxnorm_ids:
 rule chemical_mesh_ids:
     input:
         infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_mesh_ids.tsv"
     run:
-        chemicals.write_mesh_ids(output.outfile)
+        chemicals.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule chemical_pubchem_ids:
@@ -124,7 +129,7 @@ rule chemical_chebi_ids:
         outfile=config["intermediate_directory"] + "/chemicals/ids/CHEBI",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_chebi_ids.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     run:
         chemicals.write_chebi_ids(output.outfile)
 
@@ -138,6 +143,58 @@ rule chemical_drugbank_ids:
         config["output_directory"] + "/benchmarks/chemical_drugbank_ids.tsv"
     run:
         chemicals.write_drugbank_ids(input.infile, output.outfile)
+
+
+rule chemical_ncit_food_codes:
+    # Enumerate the NCIt Food/Seed subtrees so the DRUGBANK food-and-extract retype can recognise
+    # foods by their UNII's NCIt class (issue #828). Queries UberGraph, hence retries.
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ncit/food_codes",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_ncit_food_codes.tsv"
+    retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
+    run:
+        ncit.write_ncit_descendant_codes(config["food_ncit_roots"], output.outfile)
+
+
+rule chemical_ncit_nonfood_codes:
+    # Enumerate the NCIt subtrees that are never food (imaging agents, antineoplastics), so that a
+    # botanical flag alone cannot type a plant-derived drug as biolink:Food (issue #828). Queries
+    # UberGraph, hence retries.
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ncit/nonfood_codes",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_ncit_nonfood_codes.tsv"
+    retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
+    run:
+        ncit.write_ncit_descendant_codes(config["nonfood_ncit_roots"], output.outfile)
+
+
+rule chemical_drugbank_food_extracts:
+    # DRUGBANK food materials and extracts (whole strawberry, scallop, willow bark, ragweed pollen, ...)
+    # that default to biolink:ChemicalEntity but should be biolink:Food, or biolink:ComplexMolecularMixture
+    # when they are a processed "extract" — issue #828. Uses the DrugBank vocabulary CSV's UNII column
+    # cross-checked against each UNII's NCIt class (both the food and the never-food subtrees) and its
+    # botanical-database (PLANTS/GRIN/MPNS) flags; see
+    # datahandlers/drugbank.py:write_drugbank_food_extract_types.
+    input:
+        vocab_csv=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
+        unii_records=config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
+        food_ncit_codes=config["intermediate_directory"] + "/chemicals/ncit/food_codes",
+        nonfood_ncit_codes=config["intermediate_directory"] + "/chemicals/ncit/nonfood_codes",
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_drugbank_food_extracts.tsv"
+    run:
+        drugbank.write_drugbank_food_extract_types(
+            input.vocab_csv,
+            input.unii_records,
+            input.food_ncit_codes,
+            input.nonfood_ncit_codes,
+            config["drugbank_extract_markers"],
+            output.outfile,
+        )
 
 
 ######
@@ -194,6 +251,9 @@ rule get_chemical_wikipedia_relationships:
 rule get_chemical_mesh_relationships:
     input:
         infile=config["intermediate_directory"] + "/chemicals/ids/MESH",
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
+        mesh_rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        mesh_xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
     output:
         casout=config["intermediate_directory"] + "/chemicals/concords/mesh_cas",
         uniout=config["intermediate_directory"] + "/chemicals/concords/mesh_unii",
@@ -203,7 +263,14 @@ rule get_chemical_mesh_relationships:
         config["output_directory"] + "/benchmarks/get_chemical_mesh_relationships.tsv"
     run:
         chemicals.get_mesh_relationships(
-            input.infile, output.casout, output.uniout, output.casout_metadata_yaml, output.uniout_metadata_yaml
+            input.infile,
+            output.casout,
+            output.uniout,
+            output.casout_metadata_yaml,
+            output.uniout_metadata_yaml,
+            mesh_registry=input.mesh_registry,
+            mesh_rdf_source=input.mesh_rdf_source,
+            mesh_xml_sources=input.mesh_xml_sources,
         )
 
 
@@ -220,7 +287,14 @@ rule get_chemical_unichem_relationships:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_chemical_unichem_relationships.tsv"
+    resources:
+        # Peaked at 20.9 GiB = 22.4 GB on both babel-1.17 and 2026jul22 (see docs/tools/Resources.md),
+        # i.e. 93% of 24 GB -- raised a bucket so a growing UniChem doesn't OOM it.
+        mem="32G",
     run:
+        # The only concord rule that writes no metadata, so its rows aren't checked by
+        # write_concord_metadata()'s read_concords() pass here: a malformed row surfaces later, when
+        # chemical_unichem_concordia reads it. Adding metadata per UNICHEM_* file would fix both (#648).
         chemicals.write_unichem_concords(
             input.structfile, input.reffile, config["intermediate_directory"] + "/chemicals/concords/UNICHEM"
         )
@@ -268,6 +342,8 @@ rule get_chebi_concord:
     input:
         sdf=config["download_directory"] + "/CHEBI/ChEBI_complete.sdf",
         dbx=config["download_directory"] + "/CHEBI/database_accession.tsv",
+        dbx_source=config["download_directory"] + "/CHEBI/source.tsv",
+        dbx_status=config["download_directory"] + "/CHEBI/status.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/concords/CHEBI",
         propfile=config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz",
@@ -276,7 +352,13 @@ rule get_chebi_concord:
         config["output_directory"] + "/benchmarks/get_chebi_concord.tsv"
     run:
         chemicals.make_chebi_relations(
-            input.sdf, input.dbx, output.outfile, propfile_gz=output.propfile, metadata_yaml=output.metadata_yaml
+            input.sdf,
+            input.dbx,
+            input.dbx_source,
+            input.dbx_status,
+            output.outfile,
+            propfile_gz=output.propfile,
+            metadata_yaml=output.metadata_yaml,
         )
 
 
@@ -292,7 +374,11 @@ rule chemical_unichem_concordia:
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_unichem_concordia.tsv"
     resources:
-        mem="128G",
+        # 2026jul22 peaked at 111.6 GiB = 119.8 GB, 94% of 128G; UniChem grows every release.
+        mem="192G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["chemical_unique_prefixes"],
     run:
         chemicals.combine_unichem(input.concords, output.unichemgroup)
 
@@ -311,14 +397,28 @@ rule untyped_chemical_compendia:
             cc=config["chemical_concords"],
         ),
         idlists=expand("{dd}/chemicals/ids/{ap}", dd=config["intermediate_directory"], ap=config["chemical_ids"]),
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
+        # Declared as an input so editing the file re-triggers this rule.
+        badxrefs=chemicals.CHEMICAL_BAD_XREFS,
     output:
         typesfile=config["intermediate_directory"] + "/chemicals/partials/types",
         untyped_file=config["intermediate_directory"] + "/chemicals/partials/untyped_compendium",
         untyped_meta=config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml",
+        # The bad xref pairs this build applied, for babel-inchikey-audit --badxrefs: the repo's file may have moved on.
+        applied_badxrefs=config["intermediate_directory"] + "/chemicals/partials/applied_badxrefs.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/untyped_chemical_compendia.tsv"
     resources:
-        mem="512G",
+        # Peaked at 132.0 and 132.1 GiB on babel-1.17 and 2026jul22 -- stable to within 0.1%. Those
+        # are the benchmark's mebibytes; `mem` is decimal, so the peak is 141.8 GB and the old 512G
+        # was reserving ~3.6x what it uses. 256G is the standard 1.5x safety factor rounded to a
+        # bucket. A 184G variant would have fit a 191 GB batch node and kept the job off largemem
+        # entirely, but only at 77% used with no room for one release's growth; revisit after the
+        # next full run, when there are three peaks to size from rather than two.
+        mem="256G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["chemical_unique_prefixes"],
     run:
         chemicals.build_untyped_compendia(
             input.concords,
@@ -328,6 +428,9 @@ rule untyped_chemical_compendia:
             output.typesfile,
             output.untyped_meta,
             input.metadata_yamls,
+            mesh_ownership=input.mesh_ownership,
+            badxrefs=input.badxrefs,
+            applied_badxrefs=output.applied_badxrefs,
         )
 
 
@@ -338,6 +441,10 @@ rule chemical_compendia:
         metadata_yamls=[config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml"],
         properties_jsonl_gz=[config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz"],
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+        # Every source contributing food/extract evidence to the clique type vote adds one
+        # CURIE->biolink:Type file here; today that is only the DRUGBANK food-and-extract retype
+        # (issues #828, #935).
+        food_type_files=[config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts"],
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
@@ -346,7 +453,7 @@ rule chemical_compendia:
         config["output_directory"] + "/benchmarks/chemical_compendia.tsv"
     resources:
         mem="512G",
-        runtime="6h",
+        runtime="7h",  # This used to fully happen inside 6h, but after adding Food.txt it takes 5.5h, so let's give it a bit more time.
     run:
         chemicals.build_compendia(
             input.typesfile,
@@ -354,6 +461,7 @@ rule chemical_compendia:
             input.properties_jsonl_gz,
             input.metadata_yamls,
             input.icrdf_filename,
+            input.food_type_files,
         )
 
 
@@ -364,6 +472,10 @@ rule check_chemical_completeness:
         report_file=config["output_directory"] + "/reports/chemical_completeness.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/check_chemical_completeness.tsv"
+    resources:
+        # 2026jul22 peaked at 13.7 GiB = 14.7 GB against the 16G cluster default (92%), with no
+        # explicit block.
+        mem="24G",
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/chemicals/ids", input.input_compendia, output.report_file
@@ -447,6 +559,17 @@ rule check_drug:
         assessments.assess(input.infile, output.outfile)
 
 
+rule check_food:
+    input:
+        infile=config["output_directory"] + "/compendia/Food.txt",
+    output:
+        outfile=config["output_directory"] + "/reports/Food.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_food.tsv"
+    run:
+        assessments.assess(input.infile, output.outfile)
+
+
 rule chemical:
     input:
         config["output_directory"] + "/reports/chemical_completeness.txt",
@@ -458,6 +581,10 @@ rule chemical:
         x=config["output_directory"] + "/reports/chemicals_done",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical.tsv"
+    resources:
+        # Gzipping every chemical synonyms file took 1.9h on 2026jul22 -- 93% of the 2h cluster
+        # default, and the closest any rule came to a timeout in that run.
+        runtime="4h",
     run:
         util.gzip_files(input.synonyms)
         util.write_done(output.x)

@@ -1,10 +1,10 @@
 import csv
 import logging
-import os
 
 import requests
 
 from src.babel_utils import make_local_name
+from src.util import ensure_parent_dir
 
 
 def readlabels(which):
@@ -56,8 +56,8 @@ def download_umls_gene_protein_mappings(
         f.write(response.text)
 
     # Step 2. Read the file into memory.
-    os.makedirs(os.path.dirname(umls_gene_concords), exist_ok=True)
-    os.makedirs(os.path.dirname(umls_protein_concords), exist_ok=True)
+    ensure_parent_dir(umls_gene_concords)
+    ensure_parent_dir(umls_protein_concords)
 
     count_rows = 0
     with (

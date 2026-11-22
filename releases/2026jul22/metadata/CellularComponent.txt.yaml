@@ -1,0 +1,233 @@
+created_at: '2026-07-21T21:29:31.459163'
+type: compendium
+name: CellularComponent.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 9469
+  eq_ids: 16417
+  synonyms: 23355
+  property_sources: {}
+combined_from:
+  build_anatomy_obo_relationships():
+  - created_at: '2026-07-21T21:23:59.148180'
+    type: concord
+    name: build_anatomy_obo_relationships()
+    url: ''
+    description: get_subclasses_and_xrefs() of UBERON:0001062, GO:0005575, and EMAPA:0
+    sources:
+    - type: UberGraph
+      name: UBERON
+    - type: UberGraph
+      name: GO
+    - type: UberGraph
+      name: CL
+    - type: UberGraph
+      name: EMAPA
+    counts:
+      concords:
+        count_concords: 38905
+        count_distinct_curies: 48695
+        predicates:
+          xref: 38905
+        prefix_counts:
+          xref(CARO, UBERON): 53
+          xref(EFO, UBERON): 610
+          xref(EMAPA, UBERON): 4356
+          xref(EV, UBERON): 334
+          xref(GAID, UBERON): 776
+          xref(MA, UBERON): 3065
+          xref(MAT, UBERON): 238
+          xref(MESH, UBERON): 1103
+          xref(NCIT, UBERON): 2576
+          xref(SCTID, UBERON): 4117
+          xref(UBERON, UMLS): 3090
+          xref(UBERON, VHOG): 1119
+          xref(UBERON, Wikipedia): 3514
+          xref(UBERON, galen): 437
+          xref(AAO, UBERON): 784
+          xref(EHDAA2, UBERON): 1460
+          xref(EHDAA, UBERON): 966
+          xref(MIAA, UBERON): 212
+          xref(TAO, UBERON): 979
+          xref(UBERON, ZFA): 2061
+          xref(FBbt, UBERON): 356
+          xref(UBERON, XAO): 585
+          xref(BIRNLEX, UBERON): 1093
+          xref(BM, UBERON): 246
+          xref(DHBA, UBERON): 751
+          xref(HBA, UBERON): 569
+          xref(UBERON, neuronames): 1195
+          xref(BILA, UBERON): 89
+          xref(EHDA, UBERON): 3
+          xref(NLXANAT, UBERON): 209
+          xref(AEO, UBERON): 139
+          xref(HAO, UBERON): 75
+          xref(IDOMAL, UBERON): 6
+          xref(TGMA, UBERON): 52
+          xref(BSA, UBERON): 27
+          xref(UBERON, WBbt): 48
+          xref(UBERON, VSAO): 147
+          xref(TAO_RETIRED, UBERON): 1
+          xref(UBERON, ZFA_RETIRED): 1
+          xref(SPD, UBERON): 10
+          xref(DMBA, UBERON): 262
+          xref(FAO, UBERON): 1
+          xref(ENVO, UBERON): 28
+          xref(EMAPA_RETIRED, UBERON): 10
+          xref(NLX, UBERON): 113
+          xref(ANISEED, UBERON): 14
+          xref(TADS, UBERON): 25
+          xref(UBERON, lamprey): 2
+          xref(EHDAA2_RETIRED, UBERON): 19
+          xref(UBERON, ncithesaurus): 39
+          xref(OGEM, UBERON): 2
+          xref(MBA, UBERON): 559
+          xref(UBERON, WikipediaCategory): 7
+          xref(ABA, UBERON): 9
+          xref(PBA, UBERON): 94
+          xref(RETIRED_EHDAA2, UBERON): 131
+          xref(NIFSTD_RETIRED, UBERON): 8
+          xref(ILX, UBERON): 5
+          xref(BFO, UBERON): 1
+          xref(MFMO, UBERON): 42
+          xref(MAP, UBERON): 1
+          xref(KUPO, UBERON): 9
+          xref(FMA_RETIRED, UBERON): 1
+          xref(UBERON, VO): 4
+          xref(OldNeuroNames, UBERON): 8
+          xref(TE, UBERON): 1
+          xref(AEO_RETIRED, UBERON): 2
+          xref(UBERON, VHOG_RETIRED): 3
+          xref(UBERON, https): 3
+          xref(CP, UBERON): 17
+          xref(MURDOCH, UBERON): 2
+          xref(UBERON, VSAO_RETIRED): 1
+          xref(NeuroNamesCNID, UBERON): 5
+          xref(EMAPS, UBERON): 1
+          xref(NOID, UBERON): 2
+          xref(ChirDv, UBERON): 1
+          xref(RadLex, UBERON): 4
+          xref(Talairach, UBERON): 1
+          xref(MPATH, UBERON): 1
+          xref(PHENOSCAPE, UBERON): 12
+          xref(TA2, UBERON): 1
+          xref(UBERON, WikipediaVersioned): 1
+          xref(NeuroNames, UBERON): 1
+    combined_from: []
+  - created_at: '2026-07-21T21:23:59.156851'
+    type: concord
+    name: build_anatomy_obo_relationships()
+    url: ''
+    description: get_subclasses_and_xrefs() of UBERON:0001062, GO:0005575, and EMAPA:0
+    sources:
+    - type: UberGraph
+      name: UBERON
+    - type: UberGraph
+      name: GO
+    - type: UberGraph
+      name: CL
+    - type: UberGraph
+      name: EMAPA
+    counts:
+      concords:
+        count_concords: 305
+        count_distinct_curies: 598
+        predicates:
+          xref: 305
+        prefix_counts:
+          xref(GO, Wikipedia): 255
+          xref(GO, SO): 3
+          xref(GO, MetaCyc): 7
+          xref(GO, VZ): 23
+          xref(FBbt, GO): 1
+          xref(CORUM, GO): 12
+          xref(GO, Intact): 2
+          xref(GO, MP): 1
+          xref(GO, IntAct): 1
+    combined_from: []
+  - created_at: '2026-07-21T21:23:59.160085'
+    type: concord
+    name: build_anatomy_obo_relationships()
+    url: ''
+    description: get_subclasses_and_xrefs() of UBERON:0001062, GO:0005575, and EMAPA:0
+    sources:
+    - type: UberGraph
+      name: UBERON
+    - type: UberGraph
+      name: GO
+    - type: UberGraph
+      name: CL
+    - type: UberGraph
+      name: EMAPA
+    counts:
+      concords:
+        count_concords: 0
+        count_distinct_curies: 0
+        predicates: {}
+        prefix_counts: {}
+    combined_from: []
+  - created_at: '2026-07-21T21:23:59.162745'
+    type: concord
+    name: build_anatomy_obo_relationships()
+    url: ''
+    description: get_subclasses_and_xrefs() of UBERON:0001062, GO:0005575, and EMAPA:0
+    sources:
+    - type: UberGraph
+      name: UBERON
+    - type: UberGraph
+      name: GO
+    - type: UberGraph
+      name: CL
+    - type: UberGraph
+      name: EMAPA
+    counts:
+      concords:
+        count_concords: 0
+        count_distinct_curies: 0
+        predicates: {}
+        prefix_counts: {}
+    combined_from: []
+  umls.build_sets():
+    created_at: '2026-07-13T00:59:43.727585'
+    type: concord
+    name: umls.build_sets()
+    url: ''
+    description: 'umls.build_sets() using UMLS MRCONSO with prefixes: {''SNOMEDCT_US'':
+      ''SNOMEDCT'', ''MSH'': ''MESH'', ''NCI'': ''NCIT'', ''GO'': ''GO'', ''FMA'':
+      ''FMA''} with cui_prefix set to UMLS'
+    sources:
+    - type: UMLS
+      name: MRCONSO
+    counts:
+      concords:
+        count_concords: 159283
+        count_distinct_curies: 299578
+        predicates:
+          eq: 159283
+        prefix_counts:
+          eq(MESH, UMLS): 1794
+          eq(FMA, UMLS): 103206
+          eq(SNOMEDCT, UMLS): 39926
+          eq(NCIT, UMLS): 8945
+          eq(GO, UMLS): 5412
+    combined_from: []
+  build_wikidata_cell_relationships():
+    created_at: '2026-07-13T00:57:17.507689'
+    type: concord
+    name: build_wikidata_cell_relationships()
+    url: ''
+    description: wd:P7963 ("Cell Ontology ID") and wd:P2892 ("UMLS CUI") from Wikidata
+    sources:
+    - type: Frink
+      name: Frink Direct Normalized Graph via SPARQL
+    counts:
+      concords:
+        count_concords: 597
+        count_distinct_curies: 1194
+        predicates:
+          eq: 597
+        prefix_counts:
+          eq(CL, UMLS): 597
+    combined_from: []

@@ -1,0 +1,51 @@
+{
+  "compendium_path": "babel_outputs/compendia/ComplexMolecularMixture.txt",
+  "count_by_biolink_type": {
+    "biolink:ComplexMolecularMixture": 573
+  },
+  "count_by_prefix": {
+    "CAS": 10,
+    "DRUGBANK": 383,
+    "DrugCentral": 1,
+    "INCHIKEY": 1,
+    "MESH": 219,
+    "PUBCHEM.COMPOUND": 1,
+    "RXCUI": 377,
+    "UMLS": 462,
+    "UNII": 16
+  },
+  "count_lines": 573,
+  "counters": {
+    "clique_count": 573,
+    "cliques_by_description_count": {
+      "0": 573
+    },
+    "cliques_by_id_count": {
+      "1": 101,
+      "2": 97,
+      "3": 346,
+      "4": 11,
+      "5": 17,
+      "8": 1
+    },
+    "cliques_by_label_count": {
+      "1": 112,
+      "2": 430,
+      "3": 16,
+      "4": 14,
+      "5": 1
+    },
+    "cliques_by_unique_description_count": {
+      "0": 573
+    },
+    "cliques_by_unique_label_count": {
+      "1": 191,
+      "2": 359,
+      "3": 14,
+      "4": 8,
+      "5": 1
+    }
+  },
+  "name": "ComplexMolecularMixture",
+  "report_path": "babel_outputs/reports/content/compendia/ComplexMolecularMixture.json"
+}

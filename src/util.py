@@ -1,10 +1,14 @@
 import copy
+import gzip
 import json
 import logging
 import os
+import re
 import sys
 from collections import namedtuple
+from functools import cache
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from time import gmtime
 
 import curies
@@ -25,6 +29,13 @@ def get_logger(name, loglevel=logging.INFO):
     The LoggingUtil is inconsistently used, and we don't want rolling logs anyway -- just logging everything to STDERR
     so that Snakemake can capture it is fine. However, we do want every logger to be configured identically and without
     duplicated handlers.
+
+    Always call this instead of `logging.getLogger()` directly: it installs the shared stderr
+    handler/formatter below, so a bare `logging.getLogger()` logger can produce unformatted output
+    if it logs before any other module has called this function. A module that sits early in the
+    import graph and must defer this import to avoid triggering config loading at import time
+    (see `src/synonyms/filter.py`) should reassign its module-level `logger` inside the deferred
+    block rather than at module scope.
     """
 
     # Set up the root handler for a logger. Ideally we would call this in one central location, but I'm not sure
@@ -42,6 +53,59 @@ def get_logger(name, loglevel=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(loglevel)
     return logger
+
+
+def get_repo_root():
+    """Return the repository root as a :class:`pathlib.Path`.
+
+    Use this to resolve a checked-in input file (``get_repo_root() / "input_data/foo.txt"``)
+    rather than a bare relative path. Snakemake always runs from the repo root, so a relative
+    path works there — but the CLI entry points (the source-impact report, the clique diff) can
+    be invoked from anywhere, and a module-level constant built from a relative path would then
+    silently point at nothing.
+    """
+    return Path(__file__).resolve().parents[1]
+
+
+def ensure_parent_dir(filename):
+    """Create the parent directory of `filename` if it has one.
+
+    Call this before writing any output file whose directory might not exist yet. Prefer it to a
+    bare `os.makedirs(os.path.dirname(filename), exist_ok=True)`: `os.path.dirname` returns '' for
+    a filename with no directory component, and `os.makedirs('')` raises FileNotFoundError even
+    though the path is perfectly valid (it names a file in the current working directory, which
+    already exists).
+    """
+    parent = os.path.dirname(filename)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
+def open_maybe_gzipped(filename, mode="rt"):
+    """Open `filename` for text I/O, transparently gunzipping it when the name ends in `.gz`.
+
+    Useful wherever a file may reach us either as the pipeline's decompressed copy or straight
+    from an upstream download: several sources publish `.tsv.gz`, `pull_via_ftp(decompress_data=True)`
+    stores the `.tsv`, and an analysis script pointed at the raw download would otherwise read gzip
+    bytes as UTF-8 and fail somewhere far from the cause.
+    """
+    return gzip.open(filename, mode) if filename.endswith(".gz") else open(filename, mode)
+
+
+def sql_str(value) -> str:
+    """Render ``value`` as a single-quoted SQL string literal (DuckDB, SQLite), doubling any embedded quote.
+
+    For values a query has to inline because they cannot be bound as parameters -- file paths in ``read_parquet()``,
+    ``read_csv()`` and ``COPY ... TO``, or settings such as ``temp_directory``. Without the doubling, a build path
+    like ``/home/me/gaurav's-builds`` ends the literal early and the query fails to parse.
+    """
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def sql_list(values) -> str:
+    """Render values as a SQL list literal of :func:`sql_str` strings, e.g. ``['a','b']``, for ``read_parquet()``
+    over several files or ``list_contains()``."""
+    return "[" + ",".join(sql_str(v) for v in values) + "]"
 
 
 # loggers = {}
@@ -178,6 +242,19 @@ class Text:
         return ":".join(text.split("/")[-1].split("_"))
 
     @staticmethod
+    def omim_curie(local_id):
+        """Return the Babel CURIE for a bare OMIM number, splitting phenotypic series off to OMIM.PS.
+
+        OMIM numbers a phenotypic series "PS303350"; Babel spells that ``OMIM.PS:303350`` -- the
+        "PS" belongs to the prefix, not to the local id -- and a plain entry ``OMIM:303350``. Both
+        spellings arrive from more than one direction (omim.org URLs via :meth:`opt_to_curie`, and
+        DOID's ``MIM:`` xrefs via ``norm()``), so the rule lives here rather than at each call site.
+        """
+        if local_id.startswith("PS"):
+            return f"{OMIMPS}:{local_id[2:]}"
+        return f"{OMIM}:{local_id}"
+
+    @staticmethod
     def opt_to_curie(text):
         if text is None:
             return None
@@ -193,10 +270,7 @@ class Text:
             p = text.split("/")[-1].split("_")
             r = ":".join(p)
         elif text.startswith("https://omim.org/"):
-            ident = text.split("/")[-1]
-            if ident.startswith("PS"):
-                return f"{OMIMPS}:{ident[2:]}"
-            r = f"{OMIM}:{ident}"
+            r = Text.omim_curie(text.split("/")[-1])
         elif text.startswith("http://linkedlifedata.com/resource/umls"):
             r = f"{UMLS}:{text.split('/')[-1]}"
         elif text.startswith("http://identifiers.org/"):
@@ -244,6 +318,27 @@ class Text:
             return text
         p = text.split(":", 1)
         return f"{p[0].upper()}:{p[1]}"
+
+
+# Characters no identifier scheme in Babel allows: whitespace, "|" (a list separator -- NCIt's
+# multi-accession SwissProt mappings became UniProtKB:P0DP24|P0DP23|P0DP25, #1109) and control
+# characters. Measured on babel-1.18, nothing else in a shipped compendium contains one.
+MALFORMED_CURIE_CHARS_RE = re.compile(r"[\s|\x00-\x1f\x7f]")
+
+
+def curie_format_problem(curie):
+    """Return why ``curie`` is not a well-formed CURIE, or None if it is.
+
+    This is deliberately universal: it checks for a prefix, a local ID and characters that no
+    prefix allows, not whether the local ID fits its prefix's ID pattern. write_compendium() fails
+    the build on any CURIE this rejects.
+    """
+    prefix, sep, local_id = curie.partition(":")
+    if not sep or not prefix or not local_id:
+        return "missing prefix or local ID"
+    if m := MALFORMED_CURIE_CHARS_RE.search(curie):
+        return f"contains {m.group()!r}"
+    return None
 
 
 class Resource:
@@ -337,6 +432,34 @@ class DataStructure:
 config_yaml = None
 
 
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    """A SafeLoader that refuses a mapping with a repeated key. PyYAML otherwise keeps the last value and drops
+    the others without a word, which in a hand-edited or badly merged input file loses an entry silently."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            try:
+                repeated = key in seen
+            except TypeError:
+                continue  # Unhashable; SafeLoader's own construct_mapping raises a clearer error for it.
+            if repeated:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping", node.start_mark, f"found duplicate key {key!r}", key_node.start_mark
+                )
+            seen.add(key)
+        return super().construct_mapping(node, deep=deep)
+
+
+def safe_load_yaml_unique_keys(stream):
+    """
+    ``yaml.safe_load()``, but raising ``yaml.constructor.ConstructorError`` on a mapping that repeats a key,
+    rather than keeping the last value. Use it for input files people edit or merge by hand.
+    """
+    return yaml.load(stream, Loader=_UniqueKeySafeLoader)
+
+
 def get_config():
     """
     Retrieve the configuration data from the 'config.yaml' file.
@@ -353,20 +476,51 @@ def get_config():
     return config_yaml
 
 
+_GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _biolink_ref(biolink_version: str) -> str:
+    """Return the git ref to use in a GitHub URL for a Biolink Model version string.
+
+    Version strings (e.g. ``"4.3.6"``) are prefixed with ``v`` as GitHub release tags
+    require.  Commit SHAs (40 lowercase hex characters) are returned unchanged — adding
+    ``v`` would produce an invalid ref.
+    """
+    if _GIT_SHA_RE.match(biolink_version):
+        return biolink_version
+    return f"v{biolink_version}"
+
+
+@cache
 def get_biolink_model_toolkit(biolink_version):
     """
     Return a BMT Toolkit object for the specified Biolink Model version.
 
+    Cached per version: constructing a Toolkit fetches ``biolink-model.yaml`` over the network and
+    parses it through linkml, and callers construct one far more often than the handful of distinct
+    versions in play would suggest. ``write_compendium`` builds a ``NodeFactory`` -- and therefore a
+    Toolkit -- on every call, and the chemical build calls it once per entry in
+    ``config.yaml: chemical_outputs``, so an uncached Toolkit meant eight fetches and eight full
+    model parses in a single rule. A build uses exactly one ``biolink_version``, so in practice this
+    cache holds one entry.
+
+    Every caller in the process gets the same Toolkit, so treat it as read-only: anything set on it is
+    seen by every later caller. BMT offers no read-only view to enforce that; nothing in Babel sets
+    state on it today. Unlike icRDF (see ``write_compendium``'s ``ic_factory``), keeping it for the
+    life of the process is cheap next to a network fetch per caller.
+
     The model YAML is fetched from GitHub on first use. Pass the version string from
-    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"``). Do not include the leading
-    ``v``; it is prepended here. Always use mapped class URIs from the returned toolkit
+    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"`` or a Git commit SHA).
+    Do not include the leading ``v`` for version numbers; it is prepended automatically.
+    Always use mapped class URIs from the returned toolkit
     (e.g. ``get_element(x)["class_uri"]`` → ``"biolink:ChemicalEntity"``), not raw
     element names.
 
-    :param biolink_version: The Biolink Model version to use (e.g. ``"4.3.6"``).
+    :param biolink_version: The Biolink Model version to use (e.g. ``"4.3.6"`` or a commit SHA).
     :return: A Toolkit instance from the bmt library using the specified Biolink version.
     """
-    return Toolkit(f"https://raw.githubusercontent.com/biolink/biolink-model/v{biolink_version}/biolink-model.yaml")
+    ref = _biolink_ref(biolink_version)
+    return Toolkit(f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/biolink-model.yaml")
 
 
 def get_biolink_prefix_map():
@@ -380,19 +534,16 @@ def get_biolink_prefix_map():
     biolink_version = config["biolink_version"]
     if biolink_version.startswith("1.") or biolink_version.startswith("2."):
         raise RuntimeError(f"Biolink version {biolink_version} is not supported.")
-    elif biolink_version.startswith("3."):
+    ref = _biolink_ref(biolink_version)
+    if biolink_version.startswith("3."):
         # biolink-model v3.* releases keeps the prefix map in a different place.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v"
-            + biolink_version
-            + "/prefix-map/biolink-model-prefix-map.json"
+            f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/prefix-map/biolink-model-prefix-map.json"
         )
     else:
-        # biolink-model v4.0.0 and beyond is in the /project directory.
+        # biolink-model v4.0.0 and beyond (including commit SHAs) is in the /project directory.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v"
-            + biolink_version
-            + "/project/prefixmap/biolink_model_prefix_map.json"
+            f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/project/prefixmap/biolink_model_prefix_map.json"
         )
 
 

@@ -2,6 +2,7 @@ import src.createcompendia.diseasephenotype as diseasephenotype
 import src.assess_compendia as assessments
 import src.snakefiles.util as util
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import parse_concord_line
 
 ### Disease / Phenotypic Feature
 
@@ -44,6 +45,20 @@ rule disease_orphanet_ids:
         "awk '{{print $1\"\tbiolink:Disease\"}}' {input.infile} > {output.outfile}"
 
 
+rule disease_gard_ids:
+    # Every GARD term is a rare disease; the ids file is a simple transform of the labels file,
+    # mirroring the DOID/Orphanet ids rules.
+    input:
+        infile=config["download_directory"] + "/GARD/labels",
+    output:
+        outfile=config["intermediate_directory"] + "/disease/ids/GARD",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_gard_ids.tsv"
+    shell:
+        #This one is a simple enough transform to do with awk
+        "awk '{{print $1\"\tbiolink:Disease\"}}' {input.infile} > {output.outfile}"
+
+
 rule disease_efo_ids:
     input:
         efo_owl_file_path=config["download_directory"] + "/EFO/efo.owl",
@@ -66,25 +81,30 @@ rule disease_ncit_ids:
 
 rule disease_mesh_ids:
     input:
-        config["download_directory"] + "/MESH/mesh.nt",
+        infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/disease/ids/MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/disease_mesh_ids.tsv"
     run:
-        diseasephenotype.write_mesh_ids(output.outfile)
+        diseasephenotype.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule disease_umls_ids:
     input:
         badumls=config["input_directory"] + "/badumls",
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         outfile=config["intermediate_directory"] + "/disease/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/disease_umls_ids.tsv"
     run:
-        diseasephenotype.write_umls_ids(input.mrsty, output.outfile, input.badumls)
+        diseasephenotype.write_umls_ids(
+            input.mrsty, output.outfile, input.badumls, mesh_ownership=input.mesh_ownership
+        )
 
 
 rule disease_hp_ids:
@@ -93,8 +113,44 @@ rule disease_hp_ids:
         outfile=config["intermediate_directory"] + "/disease/ids/HP",
     benchmark:
         config["output_directory"] + "/benchmarks/disease_hp_ids.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download; per-request retry-with-backoff lives in TripleStore.
     run:
         diseasephenotype.write_hp_ids(output.outfile)
+
+
+rule disease_mp_ids:
+    output:
+        outfile=config["intermediate_directory"] + "/disease/ids/MP",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_mp_ids.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download; per-request retry-with-backoff lives in TripleStore.
+    run:
+        diseasephenotype.write_mp_ids(output.outfile)
+
+
+rule disease_hp_taxa:
+    # Every HP phenotype we ingest describes a human; tag each with NCBITaxon:9606 (Homo sapiens).
+    # Derived from the ids file so the taxa cover exactly the ingested identifiers.
+    input:
+        idfile=config["intermediate_directory"] + "/disease/ids/HP",
+    output:
+        outfile=config["download_directory"] + "/HP/taxa",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_hp_taxa.tsv"
+    run:
+        diseasephenotype.write_phenotype_taxa(input.idfile, config["disease_phenotype_taxa"]["HP"], output.outfile)
+
+
+rule disease_mp_taxa:
+    # Every MP phenotype describes a mammal; tag each with NCBITaxon:40674 (Mammalia).
+    input:
+        idfile=config["intermediate_directory"] + "/disease/ids/MP",
+    output:
+        outfile=config["download_directory"] + "/MP/taxa",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_mp_taxa.tsv"
+    run:
+        diseasephenotype.write_phenotype_taxa(input.idfile, config["disease_phenotype_taxa"]["MP"], output.outfile)
 
 
 rule disease_omim_ids:
@@ -115,19 +171,26 @@ rule get_disease_obo_relationships:
     output:
         config["intermediate_directory"] + "/disease/concords/MONDO",
         config["intermediate_directory"] + "/disease/concords/MONDO_close",
+        config["intermediate_directory"] + "/disease/concords/MONDO_GARD",
         config["intermediate_directory"] + "/disease/concords/HP",
+        config["intermediate_directory"] + "/disease/concords/MP",
         mondo_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO.yaml",
         mondo_close_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO_close.yaml",
+        mondo_gard_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO_GARD.yaml",
         hp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-HP.yaml",
+        mp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MP.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_disease_obo_relationships.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download; per-request retry-with-backoff lives in TripleStore.
     run:
         diseasephenotype.build_disease_obo_relationships(
             config["intermediate_directory"] + "/disease/concords",
             {
                 "MONDO": output.mondo_metadata_yaml,
                 "MONDO_close": output.mondo_close_metadata_yaml,
+                "MONDO_GARD": output.mondo_gard_metadata_yaml,
                 "HP": output.hp_metadata_yaml,
+                "MP": output.mp_metadata_yaml,
             },
         )
 
@@ -177,6 +240,7 @@ rule get_disease_doid_relationships:
 
 
 rule disease_manual_concord:
+    # How to write a row of this file, and what one really merges: input_data/manual_concords/README.md.
     input:
         infile="input_data/manual_concords/disease.txt",
     output:
@@ -187,18 +251,14 @@ rule disease_manual_concord:
     run:
         count_manual_concords = 0
         with open(input.infile, "r") as inp, open(output.outfile, "w") as outp:
-            for line in inp:
-                # Remove any lines starting with '#', which we treat as comments.
-                lstripped_line = line.lstrip()
-                if lstripped_line == "" or lstripped_line.startswith("#"):
+            for line_number, line in enumerate(inp, start=1):
+                # Skip blank lines and '#' comments, which only the hand-curated file has.
+                if line.strip() == "" or line.lstrip().startswith("#"):
                     continue
-                    # Make sure the line has three tab-delimited values, and fail otherwise.
-                elements = lstripped_line.split("\t")
-                if len(elements) != 3:
-                    raise RuntimeError(
-                        f"Found {len(elements)} elements on line {lstripped_line}, expected 3: {elements}"
-                    )
-                outp.writelines(["\t".join(elements)])
+                # Every other line must be a valid concord row by the same rule every concord reader
+                # applies, so a curation mistake is reported against input_data/, not the copy.
+                subject, predicate, obj = parse_concord_line(line, input.infile, line_number)
+                outp.write(f"{subject}\t{predicate}\t{obj}\n")
                 count_manual_concords += 1
         write_concord_metadata(
             output.metadata_yaml,
@@ -210,8 +270,49 @@ rule disease_manual_concord:
                     "url": "https://github.com/NCATSTranslator/Babel",
                 }
             ],
-            url="https://github.com/NCATSTranslator/Babel/blob/master/input_data/manual_concords/disease.txt",
+            url="https://github.com/NCATSTranslator/Babel/blob/main/input_data/manual_concords/disease.txt",
             concord_filename=output.outfile,
+        )
+
+
+rule disease_gard_label_concord:
+    # GARD publishes no cross-references, so the ~277 registry terms MONDO and DOID do not map
+    # would otherwise ship as single-identifier cliques duplicating concepts Babel already names.
+    # This links each of them to an identically labelled identifier -- see
+    # docs/sources/GARD/label-matches/README.md and build_gard_label_concord()'s docstring.
+    input:
+        gard_labels=config["download_directory"] + "/GARD/labels",
+        match_ids=expand(
+            "{dd}/disease/ids/{ap}",
+            dd=config["intermediate_directory"],
+            ap=config["disease_gard_label_match_prefixes"],
+        ),
+        match_labels=expand(
+            "{dd}/{ap}/labels",
+            dd=config["download_directory"],
+            ap=config["disease_gard_label_match_prefixes"],
+        ),
+        # Every OTHER disease concord: a GARD id any of them names is left alone. Derived from the
+        # config list rather than naming MONDO_GARD and DOID, so a source that starts emitting GARD
+        # xrefs is covered without editing this rule.
+        other_concords=expand(
+            "{dd}/disease/concords/{ap}",
+            dd=config["intermediate_directory"],
+            ap=[concord for concord in config["disease_concords"] if concord != "GARD_label"],
+        ),
+    output:
+        outfile=config["intermediate_directory"] + "/disease/concords/GARD_label",
+        metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-GARD_label.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_gard_label_concord.tsv"
+    run:
+        diseasephenotype.build_gard_label_concord(
+            input.gard_labels,
+            input.match_ids,
+            input.match_labels,
+            input.other_concords,
+            output.outfile,
+            output.metadata_yaml,
         )
 
 
@@ -219,6 +320,7 @@ rule disease_compendia:
     input:
         bad_hpo_xrefs="input_data/badHPx.txt",
         bad_mondo_xrefs="input_data/mondo_badxrefs.txt",
+        bad_mp_xrefs="input_data/mp_badxrefs.txt",
         bad_umls_xrefs="input_data/umls_badxrefs.txt",
         close_matches=config["intermediate_directory"] + "/disease/concords/MONDO_close",
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["disease_labelsandsynonyms"]),
@@ -232,20 +334,37 @@ rule disease_compendia:
             ap=config["disease_concords"],
         ),
         idlists=expand("{dd}/disease/ids/{ap}", dd=config["intermediate_directory"], ap=config["disease_ids"]),
+        # Per-prefix taxa files (read by TaxonFactory in write_compendium to set each
+        # identifier's `t` field); declared here so they exist before the compendium is built.
+        taxa=expand("{dd}/{ap}/taxa", dd=config["download_directory"], ap=config["disease_phenotype_taxa"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["disease_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["disease_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["disease_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/disease_compendia.tsv"
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["disease_unique_prefixes"],
     run:
+        # A new prefix's bad-xref file must be registered HERE (as a rule input above and a key
+        # in this dict) and in diseasephenotype.DEFAULT_BAD_XREFS. A key that matches no concord
+        # basename (a typo, or the two dicts drifting) is caught by compute_cliques_for_impact_report().
         diseasephenotype.build_compendium(
             input.concords,
             input.metadata_yamls,
             input.idlists,
             input.close_matches,
-            {"HP": input.bad_hpo_xrefs, "MONDO": input.bad_mondo_xrefs, "UMLS": input.bad_umls_xrefs},
+            {
+                "HP": input.bad_hpo_xrefs,
+                "MONDO": input.bad_mondo_xrefs,
+                "MP": input.bad_mp_xrefs,
+                "UMLS": input.bad_umls_xrefs,
+            },
             input.icrdf_filename,
+            mesh_ownership=input.mesh_ownership,
         )
 
 

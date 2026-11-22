@@ -32,17 +32,3 @@ obsolete_synonyms:
     only_for_types: [biolink:Disease, biolink:PhenotypicFeature, biolink:DiseaseOrPhenotypicFeature]
     sources_seen: [UMLS, MESH]
 
-  - label: "mental retardation"
-    reason: "Outdated clinical term; preferred terminology is 'intellectual disability'"
-    partial: true
-    sources_seen: [UMLS, MESH, HP, MONDO]
-
-  - label: "manic depressive"
-    reason: "Outdated; preferred: 'bipolar disorder'"
-    partial: true
-    sources_seen: [UMLS]
-
-  - label: "manic-depressive"
-    reason: "Outdated; preferred: 'bipolar disorder'"
-    partial: true
-    sources_seen: [UMLS]

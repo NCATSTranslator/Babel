@@ -117,6 +117,9 @@ class SynonymFilter:
         node_types: full Biolink ancestor list for the node (most-specific first), used to honour
                     type-scoped filter entries (only_for_types in the YAML).  Pass None to skip
                     type-scope gating — entries with an empty only_for_types will still match.
+                    Always pass `NodeFactory.get_ancestors(node_type)` here, not `[node_type]` —
+                    a bare single-element list breaks any type-scoped entry that matches on a
+                    parent type rather than the exact leaf type.
         """
         if not label:
             return False

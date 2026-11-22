@@ -24,6 +24,11 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 - **A prior full Snakemake pipeline run can be reused directly** — the test fixtures
   will pick up any files Snakemake already produced.
 
+- **A file older than its inputs is regenerated** where the fixture names those inputs
+  (`_maybe_run(..., inputs=[...])`), as Snakemake would. The UMLS fixture does: an `ids/UMLS`
+  written before the current MeSH ownership file is rewritten. This only sees changed *files*;
+  after changing the code a fixture runs, still pass `--regenerate`.
+
 - **To force re-processing**, pass `--regenerate`:
 
   ```bash
@@ -48,21 +53,36 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
   GO (2 compendia via UberGraph). Adding a new vocabulary requires only adding its fixtures
   to `conftest.py` and one entry in `VOCABULARY_REGISTRY` — this file never changes.
 
-- **`test_mesh.py`** (`pipeline`) — MeSH-specific targeted test
+- **`test_mesh.py`** (`pipeline`) — MeSH-specific targeted tests
   ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)). Downloads
-  `babel_downloads/MESH/mesh.nt` automatically if absent. One test: chemicals must exclude
-  D05 protein subtrees (D05.500/D05.875), D08 protein subtrees (D08.811/D08.622/D08.244),
-  and D12.776 — but must include D08.211 Coenzymes (NAD, Coenzyme A) and D05.374/D05.750/D05.937
-  (Micelles, Polymers, Smart Materials), which are all classified as CHEMICAL_ENTITY.
+  `babel_downloads/MESH/mesh.nt` and the MeSH XML automatically if absent, and builds `MESH/labels`
+  and `MESH/registry.tsv` (the `mesh_registry` fixture, as rule `get_mesh_registry` does). Two
+  tests: chemicals must exclude D05 protein subtrees (D05.500/D05.875), D08 protein subtrees
+  (D08.811/D08.622/D08.244), and D12.776 — but must include D08.211 Coenzymes (NAD, Coenzyme A) and
+  D05.374/D05.750/D05.937 (Micelles, Polymers, Smart Materials), which are all classified as
+  CHEMICAL_ENTITY; and every MeSH record with an NCBI Taxon registry number must be in the taxon
+  `ids/MESH` and no other ([issue #1240](https://github.com/NCATSTranslator/Babel/issues/1240)).
 
-- **`test_umls.py`** (`pipeline`) — UMLS-specific targeted test. Requires
-  `UMLS_API_KEY` for the initial download (or cached files). One test: chemicals must not
-  contain any UMLS IDs that the protein compendium claimed (semantic type tree
-  A1.4.1.2.1.7, Amino Acid/Peptide/Protein).
+- **`test_umls.py`** (`pipeline`) — UMLS-specific targeted tests. Requires `UMLS_API_KEY` for the
+  initial download (or cached files), and `mesh.nt`, because the five MeSH-owning pipelines'
+  `write_umls_ids()` read the MeSH ownership file, built from the five `ids/MESH` files and gene's
+  and process's `ids/UMLS` (`umls_pipeline_outputs` depends on `mesh_pipeline_outputs`). Two tests:
+  a CUI follows its MeSH descriptor's pipeline (`UMLS:C0242726` → anatomy, `UMLS:C0000608` →
+  chemicals) unless the gene pipeline selects it (`UMLS:C1413234` stays in gene), and chemicals must
+  not contain any UMLS IDs that the protein compendium claimed (semantic type tree A1.4.1.2.1.7,
+  Amino Acid/Peptide/Protein).
 
 - **`test_ec.py`**, **`test_rhea.py`**, **`test_chembl.py`**, **`test_clo.py`**,
   **`test_efo.py`** (`pipeline`) — Output format and content checks for the EC, Rhea,
   ChEMBL, CLO, and EFO data handlers.
+
+- **`test_ncbigene.py`** (`pipeline` + `slow`) — Output format checks for the NCBIGene
+  labels/synonyms/taxa/descriptions files, plus a real-data regression check for issue #744:
+  no emitted synonym may *start* with `''` (a leading `''` is always a pipe-split fragment of a
+  `''…''`-quoted alias). A *trailing* `''` is deliberately allowed — it is legitimate
+  "double-prime" gene nomenclature (real symbols such as `U2B''` and `ycf1''` end in `''`). The
+  test also asserts the two exact fragment strings from the issue's example row are absent. Marked
+  `slow` because it downloads the full `gene_info.gz` (>1 GB compressed) and processes every row.
 
 - **`checks/`** (`pipeline`) — Per-compendium regression assertions tied to specific GitHub
   issues, designed for test-driven development. See [Pipeline Checks](#pipeline-checks) below.
@@ -162,7 +182,11 @@ vocabularies straightforward. Each vocabulary needs:
    check (like `ubergraph_connection` for NCIT/GO).
 
 2. A **processing fixture** in `conftest.py` that calls all `write_X_ids()` functions for
-   that vocabulary and returns a `{compendium_name: output_path}` dict.
+   that vocabulary and returns a `{compendium_name: output_path}` dict. Call the functions the
+   Snakemake rules call, through `_maybe_run(..., inputs=[<download>])`, rather than repeating
+   their logic: the EC fixture once built `ECgraph` itself and broke silently when its constructor
+   changed. `run_ec_entry_points()` is the pattern, with a unit test in
+   `tests/datahandlers/test_ec.py` that checks its calls against the real signatures.
 
 3. **One line** in `VOCABULARY_REGISTRY`: `"MYVOCAB": "my_vocab_pipeline_outputs"`.
 
@@ -180,6 +204,6 @@ Vocabularies not yet covered (candidates):
   (`write_ensembl_gene_ids`). Deferred because the download uses BioMart
   (`pull_ensembl(ensembl_dir, complete_file, ...)`) which is more complex to invoke
   outside Snakemake.
-- **NCBI Gene / HGNC / other single-source** — vocabularies that appear in only one
+- **HGNC / other single-source** — vocabularies that appear in only one
   compendium don't need mutual-exclusivity tests, but could still get non-empty checks
-  in a per-compendium ETL test (see above).
+  in a per-compendium ETL test (see above). NCBI Gene now has one: `test_ncbigene.py`.

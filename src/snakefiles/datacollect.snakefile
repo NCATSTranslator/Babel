@@ -12,6 +12,7 @@ import src.datahandlers.uniprotkb as uniprotkb
 import src.datahandlers.mods as mods
 import src.datahandlers.ncit as ncit
 import src.datahandlers.doid as doid
+import src.datahandlers.gard as gard
 import src.datahandlers.orphanet as orphanet
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
@@ -54,6 +55,7 @@ rule get_EFO:
         config["download_directory"] + "/EFO" + "/efo.owl",
     benchmark:
         config["output_directory"] + "/benchmarks/get_EFO.tsv"
+    retries: 3  # EFO OWL download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -79,27 +81,40 @@ rule get_EFO_labels:
 
 rule get_complexportal:
     output:
-        config["download_directory"] + "/ComplexPortal" + "/559292.tsv",
+        manifest=config["download_directory"] + "/ComplexPortal/" + complexportal.COMPLEXPORTAL_MANIFEST,
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal.tsv"
+    retries: 3  # ComplexPortal downloads occasionally fail transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
     run:
-        complexportal.pull_complexportal()
+        complexportal.pull_complexportal(output.manifest)
 
 
 rule get_complexportal_labels_and_synonyms:
     input:
-        infile=config["download_directory"] + "/ComplexPortal" + "/559292.tsv",
+        manifest=config["download_directory"] + "/ComplexPortal/" + complexportal.COMPLEXPORTAL_MANIFEST,
     output:
-        lfile=config["download_directory"] + "/ComplexPortal" + "/559292_labels.tsv",
-        sfile=config["download_directory"] + "/ComplexPortal" + "/559292_synonyms.tsv",
+        lfile=config["download_directory"] + "/ComplexPortal/labels",
+        sfile=config["download_directory"] + "/ComplexPortal/synonyms",
+        taxafile=config["download_directory"] + "/ComplexPortal/taxa",
+        descfile=config["download_directory"] + "/ComplexPortal/descriptions",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
+        idsfile=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal_labels_and_synonyms.tsv"
     run:
-        complexportal.make_labels_and_synonyms(input.infile, output.lfile, output.sfile, output.metadata_yaml)
+        complexportal.make_labels_synonyms_and_taxa(
+            input.manifest,
+            os.path.dirname(input.manifest),
+            output.lfile,
+            output.sfile,
+            output.taxafile,
+            output.descfile,
+            output.metadata_yaml,
+            output.idsfile,
+        )
 
 
 ### MODS
@@ -114,6 +129,7 @@ rule get_mods:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_mods.tsv"
+    retries: 3  # MOD gene-description downloads occasionally fail transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -144,6 +160,7 @@ rule get_uniprotkb_idmapping:
         idmapping=config["download_directory"] + "/UniProtKB/idmapping.dat",
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_idmapping.tsv"
+    retries: 3  # Large UniProtKB FTP download may be interrupted transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -162,6 +179,7 @@ rule get_uniprotkb_sprot:
         uniprot_sprot=config["download_directory"] + "/UniProtKB/uniprot_sprot.fasta",
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_sprot.tsv"
+    retries: 3  # UniProtKB FTP download may be interrupted transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -179,6 +197,7 @@ rule get_uniprotkb_trembl:
         uniprot_trembl=config["download_directory"] + "/UniProtKB/uniprot_trembl.fasta",
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_trembl.tsv"
+    retries: 3  # Large UniProtKB TrEMBL FTP download may be interrupted transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -200,6 +219,9 @@ rule get_uniprotkb_labels:
         outfile=config["download_directory"] + "/UniProtKB/labels",
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_labels.tsv"
+    resources:
+        # Peaks at ~40 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
+        mem="48G",
     run:
         uniprotkb.pull_uniprot_labels(input.sprot_input, input.trembl_input, output.outfile)
 
@@ -210,13 +232,37 @@ rule get_uniprotkb_labels:
 rule get_mesh:
     output:
         config["download_directory"] + "/MESH/mesh.nt",
+        # The dump's URL, SHA-1 and MeSH year, for the registry concords' metadata.
+        rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_mesh.tsv"
+    retries: 3  # MeSH FTP download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
+    params:
+        # A param, so that changing mesh_year reruns the download.
+        mesh_year=config["mesh_year"],
     run:
-        mesh.pull_mesh()
+        mesh.pull_mesh(params.mesh_year, output.rdf_source)
+
+
+# The MeSH XML is only used for registry numbers (CAS, UNII, NCBITaxon), which the RDF dump no longer carries.
+rule get_mesh_xml:
+    output:
+        config["download_directory"] + "/MESH/desc.xml.gz",
+        config["download_directory"] + "/MESH/supp.xml.gz",
+        # Each file's URL (current or archived directory), SHA-1 and NLM timestamp, for the registry concords'
+        # metadata. NLM publishes no checksums for the XML, and the current year's can change between downloads.
+        xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_mesh_xml.tsv"
+    retries: 3  # MeSH FTP download occasionally fails transiently.
+    params:
+        # A param, so that changing mesh_year reruns the download.
+        mesh_year=config["mesh_year"],
+    run:
+        mesh.pull_mesh_xml(params.mesh_year, output.xml_sources)
 
 
 rule get_mesh_labels:
@@ -228,6 +274,31 @@ rule get_mesh_labels:
         config["output_directory"] + "/benchmarks/get_mesh_labels.tsv"
     run:
         mesh.pull_mesh_labels()
+
+
+# Registry numbers (CAS, UNII, EC, NCBI Taxon) of the MeSH records in the RDF dump, parsed once from the XML for
+# rules get_chemical_mesh_relationships and get_taxon_relationships.
+rule get_mesh_registry:
+    input:
+        desc_xml=config["download_directory"] + "/MESH/desc.xml.gz",
+        supp_xml=config["download_directory"] + "/MESH/supp.xml.gz",
+        labels=config["download_directory"] + "/MESH/labels",
+        # Checked to be for the same MeSH year before the XML is filtered against the dump's labels.
+        rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
+    output:
+        config["download_directory"] + "/MESH/registry.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_mesh_registry.tsv"
+    run:
+        mesh.write_mesh_registry(
+            input.desc_xml,
+            input.supp_xml,
+            input.labels,
+            output[0],
+            rdf_source_file=input.rdf_source,
+            xml_sources_file=input.xml_sources,
+        )
 
 
 rule get_mesh_synonyms:
@@ -249,6 +320,7 @@ rule download_umls:
         config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/download_umls.tsv"
+    retries: 3  # UMLS download from NLM API occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -287,7 +359,7 @@ rule get_obo_labels:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_obo_labels.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -308,7 +380,7 @@ rule get_obo_synonyms:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_obo_synonyms.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -321,7 +393,7 @@ rule get_obo_descriptions:
         obo_descriptions=config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
     benchmark:
         config["output_directory"] + "/benchmarks/get_obo_descriptions.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -342,7 +414,7 @@ rule get_icrdf:
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_icrdf.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     run:
         obo.pull_uber_icRDF(output.icrdf_filename)
         # Try to load the icRDF.tsv file (this will produce an error if the file can't be read).
@@ -361,6 +433,7 @@ rule get_ncbigene:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_ncbigene.tsv"
+    retries: 3  # NCBIGene FTP download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -393,16 +466,20 @@ rule get_ncbigene_labels_synonyms_and_taxa:
 
 rule get_ensembl:
     output:
-        ensembl_dir=directory(config["download_directory"] + "/ENSEMBL"),
+        # Declare only the sentinel file, not the directory. Snakemake deletes all declared
+        # outputs on failure; keeping the directory out of outputs preserves already-downloaded
+        # per-dataset TSV files so the job can resume from where it left off on retry.
         complete_file=config["download_directory"] + "/ENSEMBL/BioMartDownloadComplete",
     benchmark:
         config["output_directory"] + "/benchmarks/get_ensembl.tsv"
+    retries: 3  # BioMart occasionally returns an HTML error page instead of TSV data.
     resources:
         mem="8G",
         cpus_per_task=1,
         runtime="6h",
     run:
-        ensembl.pull_ensembl(output.ensembl_dir, output.complete_file)
+        ensembl_dir = config["download_directory"] + "/ENSEMBL"
+        ensembl.pull_ensembl(ensembl_dir, output.complete_file)
 
 
 ### HGNC
@@ -413,6 +490,7 @@ rule get_hgnc:
         outfile=config["download_directory"] + "/HGNC/hgnc_complete_set.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_hgnc.tsv"
+    retries: 3  # HGNC download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -440,6 +518,7 @@ rule get_hgncfamily:
         outfile=config["download_directory"] + "/HGNC.FAMILY/family.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_hgncfamily.tsv"
+    retries: 3  # HGNC family download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -468,6 +547,7 @@ rule get_pantherfamily:
         outfile=config["download_directory"] + "/PANTHER.FAMILY/family.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_pantherfamily.tsv"
+    retries: 3  # FTP connections to pantherdb.org are occasionally refused or dropped.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -495,6 +575,7 @@ rule get_omim:
         outfile=config["download_directory"] + "/OMIM/mim2gene.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_omim.tsv"
+    retries: 3  # OMIM download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -506,14 +587,15 @@ rule get_omim_labels:
     input:
         infile=rules.get_omim.output.outfile,
     output:
-        outfile=config["download_directory"] + "/OMIM/labels",
+        labels=config["download_directory"] + "/OMIM/labels",
+        synonyms=config["download_directory"] + "/OMIM/synonyms",
     benchmark:
         config["output_directory"] + "/benchmarks/get_omim_labels.tsv"
     resources:
         mem="1G",
         cpus_per_task=1,
     run:
-        omim.pull_omim_labels(input.infile, output.outfile)
+        omim.pull_omim_labels(input.infile, output.labels, output.synonyms)
 
 
 ### NCIT
@@ -524,6 +606,7 @@ rule get_ncit:
         outfile=config["download_directory"] + "/NCIT/NCIt-SwissProt_Mapping.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_ncit.tsv"
+    retries: 3  # NCI Thesaurus download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -539,6 +622,7 @@ rule get_doid:
         outfile=config["download_directory"] + "/DOID/doid.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_doid.tsv"
+    retries: 3  # Disease Ontology download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -566,6 +650,7 @@ rule get_orphanet:
         outfile=config["download_directory"] + "/Orphanet/Orphanet_Nomenclature_Pack_EN.zip",
     benchmark:
         config["output_directory"] + "/benchmarks/get_orphanet.tsv"
+    retries: 3  # Orphanet download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -585,6 +670,42 @@ rule get_orphanet_labels_and_synonyms:
         orphanet.pull_orphanet_labels_and_synonyms(input.infile, output.labelfile, output.synonymfile)
 
 
+### GARD
+
+
+rule get_gard:
+    # NCATS Genetic and Rare Diseases registry term list. The distribution is a Salesforce
+    # ContentVersion download link (query string, no stable filename), fetched directly rather
+    # than via pull_via_urllib (whose url + in_file_name assembly does not fit a query string).
+    output:
+        outfile=config["download_directory"] + "/GARD/gard.csv",
+        # Provenance for the download: which upload, from where, when, and what Babel keeps of it.
+        # Written here because this rule is the only place that sees the HTTP response, and the
+        # response carries the two strings that stand in for GARD's missing version number.
+        metadata_yaml=config["download_directory"] + "/GARD/metadata.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gard.tsv"
+    retries: 3  # Salesforce CDN occasionally fails transiently.
+    params:
+        # Declared as params (not read from config inside run:) so that repointing
+        # gard_download_url actually retriggers the download instead of reusing a stale CSV.
+        url=config["gard_download_url"],
+    run:
+        gard.pull_gard(params.url, output.outfile, output.metadata_yaml)
+
+
+rule get_gard_labels_and_synonyms:
+    input:
+        infile=config["download_directory"] + "/GARD/gard.csv",
+    output:
+        labelfile=config["download_directory"] + "/GARD/labels",
+        synonymfile=config["download_directory"] + "/GARD/synonyms",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gard_labels_and_synonyms.tsv"
+    run:
+        gard.pull_gard_labels_and_synonyms(input.infile, output.labelfile, output.synonymfile)
+
+
 ### Reactome
 
 
@@ -593,6 +714,7 @@ rule get_reactome:
         outfile=config["download_directory"] + "/REACT/Events.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_reactome.tsv"
+    retries: 3  # Reactome download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -619,6 +741,7 @@ rule get_rhea:
         outfile=config["download_directory"] + "/RHEA/rhea.rdf",
     benchmark:
         config["output_directory"] + "/benchmarks/get_rhea.tsv"
+    retries: 3  # RHEA download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -634,7 +757,7 @@ rule get_rhea_labels:
     benchmark:
         config["output_directory"] + "/benchmarks/get_rhea_labels.tsv"
     run:
-        rhea.make_labels(output.labelfile)
+        rhea.make_labels(input.infile, output.labelfile)
 
 
 ### EC
@@ -645,6 +768,7 @@ rule get_EC:
         outfile=config["download_directory"] + "/EC/enzyme.rdf",
     benchmark:
         config["output_directory"] + "/benchmarks/get_EC.tsv"
+    retries: 3  # Enzyme Classification download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -661,7 +785,7 @@ rule get_EC_labels:
     benchmark:
         config["output_directory"] + "/benchmarks/get_EC_labels.tsv"
     run:
-        ec.make_labels(output.labelfile, output.synonymfile)
+        ec.make_labels(input.infile, output.labelfile, output.synonymfile)
 
 
 ### SMPDB
@@ -672,6 +796,7 @@ rule get_SMPDB:
         outfile=config["download_directory"] + "/SMPDB/smpdb_pathways.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_SMPDB.tsv"
+    retries: 3  # SMPDB download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -698,6 +823,7 @@ rule get_panther_pathways:
         outfile=config["download_directory"] + "/PANTHER.PATHWAY/SequenceAssociationPathway3.6.8.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_panther_pathways.tsv"
+    retries: 3  # PANTHER pathway download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -719,18 +845,34 @@ rule get_panther_pathway_labels:
 ### Unichem
 
 
-rule get_unichem:
+rule download_unichem_structure:
     output:
         config["download_directory"] + "/UNICHEM/structure.tsv.gz",
-        config["download_directory"] + "/UNICHEM/reference.tsv.gz",
     benchmark:
-        config["output_directory"] + "/benchmarks/get_unichem.tsv"
-    retries: 5
+        config["output_directory"] + "/benchmarks/download_unichem_structure.tsv"
+    retries: 3
     resources:
         mem="8G",
+        disk="50G",
         cpus_per_task=1,
+        runtime=240,
     run:
-        unichem.pull_unichem()
+        unichem.download_unichem_structure()
+
+
+rule download_unichem_reference:
+    output:
+        config["download_directory"] + "/UNICHEM/reference.tsv.gz",
+    benchmark:
+        config["output_directory"] + "/benchmarks/download_unichem_reference.tsv"
+    retries: 3
+    resources:
+        mem="8G",
+        disk="8G",
+        cpus_per_task=1,
+        runtime=60,
+    run:
+        unichem.download_unichem_reference()
 
 
 rule filter_unichem:
@@ -753,6 +895,7 @@ rule get_chembl:
         ccofile=config["download_directory"] + "/CHEMBL.COMPOUND/cco.ttl",
     benchmark:
         config["output_directory"] + "/benchmarks/get_chembl.tsv"
+    retries: 3  # FTP to EBI is occasionally refused or dropped.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -780,16 +923,28 @@ rule chembl_labels_and_smiles:
 
 
 ### DrugBank requires a login... but not for basic vocabulary information.
-rule get_drugbank_labels_and_synonyms:
+rule get_drugbank_vocabulary:
     output:
         outfile=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_drugbank_vocabulary.tsv"
+    retries: 3  # DrugBank download occasionally fails transiently.
+    run:
+        drugbank.download_drugbank_vocabulary(config["drugbank_version"], output.outfile)
+
+
+# Split out from get_drugbank_vocabulary so that rule's `retries: 3` only re-runs the flaky
+# download, not the label/synonym extraction.
+rule get_drugbank_labels_and_synonyms:
+    input:
+        infile=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
+    output:
         labels=config["download_directory"] + "/DRUGBANK/labels",
         synonyms=config["download_directory"] + "/DRUGBANK/synonyms",
     benchmark:
         config["output_directory"] + "/benchmarks/get_drugbank_labels_and_synonyms.tsv"
     run:
-        drugbank.download_drugbank_vocabulary(config["drugbank_version"], output.outfile)
-        drugbank.extract_drugbank_labels_and_synonyms(output.outfile, output.labels, output.synonyms)
+        drugbank.extract_drugbank_labels_and_synonyms(input.infile, output.labels, output.synonyms)
 
 
 ### GTOPDB We're only pulling ligands.  Maybe one day we'll want the whole db?
@@ -800,6 +955,7 @@ rule get_gtopdb:
         outfile=config["download_directory"] + "/GTOPDB/ligands.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_gtopdb.tsv"
+    retries: 3  # Guide to Pharmacology download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -828,6 +984,7 @@ rule keggcompound_labels:
         labelfile=config["download_directory"] + "/KEGG.COMPOUND/labels",
     benchmark:
         config["output_directory"] + "/benchmarks/keggcompound_labels.tsv"
+    retries: 3  # KEGG REST API calls occasionally fail transiently.
     run:
         kegg.pull_kegg_compound_labels(output.labelfile)
 
@@ -841,6 +998,7 @@ rule get_unii:
         config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_unii.tsv"
+    retries: 3  # UNII download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -868,6 +1026,7 @@ rule get_HMDB:
         outfile=config["download_directory"] + "/HMDB/hmdb_metabolites.xml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_HMDB.tsv"
+    retries: 3  # HMDB occasionally returns HTTP errors; transient network failures need a retry.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -884,6 +1043,9 @@ rule hmdb_labels_and_synonyms:
         smifile=config["download_directory"] + "/HMDB/smiles",
     benchmark:
         config["output_directory"] + "/benchmarks/hmdb_labels_and_synonyms.tsv"
+    resources:
+        # Peaks at ~30 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
+        mem="48G",
     run:
         hmdb.make_labels_and_synonyms_and_smiles(input.infile, output.labelfile, output.synfile, output.smifile)
 
@@ -898,6 +1060,7 @@ rule get_pubchem:
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-Title.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/get_pubchem.tsv"
+    retries: 3  # PubChem FTP download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -911,6 +1074,7 @@ rule get_pubchem_structures:
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-SMILES.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/get_pubchem_structures.tsv"
+    retries: 3  # PubChem FTP download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -946,6 +1110,7 @@ rule download_rxnorm:
         config["download_directory"] + "/RxNorm/RXNREL.RRF",
     benchmark:
         config["output_directory"] + "/benchmarks/download_rxnorm.tsv"
+    retries: 3  # RxNorm download from NLM API occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -958,6 +1123,7 @@ rule pubchem_rxnorm_annotations:
         outfile=config["download_directory"] + "/PUBCHEM.COMPOUND/RXNORM.json",
     benchmark:
         config["output_directory"] + "/benchmarks/pubchem_rxnorm_annotations.tsv"
+    retries: 3  # PubChem RxNorm annotation API occasionally fails transiently.
     run:
         pubchem.pull_rxnorm_annotations(output.outfile)
 
@@ -972,6 +1138,7 @@ rule get_drugcentral:
         xreffile=config["download_directory"] + "/DrugCentral/xrefs",
     benchmark:
         config["output_directory"] + "/benchmarks/get_drugcentral.tsv"
+    retries: 3  # DrugCentral download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -987,6 +1154,7 @@ rule get_ncbitaxon:
         config["download_directory"] + "/NCBITaxon/taxdump.tar",
     benchmark:
         config["output_directory"] + "/benchmarks/get_ncbitaxon.tsv"
+    retries: 3  # NCBITaxon FTP download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -1014,8 +1182,11 @@ rule get_chebi:
     output:
         config["download_directory"] + "/CHEBI/ChEBI_complete.sdf",
         config["download_directory"] + "/CHEBI/database_accession.tsv",
+        config["download_directory"] + "/CHEBI/source.tsv",
+        config["download_directory"] + "/CHEBI/status.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_chebi.tsv"
+    retries: 3  # ChEBI FTP download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -1032,6 +1203,7 @@ rule get_clo:
         metadata=config["download_directory"] + "/CLO/metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_clo.tsv"
+    retries: 3  # Cell Line Ontology download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,

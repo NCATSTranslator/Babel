@@ -1,0 +1,44 @@
+{
+  "compendium_path": "babel_outputs/compendia/BiologicalProcess.txt",
+  "count_by_biolink_type": {
+    "biolink:BiologicalProcess": 48903
+  },
+  "count_by_prefix": {
+    "GO": 23593,
+    "REACT": 517,
+    "UMLS": 41146
+  },
+  "count_lines": 48903,
+  "counters": {
+    "clique_count": 48903,
+    "cliques_by_description_count": {
+      "0": 25310,
+      "1": 23592,
+      "2": 1
+    },
+    "cliques_by_id_count": {
+      "1": 32878,
+      "2": 15697,
+      "3": 328
+    },
+    "cliques_by_label_count": {
+      "0": 4303,
+      "1": 28576,
+      "2": 15696,
+      "3": 328
+    },
+    "cliques_by_unique_description_count": {
+      "0": 25310,
+      "1": 23592,
+      "2": 1
+    },
+    "cliques_by_unique_label_count": {
+      "0": 4303,
+      "1": 43527,
+      "2": 1032,
+      "3": 41
+    }
+  },
+  "name": "BiologicalProcess",
+  "report_path": "babel_outputs/reports/content/compendia/BiologicalProcess.json"
+}

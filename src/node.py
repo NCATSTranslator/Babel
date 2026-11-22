@@ -3,6 +3,7 @@ import json
 import os
 import sqlite3
 from collections import defaultdict
+from types import MappingProxyType
 from urllib.parse import urlparse
 
 import curies
@@ -104,7 +105,9 @@ class SynonymFactory:
             pref = Text.get_prefix(thisid)
             if pref not in self.synonyms:
                 self.load_synonyms(pref)
-            for predicate, synonym in self.synonyms[pref][thisid]:
+            # .get(), not [thisid]: self.synonyms[pref] is a defaultdict, and indexing it would store an empty
+            # entry for every CURIE without synonyms -- ~1 GB per 10M identifiers in a streamed compendium.
+            for predicate, synonym in self.synonyms[pref].get(thisid, ()):
                 if synonym_filter.should_suppress(
                     synonym, source=f"{pref} synonyms/labels file", node_types=node_types
                 ):
@@ -165,7 +168,8 @@ class DescriptionFactory:
             pref = Text.get_prefix(thisid)
             if pref not in self.descriptions:
                 self.load_descriptions(pref)
-            node_descriptions[thisid].update(self.descriptions[pref][thisid])
+            # .get(), not [thisid]: indexing the defaultdict would store an empty set for every CURIE without one.
+            node_descriptions[thisid].update(self.descriptions[pref].get(thisid, ()))
             node_descriptions[thisid].update(self.common_descriptions.get(thisid, {}))
         return node_descriptions
 
@@ -344,7 +348,10 @@ class InformationContentFactory:
     A class for creating and using information content objects.
 
     Attributes:
-        ic (dict): A dictionary containing information content values for different nodes.
+        ic_file (str): The icRDF.tsv path this factory was loaded from.
+        ic (Mapping): A read-only ``{CURIE: information content}`` mapping. Read-only because one
+            factory may be shared by several ``write_compendium`` calls (see its ``ic_factory``
+            parameter), and a write by one would silently change every later compendium's values.
 
     Methods:
         __init__(ic_file)
@@ -366,69 +373,8 @@ class InformationContentFactory:
     """
 
     def __init__(self, ic_file):
-        config = get_config()
-        self.ic = {}
-
-        unmapped_urls = []
-        biolink_prefix_map = get_biolink_prefix_map()
-        ubergraph_iri_stem_to_prefix_map = curies.Converter.from_reverse_prefix_map(
-            config["ubergraph_iri_stem_to_prefix_map"]
-        )
-
-        count_by_prefix = defaultdict(int)
-        with open(ic_file) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                # We talk in CURIEs, but the infores download is in URLs. We can use the Biolink
-                # prefix map to convert between them.
-                node_id = biolink_prefix_map.compress(x[0])
-                if node_id is None:
-                    # Try the ubergraph_iri_stem_to_prefix_map
-                    node_id = ubergraph_iri_stem_to_prefix_map.compress(x[0])
-
-                # If None, log this URL as unmapped.
-                if node_id is None:
-                    unmapped_urls.append(x[0])
-
-                ic = x[1]
-                self.ic[node_id] = float(ic)
-
-                # Track IC values by prefix.
-                if isinstance(node_id, str):
-                    prefix = node_id.split(":")[0]
-                else:
-                    # Probably None, but we'll collect everything.
-                    prefix = str(node_id)
-                count_by_prefix[prefix] += 1
-
-        # Sort the dictionary items by value in descending order
-        sorted_by_prefix = sorted(count_by_prefix.items(), key=lambda item: item[1], reverse=True)
-
-        logger.info(f"Loaded {len(self.ic)} InformationContent values from {len(count_by_prefix.keys())} prefixes:")
-        # Now you can print the sorted items
-        for key, value in sorted_by_prefix:
-            logger.info(f"- {key}: {value}")
-
-        # We see a number of URLs being mapped to None (250,871 at present). Let's optionally raise an error if that
-        # happens.
-        if len(unmapped_urls) > 0:
-            # Group unmapped URLs by netloc
-            unmapped_urls_by_netloc = defaultdict(list)
-            for url in unmapped_urls:
-                netloc = urlparse(url).netloc
-                unmapped_urls_by_netloc[netloc].append(url)
-
-            # Print them in reverse count order.
-            logger.info(f"Found {len(unmapped_urls)} unmapped URLs:")
-            netlocs_by_count = sorted(unmapped_urls_by_netloc.items(), key=lambda item: len(item[1]), reverse=True)
-            for netloc, urls in netlocs_by_count:
-                logger.info(f" - {netloc} [{len(urls)}]")
-                for url in sorted(urls):
-                    logger.info(f"   - {url}")
-
-            assert None not in sorted_by_prefix, (
-                "Found invalid CURIEs in information content values, probably because they couldn't be mapped from URLs to CURIEs."
-            )
+        self.ic_file = ic_file
+        self.ic = MappingProxyType(_load_information_content(ic_file))
 
     def get_ic(self, node):
         ICs = []
@@ -441,6 +387,75 @@ class InformationContentFactory:
         if len(ICs) == 0:
             return None
         return min(ICs)
+
+
+def _load_information_content(ic_file):
+    """Read `ic_file` (icRDF.tsv, ``<IRI>\t<information content>``) into a ``{CURIE: IC}`` dict.
+
+    Rows whose IRI neither the Biolink prefix map nor ``config.yaml: ubergraph_iri_stem_to_prefix_map``
+    can compress to a CURIE are skipped (and listed in the log by host). About 250,000 rows are like
+    this -- e.g. COB and VBO terms -- and no compendium identifier can ever be looked up against
+    them, since a compendium only holds CURIEs. They used to be stored under a ``None`` key, each
+    overwriting the last, behind an ``assert None not in ...`` that compared ``None`` against
+    ``(prefix, count)`` tuples and so could never fire.
+
+    Deliberately not cached: icRDF.tsv is ~3.9 million rows and the dict several hundred MB, and a
+    module-level cache holds it for the life of the process -- in a local Snakemake run, which
+    executes ``run:`` blocks in the Snakemake process itself, that is every later rule too. A caller
+    writing several compendia builds one ``InformationContentFactory`` and passes it to each
+    ``write_compendium`` call instead, so the dict lives exactly as long as that caller needs it.
+    """
+    config = get_config()
+    ic = {}
+
+    unmapped_urls = []
+    biolink_prefix_map = get_biolink_prefix_map()
+    ubergraph_iri_stem_to_prefix_map = curies.Converter.from_reverse_prefix_map(
+        config["ubergraph_iri_stem_to_prefix_map"]
+    )
+
+    count_by_prefix = defaultdict(int)
+    with open(ic_file) as inf:
+        for line in inf:
+            x = line.strip().split("\t")
+            # We talk in CURIEs, but the infores download is in URLs. We can use the Biolink
+            # prefix map to convert between them.
+            node_id = biolink_prefix_map.compress(x[0])
+            if node_id is None:
+                # Try the ubergraph_iri_stem_to_prefix_map
+                node_id = ubergraph_iri_stem_to_prefix_map.compress(x[0])
+
+            if node_id is None:
+                unmapped_urls.append(x[0])
+                continue
+
+            ic[node_id] = float(x[1])
+            count_by_prefix[node_id.split(":")[0]] += 1
+
+    # Sort the dictionary items by value in descending order
+    sorted_by_prefix = sorted(count_by_prefix.items(), key=lambda item: item[1], reverse=True)
+
+    logger.info(f"Loaded {len(ic)} InformationContent values from {len(count_by_prefix.keys())} prefixes:")
+    # Now you can print the sorted items
+    for key, value in sorted_by_prefix:
+        logger.info(f"- {key}: {value}")
+
+    if len(unmapped_urls) > 0:
+        # Group unmapped URLs by netloc
+        unmapped_urls_by_netloc = defaultdict(list)
+        for url in unmapped_urls:
+            netloc = urlparse(url).netloc
+            unmapped_urls_by_netloc[netloc].append(url)
+
+        # Print them in reverse count order.
+        logger.info(f"Skipped {len(unmapped_urls)} URLs that could not be compressed to a CURIE:")
+        netlocs_by_count = sorted(unmapped_urls_by_netloc.items(), key=lambda item: len(item[1]), reverse=True)
+        for netloc, urls in netlocs_by_count:
+            logger.info(f" - {netloc} [{len(urls)}]")
+            for url in sorted(urls):
+                logger.info(f"   - {url}")
+
+    return ic
 
 
 class NodeFactory:
@@ -464,14 +479,26 @@ class NodeFactory:
         self.ancestor_map[input_type] = ancs
         return ancs
 
-    def get_prefixes(self, input_type):
+    def get_prefixes(self, input_type, allow_empty=False):
         if input_type in self.prefix_map:
-            return self.prefix_map[input_type]
+            cached = self.prefix_map[input_type]
+            if not cached and not allow_empty:
+                raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            return cached
         logger.info(f"NodeFactory({self.label_dir}, {self.biolink_version}).get_prefixes({input_type}) called")
+        # get_element() returns a bmt ClassDefinition (a linkml_runtime model): attribute access
+        # (j.id_prefixes) and subscript access (j["id_prefixes"], used here) both work, but it has
+        # no dict-style .get() -- j.get("id_prefixes") raises AttributeError, not a default.
         j = self.toolkit.get_element(input_type)
         prefs = j["id_prefixes"]
         if len(prefs) == 0:
-            raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            # Some Biolink types (e.g. biolink:Phenomenon, biolink:PhysicalEntity) carry no id_prefixes.
+            # Cache [] so repeated calls skip the toolkit lookup; strict callers (allow_empty=False)
+            # still raise, both on first call and from cache.
+            self.prefix_map[input_type] = []
+            if not allow_empty:
+                raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            return []
         # The pref are in a particular order, but apparently they can have dups (ugh)
         # We de-duplicate those here.
         prefixes_deduplicated = list()
@@ -607,17 +634,30 @@ class NodeFactory:
         return labeled_list
 
     def create_node(self, input_identifiers, node_type, labels={}, extra_prefixes=[]):
+        """
+        Build a clique's node record: {"identifiers": [{"identifier": CURIE, "label": str}, ...],
+        "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}. identifiers[0] is the
+        preferred identifier (highest-priority prefix per get_prefixes()'s ordering); "id" is an
+        alias for identifiers[0], not a separate value. Labels stay on the identifier that owns
+        them and are not promoted onto the first entry. Returns None if input_identifiers is empty.
+        """
         # This is where we will normalize, i.e. choose the best id, and add types in accord with BL.
         # we should also include provenance and version information for the node set build.
         # make sure prefixes list does not include duplicate prefixes
+        # Always allow an empty get_prefixes() result here: a node_type with no id_prefixes of its
+        # own is still writable when extra_prefixes covers the gap. The combined list is validated
+        # as non-empty below, which produces a clearer error than an early raise inside get_prefixes.
+        node_prefixes = self.get_prefixes(node_type, allow_empty=True)
         prefixes = []
         seen_prefixes = set()
-        for prefix in self.get_prefixes(node_type) + extra_prefixes:
+        for prefix in node_prefixes + extra_prefixes:
             prefix_upper = prefix.upper()
             if prefix_upper in seen_prefixes:
                 continue
             prefixes.append(prefix)
             seen_prefixes.add(prefix_upper)
+        if not prefixes:
+            raise RuntimeError(f"No Biolink prefixes for {node_type}: id_prefixes is empty and extra_prefixes is empty")
 
         if len(input_identifiers) == 0:
             return None

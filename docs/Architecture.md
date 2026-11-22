@@ -54,6 +54,7 @@ All Python and Snakemake source code lives under `src/`:
 | `src/node.py`          | Core factory classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`, `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.                                      |
 | `src/babel_utils.py`   | Core pipeline utilities: download/FTP helpers, `glom()` (clique merging), `write_compendium()` (compendium builder), and state management helpers.                                |
 | `src/util.py`          | Logging setup, config loading, [Biolink Model Toolkit](https://github.com/biolink/biolink-model-toolkit) access.                                                                  |
+| `src/utils/`           | Generic helpers: `duckdb_setup.py` opens every DuckDB connection (`connect_duckdb()`, `log_duckdb_settings_on_error()`); `memory.py` holds the memory diagnostics (#1223).        |
 | `src/exporters/`       | Output format handlers for KGX, Apache Parquet, and JSONL.                                                                                                                        |
 | `src/reports/`         | Report generation code.                                                                                                                                                           |
 | `src/synonyms/`        | Synonym file generation.                                                                                                                                                          |
@@ -75,15 +76,37 @@ Each triple expresses that `CURIE1` and `CURIE2` are related by `Relation` (typi
 semantic type and feeds them into the `glom()` function in `src/babel_utils.py` to merge them into
 equivalence cliques.
 
+Read a concord with `read_concords()` from `src/model/intermediates.py`, never with a hand-rolled
+`line.strip().split("\t")`. It is the one definition of a valid row (exactly three tab-separated
+columns, none empty, none padded with whitespace) and it raises on any other, naming the file and
+line. Every compendium builder, `glom_from_files()` and `write_concord_metadata()` use it, so a bad
+row fails the rule that *wrote* the concord, minutes into a build, rather than being silently
+skipped by one pipeline and crashing another hours later. A handler whose source data carries stray
+whitespace must clean it before writing the row (see `EFOgraph.get_xrefs()`). To check a build's
+concords against the rule without running it, use [`babel-check-concords`](tools/CheckConcords.md).
+That module is the start of the shared intermediate-file reader proposed in
+[#736](https://github.com/NCATSTranslator/Babel/issues/736).
+
+To hand a concord to `glom()`, read it with `read_concord_pairs()` from the same module, which
+yields each row as a `(subject, object)` 2-tuple in file order. Two memory rules hold for every
+builder, and the function's docstring explains both: keep a pair as a 2-tuple, never a 2-set or a
+2-list (a list of 2-sets costs three to five times as much, and `UNICHEM_PUBCHEM.COMPOUND` alone has
+116 million rows); and when nothing between the read and the merge depends on the clique state, pass
+the generator straight to `glom()` rather than building a list. A filter that only checks a set
+fixed beforehand can stay in the stream, as `umls.skip_pairs_owned_elsewhere()` does. A filter that
+consults the cliques built so far, or `remove_overused_xrefs()`, which counts the whole file, needs
+the file read into a list first.
+
 ### Compendium JSONL
 
 Each line of a compendium file is a JSON object representing one clique. A clique includes:
 
-- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order
+- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order. Each entry carries its
+  own label (`l`), descriptions (`d`, collected from UberGraph and sorted shortest first) and taxa
+  (`t`)
 - `ic` — information content score (from UberGraph)
-- `taxa` — associated taxa (for genes, proteins, etc.)
+- `taxa` — associated taxa (for genes, proteins, etc.); the union of the per-identifier `t` values
 - `preferred_name` — the preferred human-readable label for the clique
-- `descriptions` — descriptions collected from UberGraph
 - `type` — Biolink semantic type
 
 The first identifier in `identifiers` is the preferred identifier for the clique. See
@@ -98,6 +121,11 @@ The first identifier in `identifiers` is the preferred identifier for the clique
 Rather than loading entire datasets into memory up front, they load data on demand and cache
 results. This is important because many source files are gigabytes in size.
 
+`InformationContentFactory` is the exception: it reads all of `icRDF.tsv` (~3.9 million rows)
+when it is built. A pipeline that writes one compendium per Biolink type should write them
+with `write_typed_compendia()` (`src/model/compendia.py`). That function builds one factory
+and passes it to every `write_compendium()` call, so the file is not reloaded for each output.
+
 ### TSVSQLiteLoader
 
 `TSVSQLiteLoader` (in [`src/node.py`](../src/node.py)) loads tab-separated files into in-memory
@@ -106,12 +134,17 @@ entire large TSV files in RAM, which would be infeasible given Babel's data volu
 
 ### Clique merging via `glom()`
 
-`glom()` in [`src/babel_utils.py`](../src/babel_utils.py) merges concord triples into equivalence
+`glom()` in [`src/babel_utils.py`](../src/babel_utils.py) merges concord pairs into equivalence
 cliques. It maintains a dictionary (`conc_set`) where every CURIE key points to its equivalence
-set. For each new `(CURIE1, relation, CURIE2)` triple, it unions all existing sets that contain
-either CURIE, then adds both CURIEs to the resulting set. At the end, each value in `conc_set` is
-one clique. `write_compendium()` in the same file drives the overall compendium-building process,
-calling `glom()` and then sorting, enriching, and writing the output.
+set. For each new `(CURIE1, CURIE2)` pair (the relation is dropped when a concord is read), it
+unions all existing sets that contain either CURIE, then adds both CURIEs to the resulting set,
+unless the result would break a `unique_prefixes` or `close` restriction. Each pipeline's
+`unique_prefixes` is `config.yaml: <pipeline>_unique_prefixes`, read with
+`unique_prefixes_from_config()`; `glom()` itself has no default. At the end, each value in
+`conc_set` is one clique. [`tests/test_glom.py`](../tests/test_glom.py) pins its whole behavior,
+quirks included, and checks it against a short reference model. `write_compendium()` in the same
+file drives the overall compendium-building process, calling `glom()` and then sorting, enriching,
+and writing the output.
 
 ### Biolink Model integration
 
@@ -128,6 +161,81 @@ GeneProtein and DrugChemical conflations each have dedicated conflation modules
 [`src/createcompendia/drugchemical.py`](../src/createcompendia/drugchemical.py)) that merge their
 respective cliques after the initial compendium build. See [Conflation.md](./Conflation.md) for
 details on what conflation means and how it works.
+
+### Chemical compendium output types
+
+The chemical pipeline emits one compendium file per Biolink type, enumerated in one place:
+`config.yaml: chemical_outputs`. That single list fans out to DrugChemical conflation (its input is
+`expand(..., config["chemical_outputs"])`), the KGX/Parquet/JSONL/DuckDB exports (via
+`get_all_compendia`), and the synonym outputs — so **adding a new chemical subtype only needs an
+entry there** (plus, in `create_typed_sets`, whatever routes cliques to it). Conflation reads these
+files but never re-types, so a retype done in the compendium survives downstream.
+
+The one manual extra: the per-type report rules in
+[`src/snakefiles/chemical.snakefile`](../src/snakefiles/chemical.snakefile) are hardcoded
+(`check_drug`, `check_food`, …), and `rule chemical` expands `chemical_outputs` over `reports/`, so
+a new output without a matching `check_*` rule breaks the DAG (no producer for
+`reports/<Type>.txt`). See the DrugBank food-and-extract retype
+([`docs/sources/DRUGBANK/food-and-extracts/README.md`](sources/DRUGBANK/food-and-extracts/README.md))
+for a worked example that added `Food.txt`.
+
+### Which Biolink type a chemical clique gets
+
+`create_typed_sets` in [`src/createcompendia/chemicals.py`](../src/createcompendia/chemicals.py)
+types each glommed clique by a vote over its members' per-identifier types (from
+`intermediate/chemicals/partials/types`), with two wrinkles: a clique whose PubChem members all
+agree short-circuits the vote, and sources can contribute *extra candidates* — today only the
+DrugBank food/extract evidence — that join the vote rather than overriding it.
+
+Ties are broken by `config.yaml: chemical_type_order`, most preferred first. Two things about that
+ranking are deliberate and easy to get backwards: `biolink:Drug` is **last**, below
+`biolink:ChemicalEntity`, because it comes almost entirely from RxNorm formulations and is only
+useful where we failed to merge one with its active ingredient; and `biolink:Food` sits below every
+structure-bearing type, so food evidence can improve on a vague `ChemicalEntity` but can never
+demote a defined molecule. That second rule is a bug fix — see
+[the food-and-extracts README](sources/DRUGBANK/food-and-extracts/README.md) for what happened when
+the evidence was an override instead (issue #935).
+
+### `Polypeptide.txt` is a residue, not a compendium
+
+`compendia/Polypeptide.txt` is tiny (166 cliques in 2025sep1, 5 in 2026jul22) and its size swings
+wildly between builds. Neither `CHEBI` nor `MESH` is registered in `biolink:Polypeptide`'s
+`id_prefixes`, so `write_compendium()` silently drops every identifier Babel types as a polypeptide;
+what lands in the file is the handful of cliques that also picked up a `UMLS` CURIE through
+`glom()`. Read a movement in this file as noise, not as a lost ingest — the cliques are still
+counted in the content report and mostly live in `compendia/umls.txt`. Details and the two candidate
+fixes are in [issue #1015](https://github.com/NCATSTranslator/Babel/issues/1015); delete this note
+once it is closed.
+
+## Build controls
+
+Most of the pipeline's checks only report: the DuckDB reports under `reports/duckdb/`, the
+per-compendium content reports, the leftover-UMLS diagnostics. A report nobody reads is not a
+control (see the "A log warning is not a control" rule in `AGENTS.md`), so the conditions that make
+a build unusable downstream fail it instead:
+
+- **Duplicate clique leaders.** A CURIE that leads a clique in two compendia gives NodeNorm two
+  answers for one CURIE ([#276](https://github.com/NCATSTranslator/Babel/issues/276)): Redis
+  NodeNorm serves whichever compendium loaded last, and NodeNorm-ES, which keys documents by leader,
+  merged them until it was changed to handle that in October 2026
+  ([biothings/NodeNormalizationAPI#41](https://github.com/biothings/NodeNormalizationAPI/issues/41)).
+  `rule assert_no_unexpected_duplicate_clique_leaders` (`src/snakefiles/duckdb.snakefile`) reads
+  `reports/duckdb/duplicate_clique_leaders.tsv` after it is written and raises for any row not in
+  `input_data/known_duplicate_clique_leaders.tsv`, which names the issue accepting each remaining
+  duplicate. A row covers its leader in any subset of the compendia it lists, so a duplicate that
+  shrinks still passes and is logged for the row to be narrowed. The failure stops
+  `reports/duckdb/done` and therefore `rule all`, but every other output still completes, so the
+  TSV is there to read. Fix the source (the known mechanisms are in
+  [`docs/sources/UMLS/CuiFollowsMesh.md`](sources/UMLS/CuiFollowsMesh.md)) or, for a duplicate an
+  issue accepts for now, add the row with that issue. Member-level duplicates
+  (`duplicate_curies.tsv`) stay report-only.
+- **A MeSH dump behind UMLS.** When `mesh_year` lags `umls_version`, UMLS's MSH codes point at
+  MeSH records the dump doesn't have, so their CUIs reach the compendia without a MeSH label, type
+  or tree position. `rule check_umls_mesh_skew` (`src/snakefiles/reports.snakefile`) reads
+  `reports/umls_mesh_skew.json` and raises when more codes are missing than
+  `umls_mesh_skew_max_missing_codes`. Unlike the check above, it runs early: `rule
+  umls_mesh_ownership` waits for it, so the five MeSH-owning pipelines stop before building their
+  compendia. See [`docs/sources/MeSH/Ingestion.md`](sources/MeSH/Ingestion.md#source-data).
 
 ## Output directories
 

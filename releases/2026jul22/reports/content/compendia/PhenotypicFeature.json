@@ -1,0 +1,97 @@
+{
+  "compendium_path": "babel_outputs/compendia/PhenotypicFeature.txt",
+  "count_by_biolink_type": {
+    "biolink:PhenotypicFeature": 75468
+  },
+  "count_by_prefix": {
+    "EFO": 7735,
+    "HP": 16401,
+    "MEDDRA": 6409,
+    "MESH": 731,
+    "MP": 14750,
+    "NCIT": 22756,
+    "SNOMEDCT": 6164,
+    "UMLS": 28761
+  },
+  "count_lines": 75468,
+  "counters": {
+    "clique_count": 75468,
+    "cliques_by_description_count": {
+      "0": 29402,
+      "1": 45337,
+      "2": 688,
+      "3": 34,
+      "4": 5,
+      "5": 2
+    },
+    "cliques_by_id_count": {
+      "1": 58849,
+      "2": 11842,
+      "3": 2477,
+      "4": 875,
+      "5": 491,
+      "6": 308,
+      "7": 214,
+      "8": 129,
+      "9": 79,
+      "10": 49,
+      "11": 43,
+      "12": 21,
+      "13": 21,
+      "14": 16,
+      "15": 14,
+      "16": 14,
+      "17": 4,
+      "18": 3,
+      "19": 5,
+      "20": 4,
+      "21": 1,
+      "22": 3,
+      "23": 1,
+      "26": 1,
+      "27": 1,
+      "28": 1,
+      "29": 1,
+      "36": 1
+    },
+    "cliques_by_label_count": {
+      "0": 423,
+      "1": 62228,
+      "2": 11097,
+      "3": 1148,
+      "4": 393,
+      "5": 103,
+      "6": 39,
+      "7": 19,
+      "8": 10,
+      "9": 2,
+      "10": 4,
+      "11": 1,
+      "17": 1
+    },
+    "cliques_by_unique_description_count": {
+      "0": 29402,
+      "1": 45339,
+      "2": 686,
+      "3": 34,
+      "4": 5,
+      "5": 2
+    },
+    "cliques_by_unique_label_count": {
+      "0": 423,
+      "1": 71521,
+      "2": 2799,
+      "3": 524,
+      "4": 128,
+      "5": 41,
+      "6": 16,
+      "7": 10,
+      "8": 3,
+      "9": 1,
+      "10": 1,
+      "14": 1
+    }
+  },
+  "name": "PhenotypicFeature",
+  "report_path": "babel_outputs/reports/content/compendia/PhenotypicFeature.json"
+}

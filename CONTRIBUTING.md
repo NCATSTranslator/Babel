@@ -5,32 +5,16 @@ Babel is open-source software and all contributions are very welcome!
 ## Reporting bugs
 
 Reporting when you see something wrong with Babel is very helpful, whether you
-spot it in the Babel output files or through one of the frontends. Following
-these guidelines will help you submit the most useful bug reports and will help
-us triage and prioritize them correctly.
+spot it in the Babel output files or through one of the frontends. See
+[docs/NewIssue.md](./docs/NewIssue.md) for full guidance on where to file,
+what to include, and how to fill in the project fields.
 
-1. Most issues should be added to the [Babel issue tracker]: anything to do with
-   the content of Babel tools should be reported here, such as anything to do
-   with cliques whose identifiers, Biolink type, preferred label, other labels,
-   synonyms or descriptions are incorrect. *If you're not sure about which
-   repository your issue should go to, please add it to Babel and we'll sort it
-   out at our end.*
-1. If the issue is specific to the [Node Normalizer] application, such as
-   invalid output, an unexpected error message, mishandling input, or something
-   that should be changed in the application, please add them to the
-   [Node Normalizer issue tracker](https://github.com/NCATSTranslator/NodeNormalization/issues/).
-1. Is the issue related to the [Name Resolver] application, such as invalid
-   output, an unexpected error message, mishandling input, or search results not
-   being ranked correctly? If so, please add them to the
-   [Name Resolver issue tracker](https://github.com/NCATSTranslator/NameResolution/issues/).
-1. If you've identified several sets of identifiers that need fixing, a
-   spreadsheet (preferably TSV/CSV) file or table would also be helpful. We
-   would also appreciate if you can include what you expect the tool to return.
-   Any other details you can provide, especially anything that will be help us
-   replicate the issue, will be very helpful.
-1. For guidance on how to assign priority, impact and size fields, group related
-   issues, and track when your issue is likely to be addressed, see
-   [docs/Triage.md](./docs/Triage.md).
+In brief: file clique content issues in the [Babel issue tracker]; issues
+specific to the [Node Normalizer] application go in the
+[Node Normalizer issue tracker](https://github.com/NCATSTranslator/NodeNormalization/issues/)
+and issues specific to the [Name Resolver] application go in the
+[Name Resolver issue tracker](https://github.com/NCATSTranslator/NameResolution/issues/).
+If you are unsure, file in Babel and we will sort it out.
 
 ## Contributing source code
 
@@ -57,11 +41,43 @@ fix in a pull request:
   - You can run this locally by running `uv run rumdl check .`.
   - You can use `uv run rumdl fmt .` to automatically fix some issues.
 
+### Upgrading dependencies
+
+[Dependabot](.github/dependabot.yml) opens upgrade PRs weekly, so most upgrades arrive one package
+at a time with CI on each. To sweep everything at once:
+
+```bash
+uv tree --outdated --depth 1   # what the lockfile is behind on
+uv lock --upgrade              # take the latest release of everything
+uv sync
+uv run pytest     # then the four linter commands above
+```
+
+No `npm-check-updates`-style step is needed: every dependency in `pyproject.toml` is an unbounded
+`>=`, so nothing caps a package below its latest release and `uv lock --upgrade` already goes
+there. Run the formatters as well as the tests — a `ruff` or `rumdl` bump can change their output,
+and reformatting for it is part of the upgrade. The ruff job reads its version from `uv.lock`, so
+that reformatting is due in the upgrade PR itself rather than landing on whichever unrelated PR
+opens next.
+
+When a package refuses to move, `uv lock --upgrade-package 'name==version' --dry-run` prints the
+conflict. `bmt` is held at 1.4.6 this way: 1.4.8 pulls in `biolink-model`, which requires
+`click<8.2`, while `snakefmt` requires `click>=8.2`.
+
+The `>=` floors are minimums rather than what we test, since every install path uses `uv.lock` —
+`uv sync` locally and in the `Dockerfile`, `uv sync --frozen` in CI. To check a floor is still
+honest, resolve down to it, then put the real lockfile back:
+
+```bash
+uv sync --resolution lowest-direct && uv run pytest -m unit
+git checkout uv.lock && uv sync
+```
+
 ### Contributing tests
 
 Tests are written using [pytest](https://pytest.org/) and are present in the
 `tests` directory. You can run these tests by running
-`PYTHONPATH=. uv run pytest`.
+`uv run pytest`.
 
 For the full test taxonomy — marks (`unit`, `network`, `slow`, `pipeline`),
 where to add a new test, and how to run specific subsets — see
