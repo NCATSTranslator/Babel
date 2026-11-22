@@ -134,13 +134,18 @@ counts: a nested `clique_count` (`before`/`after`/`diff`/`diff_percent`) plus
 
 Two further fields, `moved_in_member_count` and `moved_in_clique_count`, report the *incoming*
 side of moves: members that arrived in this compendium from another compendium's before-cliques,
-and how many distinct after-cliques here received them. They exist because every other stat is
+and how many distinct after-cliques here received them. A receiving clique may be wholly new or
+an existing clique that just grew, so `moved_in_clique_count` is not a count of gained cliques:
+compare it with `clique_count.diff` for that. These fields exist because every other stat is
 before-clique-centric — a `moved` row is filed under the *source* compendium, so a compendium that
 only *receives* retyped members (e.g. `PhenotypicFeature.txt` gaining cliques that split off
-disease cliques) would otherwise show `changed_before_cliques: 0` and look untouched, with its
-gained cliques visible only as a positive `clique_count.diff`. When triaging a diff, read
-`moved_in_clique_count` on every receiving compendium and pull the corresponding `moved` rows
-(`destination_compendium == <file>`) from the CSV — they name each gained clique.
+disease cliques) would otherwise show `changed_before_cliques: 0` and look untouched, with the
+change visible only in `clique_count.diff`. When triaging a diff, read `moved_in_clique_count` on
+every receiving compendium and pull the corresponding `moved` rows
+(`destination_compendium == <file>`) from the CSV — they name each receiving clique. Summaries
+generated before these fields were added lack them; they can be recomputed from that diff's CSV
+(sum `member_count` and count distinct `destination` over its `moved` rows with
+`destination_compendium == <file>`), since every moved row is in the CSV.
 
 `diff_percent` is `null` when the before build had no cliques in that compendium but the after
 build has some: the percentage is undefined, and `0.0` would misread as "unchanged". It is `0.0`

@@ -193,6 +193,28 @@ def test_moved_members_landing_in_different_cliques_get_a_row_each(tmp_path):
 
 
 @pytest.mark.unit
+def test_moved_in_clique_count_includes_existing_cliques_that_grew(tmp_path):
+    """A member moving into an *existing* clique should count as a receiving clique, not a gained one.
+
+    HP:9 leaves the disease clique and joins the pre-existing PhenotypicFeature clique HP:3.
+    ``moved_in_clique_count`` should be 1 while ``clique_count.diff`` stays 0 — the two measure
+    different things, which is why the console line and docs don't call it "cliques gained".
+    """
+    bdir, adir = tmp_path / "before", tmp_path / "after"
+    bdir.mkdir()
+    adir.mkdir()
+    _write_jsonl(bdir / "Disease.txt", [_clique("MONDO:1", "HP:9")])
+    _write_jsonl(bdir / "PhenotypicFeature.txt", [_clique("HP:3", biolink_type="biolink:PhenotypicFeature")])
+    _write_jsonl(adir / "Disease.txt", [_clique("MONDO:1")])
+    _write_jsonl(adir / "PhenotypicFeature.txt", [_clique("HP:3", "HP:9", biolink_type="biolink:PhenotypicFeature")])
+    _, summary = diff_builds(str(bdir), str(adir), ["Disease.txt", "PhenotypicFeature.txt"])
+    pheno = summary["PhenotypicFeature.txt"]
+    assert pheno["moved_in_member_count"] == 1
+    assert pheno["moved_in_clique_count"] == 1
+    assert pheno["clique_count"]["diff"] == 0
+
+
+@pytest.mark.unit
 def test_new_after_clique_shows_only_in_count_delta(tmp_path):
     """A wholly new after-clique (no before counterpart) must not be a change row.
 
