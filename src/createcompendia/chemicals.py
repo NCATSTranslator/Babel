@@ -568,7 +568,7 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
 
     `idcol` and `smicol` name the ID and SMILES columns exactly as the header spells them (quotes included); both
     must be in GTOPDB_LIGANDS_COLUMNS. The version line is skipped, the header must match GTOPDB_LIGANDS_COLUMNS
-    exactly. With `stripquotes`, each field's surrounding double quotes are removed.
+    exactly, and blank lines are skipped. With `stripquotes`, each field's surrounding double quotes are removed.
     Raises ValueError for an unknown column name, a modified header, or a data row before the header.
     """
     for param, column in (("idcol", idcol), ("smicol", smicol)):
@@ -580,6 +580,9 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
     seen_header = False
     with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
+            if not line.strip():
+                # A blank line (such as a trailing one) has no columns to read.
+                continue
             if line.startswith('"# GtoPdb Version'):
                 # Version line! Skip.
                 continue
@@ -595,7 +598,8 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
                 # Also what a header that doesn't start with exactly '"Ligand ID"' (a BOM, leading whitespace, a
                 # renamed first column) looks like, since it is then read as data.
                 raise ValueError(f"SMIFile {infile} has a data row before its '\"Ligand ID\"' header: {line!r}")
-            x = line.split("\t")
+            # Drop the line ending first, or the last field keeps it and stripquotes leaves a stray quote on it.
+            x = line.rstrip("\r\n").split("\t")
             if stripquotes:
                 x = [xi[1:-1] for xi in x]
             smi = x[smicol_index]
