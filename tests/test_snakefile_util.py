@@ -5,7 +5,6 @@ than faking the workflow object, so that output matching is Snakemake's own: wil
 """
 
 import json
-from pathlib import Path
 
 import pytest
 from snakemake.api import SnakemakeApi
@@ -13,6 +12,7 @@ from snakemake.exceptions import WorkflowError
 from snakemake.settings.types import ConfigSettings, OutputSettings, ResourceSettings
 
 from src.snakefiles.util import ID_PREFIX_LISTS, duckdb_memory_limit_mb
+from src.util import get_repo_root
 
 
 @pytest.mark.unit
@@ -34,9 +34,6 @@ def test_duckdb_memory_limit_mb(mem_mb, expected):
     the string "512 GB". mem_mb sidesteps that round-trip entirely.
     """
     assert duckdb_memory_limit_mb(mem_mb) == expected
-
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def load_snakefile(tmp_path, monkeypatch, snakefile_text, config):
@@ -162,7 +159,7 @@ def test_check_id_prefix_rules_reports_every_list_with_its_real_path(tmp_path, m
 @pytest.mark.unit
 def test_id_prefix_lists_match_config_yaml():
     # Every *_ids list in config.yaml should be checked, so a new semantic type isn't silently skipped.
-    config_text = (REPO_ROOT / "config.yaml").read_text()
+    config_text = (get_repo_root() / "config.yaml").read_text()
     id_keys = {line.split(":", 1)[0] for line in config_text.splitlines() if line.split(":", 1)[0].endswith("_ids")}
     assert id_keys == set(ID_PREFIX_LISTS)
 
@@ -173,7 +170,7 @@ def test_top_level_snakefile_runs_check_after_every_rule():
     # top-level Snakefile, after every include.
     code_lines = [
         line
-        for line in (REPO_ROOT / "Snakefile").read_text().splitlines()
+        for line in (get_repo_root() / "Snakefile").read_text().splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     ]
     assert code_lines[-1] == "check_id_prefix_rules(workflow, config)"
