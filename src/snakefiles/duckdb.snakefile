@@ -1,5 +1,5 @@
 import src.reports.duckdb_reports
-from src.snakefiles.util import get_all_compendia, get_all_synonyms_with_drugchemicalconflated
+from src.snakefiles.util import duckdb_memory_limit_mb, get_all_compendia, get_all_synonyms_with_drugchemicalconflated
 import src.exporters.duckdb_exporters as duckdb_exporters
 import os
 
@@ -41,8 +41,12 @@ rule export_compendia_to_duckdb:
     benchmark:
         config["output_directory"] + "/benchmarks/export_compendia_to_duckdb_{filename}.tsv"
     resources:
-        runtime="6h",
+        # Slowest of the 25 wildcard instances on 2026jul22 was Protein at 2.5h.
+        runtime="4h",
         mem="512G",
+        # DuckDB auto-threads and used up to ~2.6 cores on babel-1.17; the cpus_per_task=1 default
+        # would pin it to one core. Packing here is memory-bound (512G), so the cores are ~free.
+        cpus_per_task=4,
     run:
         print(f"Exporting {input.compendium_file} to {output.duckdb_filename}...")
         duckdb_exporters.export_compendia_to_parquet(
@@ -78,19 +82,17 @@ rule export_synonyms_to_duckdb:
         # per entry; after unnesting the names array the row count is large
         # enough to OOM at 128G.
         mem=lambda wildcards: "512G" if wildcards.filename in ("Protein", "GeneProteinConflated") else "128G",
-        runtime="3h",
+        # Slowest of the 18 wildcard instances on 2026jul22 was GeneProteinConflated at 13 minutes.
+        runtime="1h",
+        # DuckDB auto-threads and used up to ~2.6 cores on babel-1.17; the cpus_per_task=1 default
+        # would pin it to one core. Packing here is memory-bound, so the cores are ~free.
+        cpus_per_task=4,
     run:
-        # Cap DuckDB at 75% of the SLURM allocation so Python + OS overhead
-        # don't push total RSS over the job limit. Without this, DuckDB
-        # auto-sizes to 75% of *total system* RAM, which can far exceed the
-        # SLURM allocation on a multi-tenant HPC node.
-        # resources.mem is a string like "128G" or "512G"; parse to MB.
-        duckdb_memory_limit_mb = int(int(resources.mem.rstrip("G")) * 1024 * 0.75)
         duckdb_exporters.export_synonyms_to_parquet(
             input.synonyms_file,
             output.duckdb_filename,
             output.synonyms_parquet_filename,
-            memory_limit_mb=duckdb_memory_limit_mb,
+            memory_limit_mb=duckdb_memory_limit_mb(resources.mem_mb),
         )
 
 
@@ -123,12 +125,67 @@ rule export_conflation_to_duckdb:
         )
 
 
+# Export all the intermediate concord, ids, and metadata files into Parquet.
+#
+# `compendia_done` and `conflations_done` together are the rerun trigger, and between them they
+# cover every intermediate concord/ids file:
+#   - Most concord/ids files are consumed by a compendium-build rule, so a change propagates up the
+#     DAG (concord/ids -> compendium -> compendium.duckdb -> compendia_done).
+#   - The drugchemical concords (intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM})
+#     are NOT: they are built straight from the RxNorm/UMLS downloads and consumed only by
+#     drugchemical_conflation, so their only path here is via conflations_done. Without that input
+#     Snakemake could run this rule before they exist (leaving them out of Concord.parquet) and
+#     would not rerun it when they change.
+# None of the concord/ids files are temp(), so by the time both flags exist the full intermediate
+# tree is present on disk for this rule to sweep. The intermediate directory itself is passed as a
+# params path to glob, not an input: Snakemake tracks a directory by mtime, which does not reliably
+# change when a nested file is rewritten, so depending on it would be both unreliable and redundant
+# with the two flag files.
+rule export_intermediate_files_to_duckdb:
+    input:
+        compendia_done=config["output_directory"] + "/duckdb/compendia_done",
+        conflations_done=config["output_directory"] + "/duckdb/conflations_done",
+    output:
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/concords.duckdb"),
+        ids_parquet_filename=config["output_directory"] + "/duckdb/Identifier.parquet",
+        concord_parquet_filename=config["output_directory"] + "/duckdb/Concord.parquet",
+        metadata_parquet_filename=config["output_directory"] + "/duckdb/Metadata.parquet",
+    benchmark:
+        config["output_directory"] + "/benchmarks/export_intermediate_files_to_duckdb.tsv"
+    resources:
+        # Provisional; right-size from the benchmark once we have a real run.
+        #
+        # If this rule turns out to be memory-bound, raising mem= is not the only lever:
+        # export_intermediates_to_parquet() materialises each table in DuckDB before writing it
+        # out, but DuckDB's read_csv() accepts a *list* of files plus filename=true (which supplies
+        # the source-path column for free). The per-file INSERT loop could collapse into one COPY
+        # per group -- concords, one-column ids, two-column ids -- streaming straight to Parquet
+        # and keeping peak memory proportional to a row group rather than the whole corpus. It was
+        # left alone because the empty-tree case then needs its own branch and DuckDB already
+        # spills to disk under the memory cap, so measure before rewriting.
+        mem="128G",
+    params:
+        intermediate_directory=config["intermediate_directory"],
+    run:
+        duckdb_exporters.export_intermediates_to_parquet(
+            params.intermediate_directory,
+            output.duckdb_filename,
+            output.ids_parquet_filename,
+            output.concord_parquet_filename,
+            output.metadata_parquet_filename,
+            memory_limit_mb=duckdb_memory_limit_mb(resources.mem_mb),
+        )
+
+
 # Create `babel_outputs/duckdb/done` once all the files have been converted.
 rule export_all_to_duckdb:
     input:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
         synonyms_done=config["output_directory"] + "/duckdb/synonyms_done",
         conflations_done=config["output_directory"] + "/duckdb/conflations_done",
+        intermediate_ids_parquet=config["output_directory"] + "/duckdb/Identifier.parquet",
+        intermediate_concords_parquet=config["output_directory"] + "/duckdb/Concord.parquet",
+        intermediate_metadata_parquet=config["output_directory"] + "/duckdb/Metadata.parquet",
     output:
         x=config["output_directory"] + "/duckdb/done",
     shell:
@@ -212,6 +269,9 @@ rule check_for_duplicate_curies:
 
 rule check_for_duplicate_clique_leaders:
     input:
+        # Only the compendia's Clique.parquet files are read, but waiting for duckdb/done keeps this 400G DuckDB
+        # aggregation from overlapping the Edge/synonym/conflation exports on a run where mem is not enforced per
+        # job (a local run). Starting it at compendia_done would fail the build a few hours sooner, no more.
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
     output:
@@ -238,58 +298,47 @@ rule check_for_duplicate_clique_leaders:
         )
 
 
-rule generate_curie_report:
+rule assert_no_unexpected_duplicate_clique_leaders:
+    # The control behind the report above: a duplicate clique leader not on the committed allowlist fails
+    # the build (see src.reports.duckdb_reports.assert_no_unexpected_duplicate_clique_leaders). The report is
+    # written first so it can be read when this rule goes red.
     input:
-        config["output_directory"] + "/duckdb/done",
-        config["output_directory"] + "/duckdb/compendia_done",
+        duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
+        allowlist=config["input_directory"] + "/known_duplicate_clique_leaders.tsv",
     output:
-        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/curie_report.duckdb"),
-        curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
-    benchmark:
-        config["output_directory"] + "/benchmarks/generate_curie_report.tsv"
-    resources:
-        # The distinct counts use approx_count_distinct() (a fixed-size HLL sketch per group)
-        # instead of an exact, non-spillable COUNT(DISTINCT) that OOMed over the full Edge set.
-        # memory_limit is kept well below mem for headroom under the cgroup hard limit; single
-        # thread keeps per-thread state low. See slurm/README.md.
-        mem="1500G",
-    params:
-        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
+        checked=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.checked",
+    localrule: True
     run:
-        src.reports.duckdb_reports.generate_curie_report(
-            params.parquet_dir,
-            output.duckdb_filename,
-            output.curie_report_json,
-            {
-                "memory_limit": "1000G",
-                "threads": 1,
-                "preserve_insertion_order": False,
-            },
+        src.reports.duckdb_reports.assert_no_unexpected_duplicate_clique_leaders(
+            input.duplicate_clique_leaders_tsv, input.allowlist, output.checked
         )
 
 
-rule generate_clique_leader_report:
+rule generate_prefix_report:
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
     output:
-        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/clique_leaders.duckdb"),
-        clique_leaders_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/prefix_report.duckdb"),
+        prefix_report_json=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     benchmark:
-        config["output_directory"] + "/benchmarks/generate_clique_leader_report.tsv"
+        config["output_directory"] + "/benchmarks/generate_prefix_report.tsv"
     resources:
-        # The distinct counts use approx_count_distinct() (a fixed-size HLL sketch per group)
-        # instead of an exact, non-spillable COUNT(DISTINCT) that OOMed over the full Edge set.
-        # memory_limit is kept well below mem for headroom under the cgroup hard limit; single
-        # thread keeps per-thread state low. See slurm/README.md.
+        # This single rule replaces the former generate_curie_report + generate_clique_leader_report,
+        # so the full Edge set is now scanned once rather than twice. Every aggregate is a spillable
+        # GROUP BY <prefix>, and the distinct/clique counts use approx_count_distinct() (a fixed-size
+        # HLL sketch per group) instead of an exact, non-spillable COUNT(DISTINCT) that OOMed over the
+        # full Edge set. memory_limit is kept well below mem for headroom under the cgroup hard limit;
+        # single thread keeps per-thread state low. See slurm/README.md.
         mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
-        src.reports.duckdb_reports.generate_clique_leaders_report(
+        src.reports.duckdb_reports.generate_prefix_report(
             params.parquet_dir,
             output.duckdb_filename,
-            output.clique_leaders_json,
+            output.prefix_report_json,
+            config["release_name"],
             {
                 "memory_limit": "1000G",
                 "threads": 1,
@@ -304,9 +353,8 @@ rule all_duckdb_reports:
         identically_labeled_cliques_tsv=config["output_directory"]
         + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
-        duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
-        curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
-        by_clique_report_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+        duplicate_clique_leaders_checked=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.checked",
+        prefix_report_json=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     output:
         x=config["output_directory"] + "/reports/duckdb/done",
     shell:

@@ -1,61 +1,17 @@
 # The DuckDB exporter can be used to export particular intermediate files into the
 # in-process database engine DuckDB (https://duckdb.org) for future querying.
 import os.path
+import stat
 import tempfile
-from contextlib import contextmanager
+from pathlib import Path
 
 import duckdb
 
-from src.memory import _bytes_to_gib, cgroup_memory_hard_limit_bytes, log_memory_snapshot
-from src.util import get_config, get_logger
+from src.model.intermediates import METADATA_DIRECTORY_FILENAME, metadata_subject_filename
+from src.util import ensure_parent_dir, get_logger
+from src.utils.duckdb_setup import connect_duckdb, log_duckdb_settings_on_error
 
 logger = get_logger(__name__)
-
-
-# The DuckDB settings most relevant to diagnosing an out-of-memory or spill failure. Kept short
-# so the on-error log line stays readable; the full set is dumped by setup_duckdb() at connect.
-_DUCKDB_DIAGNOSTIC_SETTINGS = (
-    "memory_limit",
-    "max_memory",
-    "threads",
-    "temp_directory",
-    "max_temp_directory_size",
-    "preserve_insertion_order",
-)
-
-
-@contextmanager
-def log_duckdb_settings_on_error(db, operation):
-    """Log the effective DuckDB memory/spill settings if the wrapped call raises.
-
-    DuckDB's OutOfMemory and IO errors don't say which limits were in force or which step hit
-    them, which makes the bare Snakemake traceback hard to act on. Wrapping a query in this
-    context manager emits one ERROR line naming the `operation` and the relevant settings before
-    re-raising the original exception unchanged.
-    """
-    try:
-        yield
-    except duckdb.Error as exc:
-        try:
-            placeholders = ", ".join("?" for _ in _DUCKDB_DIAGNOSTIC_SETTINGS)
-            rows = db.execute(
-                f"SELECT name, value FROM duckdb_settings() WHERE name IN ({placeholders})",
-                list(_DUCKDB_DIAGNOSTIC_SETTINGS),
-            ).fetchall()
-            settings = ", ".join(f"{name}={value}" for name, value in sorted(rows))
-        except Exception:  # diagnostics must never mask the real error
-            settings = "<could not read duckdb_settings()>"
-        logger.error(
-            "DuckDB operation failed during %s (%s: %s); effective settings: %s",
-            operation,
-            type(exc).__name__,
-            exc,
-            settings,
-        )
-        # Peak/tracked/untracked memory at the point of failure -- the single most useful thing
-        # for distinguishing "needs more headroom" from "untracked allocation / query rewrite".
-        log_memory_snapshot(db, f"at failure of {operation}")
-        raise
 
 
 # Some configuration items for controlling loads.
@@ -63,76 +19,14 @@ MIN_FILE_SIZE_FOR_SPLITTING_LOAD = 44_000_000_000
 CHUNK_LINE_SIZE = 60_000_000
 
 
-def setup_duckdb(duckdb_filename, duckdb_config=None):
+def _prepare_duckdb_output(duckdb_filename):
+    """Refuse to clobber an existing DuckDB file and ensure its parent directory exists.
+
+    Shared by every exporter that writes a fresh DuckDB scratch file before emitting Parquet.
     """
-    Set up a DuckDB instance using the settings in the config.
-
-    :return: The DuckDB instance to be used.
-    """
-    if not duckdb_config:
-        duckdb_config = {}
-
-    # We want to use (1) the global duckdb_config, then (2) the duckdb_config passed to this function.
-    complete_duckdb_config = {**get_config().get("duckdb_config", {}), **duckdb_config}
-
-    # These two keys are Babel conveniences, not DuckDB connect() settings, so pull them out
-    # before handing the rest to duckdb.connect(). They let an individual rule override where
-    # DuckDB spills and how large that spill may grow.
-    temp_directory_override = complete_duckdb_config.pop("temp_directory", None)
-    max_temp_directory_size = complete_duckdb_config.pop("max_temp_directory_size", None)
-
-    db = duckdb.connect(duckdb_filename, config=complete_duckdb_config)
-
-    # Apply some Babel-wide settings to DuckDB.
-    config = get_config()
-
-    # Decide where DuckDB spills larger-than-memory intermediates. Precedence:
-    #   1. an explicit per-call `temp_directory` (a rule that wants a specific scratch area),
-    #   2. the BABEL_DUCKDB_TEMP_DIR environment variable (set per job at submission time),
-    #   3. the global `tmp_directory` from config.yaml.
-    # Hatteras has no large node-local disk we can use: /tmp is a ~16 GB rootfs, /dev/shm is
-    # RAM (charged against the job's cgroup), and /scratch and /projects are both NFS. So the
-    # default stays on the parallel filesystem; see slurm/README.md ("Temporary scratch space").
-    temp_directory = temp_directory_override or os.environ.get("BABEL_DUCKDB_TEMP_DIR") or config.get("tmp_directory")
-    if temp_directory:
-        # Give every job its own spill subdirectory. Multiple report jobs previously shared a
-        # single NFS temp directory, which produced "stale file handle" / "could not read
-        # enough bytes" IO errors when one job's temp files raced against another's; per-job
-        # isolation removes that contention regardless of which filesystem is used.
-        job_id = os.environ.get("SLURM_JOB_ID") or str(os.getpid())
-        temp_directory = os.path.join(temp_directory, f"duckdb-{job_id}")
-        os.makedirs(temp_directory, exist_ok=True)
-        db.execute(f"SET temp_directory = '{temp_directory}'")
-        db.execute(f"SET max_temp_directory_size = '{max_temp_directory_size or '500GB'}'")
-
-    # We need to set local settings after the connection has been opened.
-    db.execute("SET enable_progress_bar=true")
-
-    # Display all the settings.
-    settings = db.sql("SELECT * FROM duckdb_settings()")
-    logger.info("DuckDB connected with the following settings:")
-    for row in settings.fetchall():
-        logger.info(f" - {row[0]}: {row[1]}")
-
-    # Log the memory_limit vs the cgroup hard limit (the SLURM mem= allocation) at connect time.
-    # When threads > 1, a background-thread OOM aborts the process with SIGABRT and no Python
-    # exception, so log_duckdb_settings_on_error never runs -- this connect-time line is then the
-    # only record of how much headroom DuckDB had under the cgroup. A small or negative headroom
-    # here means an untracked allocation can overshoot the cgroup before DuckDB's soft limit
-    # triggers a spill; lower memory_limit (and/or drop to a single thread) to widen it.
-    try:
-        memory_limit_row = db.execute("SELECT value FROM duckdb_settings() WHERE name = 'memory_limit'").fetchone()
-        memory_limit = memory_limit_row[0] if memory_limit_row else "unknown"
-    except Exception:
-        memory_limit = "unknown"
-    cgroup_limit = cgroup_memory_hard_limit_bytes()
-    logger.info(
-        "DuckDB memory headroom: memory_limit=%s, cgroup hard limit (SLURM mem)=%s",
-        memory_limit,
-        _bytes_to_gib(cgroup_limit),
-    )
-
-    return db
+    if os.path.exists(duckdb_filename):
+        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+    ensure_parent_dir(duckdb_filename)
 
 
 def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, edge_parquet_filename, duckdb_filename):
@@ -149,22 +43,17 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, ed
     agree on them and Snakemake can track them as declared outputs.
     """
 
-    # Make sure that duckdb_filename doesn't exist.
-    if os.path.exists(duckdb_filename):
-        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
-
-    duckdb_dir = os.path.dirname(duckdb_filename)
-    os.makedirs(duckdb_dir, exist_ok=True)
+    _prepare_duckdb_output(duckdb_filename)
 
     # Node.parquet is written alongside the Clique.parquet file and is also declared as a rule
     # output; the Clique and Edge paths arrive as explicit arguments.
     parquet_dir = os.path.dirname(clique_parquet_filename)
-    os.makedirs(parquet_dir, exist_ok=True)
-    os.makedirs(os.path.dirname(edge_parquet_filename), exist_ok=True)
+    ensure_parent_dir(clique_parquet_filename)
+    ensure_parent_dir(edge_parquet_filename)
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
     compendium_basename = os.path.basename(compendium_filename)
-    with setup_duckdb(duckdb_filename) as db:
+    with connect_duckdb(duckdb_filename) as db:
         # Step 1. Create a Nodes table with all the nodes from compendium_filename.
         db.sql(
             """CREATE TABLE Node (curie STRING, curie_prefix STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])"""
@@ -329,13 +218,10 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
     :param duckdb_filename: A temporary DuckDB file to use during export.
     :param parquet_filename: The output Parquet file path.
     """
-    if os.path.exists(duckdb_filename):
-        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+    _prepare_duckdb_output(duckdb_filename)
+    ensure_parent_dir(parquet_filename)
 
-    os.makedirs(os.path.dirname(duckdb_filename), exist_ok=True)
-    os.makedirs(os.path.dirname(parquet_filename), exist_ok=True)
-
-    with setup_duckdb(duckdb_filename) as db:
+    with connect_duckdb(duckdb_filename) as db:
         db.sql(
             "CREATE TABLE Conflation (conflation_type STRING, conflation_leader STRING, curie STRING, curie_prefix STRING)"
         )
@@ -379,18 +265,13 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
         (75% of system RAM), which can exceed the SLURM allocation on shared HPC nodes.
     """
 
-    # Make sure that duckdb_filename doesn't exist.
-    if os.path.exists(duckdb_filename):
-        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
-
-    duckdb_dir = os.path.dirname(duckdb_filename)
-    os.makedirs(duckdb_dir, exist_ok=True)
+    _prepare_duckdb_output(duckdb_filename)
 
     duckdb_config = {}
     if memory_limit_mb is not None:
         duckdb_config["memory_limit"] = f"{memory_limit_mb}MB"
 
-    with setup_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
+    with connect_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
         synonyms_jsonl = db.read_json(synonyms_filename_gz, format="newline_delimited")
 
         # We can't execute the following query unless we have at least one row in the input data.
@@ -420,3 +301,156 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
             """).write_parquet(synonyms_parquet_filename)
 
         synonyms_jsonl.close()
+
+
+def _insert_metadata(db, path, subject_filename):
+    """Insert one metadata sidecar file into the Metadata table, recording the subject it
+    describes and the full path to that subject.
+
+    For a `metadata-<subject>.yaml` sidecar, the subject path is the sibling file it describes; for
+    a bare `metadata.yaml`, which describes its directory, the subject path is that directory.
+    """
+    logger.info(f"Loading metadata from {path} describing subject {subject_filename}")
+    if path.name.lower() == METADATA_DIRECTORY_FILENAME:
+        subject_file_path = path.parent
+    else:
+        subject_file_path = path.parent / subject_filename
+    db.execute(
+        "INSERT INTO Metadata VALUES (?, ?, ?, ?)",
+        [str(path), subject_filename, str(subject_file_path), path.read_text(encoding="utf-8")],
+    )
+
+
+def _iter_loadable_files(root, kind):
+    """Yield `(path, subject_filename)` for each non-empty file of the given `kind`
+    ('concords' or 'ids') under `root`.
+
+    Directories and empty files are skipped. `subject_filename` is the metadata subject for a
+    metadata sidecar file (see `metadata_subject_filename()` in `src/model/intermediates.py`) and `None` for a data file the caller
+    should bulk-load; the caller routes on it. The generator has no side effects so partial
+    consumption can't silently drop metadata.
+    """
+    for path in root.glob(f"**/{kind}/**/*"):
+        # One stat() serves both the directory and the empty-file checks.
+        st = path.stat()
+        if stat.S_ISDIR(st.st_mode):
+            logger.info(f"Skipping directory {path}")
+            continue
+        if st.st_size == 0:
+            logger.warning(f"Skipping empty {kind} file {path}")
+            continue
+
+        yield path, metadata_subject_filename(path.name)
+
+
+def export_intermediates_to_parquet(
+    intermediate_directory,
+    duckdb_filename,
+    ids_parquet_filename,
+    concords_parquet_filename,
+    metadata_parquet_filename,
+    memory_limit_mb=None,
+):
+    """
+    Export all the intermediate files into Parquet files, which will be easier to download and manipulate
+    than the multiple original files.
+
+    The `filename` column in every output table is the absolute path of the source file, so
+    `intermediate_directory` is resolved to an absolute path before globbing (config passes it in
+    relative to the run directory).
+
+    :param intermediate_directory: The intermediate directory containing the concords.
+    :param duckdb_filename: A DuckDB file to temporarily store data in.
+    :param ids_parquet_filename: The Parquet file to store the IDs.
+    :param concords_parquet_filename: The Parquet file to store the concords.
+    :param metadata_parquet_filename: The Parquet file to store the ID and concord metadata in.
+    :param memory_limit_mb: DuckDB memory limit in MB. When set, overrides DuckDB's default
+        (75% of system RAM), which can exceed the SLURM allocation on shared HPC nodes.
+    """
+
+    _prepare_duckdb_output(duckdb_filename)
+    # DuckDB's write_parquet won't create missing parent directories, so ensure each output's
+    # directory exists -- this exporter is public and its Parquet paths need not share a directory.
+    for parquet_filename in (ids_parquet_filename, concords_parquet_filename, metadata_parquet_filename):
+        ensure_parent_dir(parquet_filename)
+
+    duckdb_config = {}
+    if memory_limit_mb is not None:
+        duckdb_config["memory_limit"] = f"{memory_limit_mb}MB"
+
+    with connect_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
+        # We don't include labels here: the Node-writing code currently emits only nulls for them,
+        # so there is nothing useful to join against.
+        db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
+        db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING)""")
+        db.sql(
+            """CREATE TABLE Metadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)"""
+        )
+
+        # Resolve to an absolute path so every `filename` value (and the metadata subject paths
+        # derived from it) is absolute, as the DataFormats docs promise -- config passes the
+        # intermediate directory in relative to the run directory.
+        intermediate_path = Path(intermediate_directory).resolve()
+
+        # Load concord files. A line that isn't three tab-separated columns fails the export, just as
+        # it fails every other concord reader (src/model/intermediates.py:parse_concord_line). This load
+        # used to skip such lines (ignore_errors + store_rejects, logged as warnings) on the grounds
+        # that write_concord_metadata() also skipped them; it no longer does, and an export that
+        # quietly drops rows the build would have rejected publishes a Concord table that disagrees
+        # with the compendia. read_csv's strict mode is a backstop, not a second copy of the parser:
+        # it checks the column count but accepts a trailing tab, and doesn't look for the empty or
+        # padded columns parse_concord_line() rejects (tests/test_duckdb_exporters.py pins this).
+        # Every concord a compendium reads has already been through that parser by the time this
+        # export runs, so re-scanning ~15 GB of concords in Python here would buy nothing.
+        for concord_path, subject_filename in _iter_loadable_files(intermediate_path, "concords"):
+            if subject_filename is not None:
+                _insert_metadata(db, concord_path, subject_filename)
+                continue
+            logger.info(f"Loading concords from {concord_path}")
+            try:
+                db.execute(
+                    "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj "
+                    "FROM read_csv($1, delim='\\t', header=false, quote='', "
+                    "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
+                    [str(concord_path)],
+                )
+            except duckdb.InvalidInputException as err:
+                raise RuntimeError(f"Malformed concord file {concord_path}: {err}") from err
+
+        # Load identifier files.
+        for ids_path, subject_filename in _iter_loadable_files(intermediate_path, "ids"):
+            if subject_filename is not None:
+                _insert_metadata(db, ids_path, subject_filename)
+                continue
+            # ID files sometimes have a single column and sometimes have two, so we need to
+            # determine which one this is. This is a cheap heuristic: it inspects only the first
+            # two lines, not the whole file. A later line with a different column count is not
+            # caught here and will instead surface as a read_csv error below.
+            with open(ids_path, encoding="utf-8") as f:
+                first_line = f.readline()
+                second_line = f.readline()
+
+            num_cols = len(first_line.rstrip("\n").split("\t"))
+            if second_line and len(second_line.rstrip("\n").split("\t")) != num_cols:
+                raise RuntimeError(
+                    f"Inconsistent number of columns in {ids_path}: {num_cols} (first line: '{first_line}', second line: '{second_line}')."
+                )
+            if num_cols == 1:
+                logger.info(f"Loading identifiers from {ids_path} without a Biolink type column")
+                select_type, csv_columns = "NULL AS biolink_type", "{'curie': 'VARCHAR'}"
+            elif num_cols == 2:
+                logger.info(f"Loading identifiers from {ids_path} with a Biolink type column")
+                select_type, csv_columns = "biolink_type", "{'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'}"
+            else:
+                raise RuntimeError(
+                    f"Unexpected number of columns in {ids_path}: {num_cols} (first line: '{first_line}')."
+                )
+            db.execute(
+                f"INSERT INTO Identifier SELECT $1 AS filename, csv.curie, {select_type} "
+                f"FROM read_csv($1, delim='\\t', header=false, quote='', columns={csv_columns}) AS csv",
+                [str(ids_path)],
+            )
+
+        db.table("Concord").write_parquet(concords_parquet_filename)
+        db.table("Identifier").write_parquet(ids_parquet_filename)
+        db.table("Metadata").write_parquet(metadata_parquet_filename)

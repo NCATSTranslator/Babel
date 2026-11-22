@@ -1,0 +1,30 @@
+{
+  "compendium_path": "babel_outputs/compendia/Polypeptide.txt",
+  "count_by_biolink_type": {
+    "biolink:Polypeptide": 5
+  },
+  "count_by_prefix": {
+    "UMLS": 5
+  },
+  "count_lines": 5,
+  "counters": {
+    "clique_count": 5,
+    "cliques_by_description_count": {
+      "0": 5
+    },
+    "cliques_by_id_count": {
+      "1": 5
+    },
+    "cliques_by_label_count": {
+      "1": 5
+    },
+    "cliques_by_unique_description_count": {
+      "0": 5
+    },
+    "cliques_by_unique_label_count": {
+      "1": 5
+    }
+  },
+  "name": "Polypeptide",
+  "report_path": "babel_outputs/reports/content/compendia/Polypeptide.json"
+}

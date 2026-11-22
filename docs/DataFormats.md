@@ -63,7 +63,7 @@ This entry consists of the following fields:
 | identifiers[0].l | G6PC1                                                       | A label for this identifier. This will almost always be from the source of the CURIE (in this case, the label is from the NCBI Gene database).                                                                                                                        |
 | identifiers[0].d | (blank in this example, but usually 1-3 sentences)          | A description of this identifier or concept from this source.                                                                                                                                                                                                         |
 | identifiers[0].t | ["NCBITaxon:9606"]                                          | A list of taxa that this concept is found in as NCBITaxon CURIEs. NCBITaxon:9606 refers to the species _Homo sapiens_.                                                                                                                                                |
-| preferred_name   | G6PC1                                                       | The preferred name for this clique. This is not currently used by NodeNorm, but will be in the future.                                                                                                                                                                |
+| preferred_name   | G6PC1                                                       | The preferred name for this clique. NodeNorm returns this as the `label` of the normalized clique. Note that it is not necessarily the label of the clique leader — see below.                                                                                        |
 | taxa             | ["NCBITaxon:9606"]                                          | A list of taxa that this concept is found in as NCBITaxon CURIEs. This is combined from all the individual taxa from each identifier.                                                                                                                                 |
 | type             | biolink:Gene                                                | The Biolink type of this concept. Must be a class from the [Biolink model](https://biolink.github.io/biolink-model/) with a `biolink:` prefix.                                                                                                                        |
 
@@ -140,8 +140,10 @@ This entry consists of the following fields:
 | taxon_specific          | true or false                      | True if this concept is associated with one or more specific taxa; false if it is not taxon-specific.                                                                                                                                       |
 | types                   | ["Gene", "GeneOrGeneProduct", ...] | A list of Biolink types (without the `biolink:` prefix) for this concept. This is arranged in the same order provided by the Biolink Model Toolkit, starting with the narrowest concept, expanding to the broadest, followed by mixins.     |
 
-Note that the synonym files are generated with DrugChemical conflation turned on, but GeneProtein
-conflation turned off.
+Note that the per-type synonym files are generated with DrugChemical conflation turned on, but
+GeneProtein conflation turned off. A separate `synonyms/GeneProteinConflated.txt.gz` is also
+produced, containing the same concepts with GeneProtein conflation applied, so that NameRes can be
+loaded with that conflation turned on.
 
 ## Conflation files
 
@@ -248,6 +250,29 @@ transient DuckDB database (`.duckdb`) is written alongside each set of Parquet f
 export and can be used directly for interactive querying, but the Parquet files are the
 durable output.
 
+### Querying a published build without downloading it
+
+A published build's exports are served from `https://stars.renci.org/var/babel/<build>/duckdb/`,
+with `latest/` holding the most recent build, and DuckDB's `httpfs` extension reads them in place
+with HTTP range requests. It fetches only the columns and row groups a query needs:
+
+```sql
+INSTALL httpfs; LOAD httpfs;
+SELECT filename, subj, obj
+FROM 'https://stars.renci.org/var/babel/latest/duckdb/Concord.parquet'
+WHERE obj LIKE 'UniProtKB:%|%';
+-- A per-compendium DuckDB can be attached read-only, too:
+ATTACH 'https://stars.renci.org/var/babel/latest/duckdb/duckdbs/filename=Protein/compendium.duckdb'
+  AS p (READ_ONLY);
+```
+
+HTTP has no directory globbing, so list the files you want before passing them to
+`read_parquet([...])`: fetch the directory index with `curl`, and skip the conflation directories
+(`DrugChemical`, `GeneProtein`), which have no `Edge.parquet`. Timings on 2026jul22: a filtered scan
+of `Concord.parquet` or `Identifier.parquet` takes 10–30 seconds. A scan of every compendium's
+`Edge.parquet` takes about 4 minutes, as does a join against the attached 20 GB Protein
+`compendium.duckdb`. This is how the #1109 malformed-CURIE survey was measured.
+
 ### Compendium tables (`filename={Type}/Node.parquet`, `Clique.parquet`, `Edge.parquet`)
 
 These three tables are derived from the compendia JSONL for each semantic type.
@@ -315,5 +340,76 @@ Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`).
 | conflation_leader  | STRING | CURIE of the conflation group's lead identifier      |
 | curie              | STRING | A member CURIE of the conflation group               |
 | curie_prefix       | STRING | Prefix of the member CURIE                           |
+
+### Intermediate tables (`Concord.parquet`, `Identifier.parquet`, `Metadata.parquet`)
+
+Unlike the tables above, these three are not per-semantic-type; they sweep the whole
+`babel_outputs/intermediate/` tree into three flat Parquet files written directly under
+`babel_outputs/duckdb/` (not under `parquet/filename={Type}/`). They are produced by
+`export_intermediates_to_parquet()` (rule `export_intermediate_files_to_duckdb`) and make the raw
+build inputs — the cross-reference concords and per-source identifier lists — queryable without
+downloading the many original TSV files. The `filename` column on every row is the absolute path of
+the source file, so you can tell which semantic type and which source a row came from.
+
+`Concord.parquet` — one row per cross-reference edge, from every non-empty concord file (including
+the extension-less DrugChemical conflation concords at
+`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`). A concord line with too few or
+too many columns fails the export rather than being skipped; builds up to and including 2026jul22
+skipped such lines, so their `Concord.parquet` may be missing rows that were in the files.
+
+The export's check is looser than the build's concord parser (`parse_concord_line()` in
+`src/model/intermediates.py`), so `Concord.parquet` can hold rows the build would reject. DuckDB's
+`read_csv` accepts a line ending in a tab, loading its first three columns, and it doesn't reject an
+empty column or one with whitespace around it. Every concord a compendium reads has already passed
+the parser, but not every file the export loads is one a compendium reads. To check a build's
+concords against the parser itself, run [`babel-check-concords`](tools/CheckConcords.md).
+
+Its columns:
+
+| Column   | Type   | Meaning                                                          |
+|----------|--------|------------------------------------------------------------------|
+| filename | STRING | Absolute path of the concord file this edge came from            |
+| subj     | STRING | Subject CURIE of the cross-reference, e.g. `RXCUI:203437`        |
+| pred     | STRING | Relation/predicate, e.g. `eq` or `linked`                        |
+| obj      | STRING | Object CURIE of the cross-reference, e.g. `PUBCHEM.COMPOUND:146037278` |
+
+Finding every raw concord edge that touches a CURIE — the first question a conflation-regression
+triage asks (see Babel [#754](https://github.com/NCATSTranslator/Babel/issues/754)) — is a
+one-liner:
+
+```sql
+SELECT * FROM read_parquet('babel_outputs/duckdb/Concord.parquet')
+WHERE subj = 'CHEBI:3395' OR obj = 'CHEBI:3395';
+```
+
+If the edge you expected is absent, the link was never generated upstream (a compendium-build /
+RxCUI-typing problem); if it is present but the CURIEs still aren't conflated, the pair was dropped
+by a conflation filter — look up the reason in the paired per-run exclusion report
+`babel_outputs/reports/drugchemical/excluded_pairs.tsv.gz` (its `reason` column names the filter).
+
+`Identifier.parquet` — one row per identifier extracted into an `ids/` file:
+
+| Column       | Type   | Meaning                                                            |
+|--------------|--------|--------------------------------------------------------------------|
+| filename     | STRING | Absolute path of the ids file this CURIE came from                 |
+| curie        | STRING | The identifier CURIE                                               |
+| biolink_type | STRING | The Biolink type from the ids file's second column, or NULL if the file has only a CURIE column |
+
+`Metadata.parquet` — one row per metadata YAML _inside a `concords/` or `ids/` directory_
+(`metadata-<subject>.yaml` sidecars describing a sibling file, and bare `metadata.yaml` files
+describing their directory). Metadata YAMLs elsewhere in the intermediate tree — e.g.
+`intermediate/chemicals/partials/metadata-untyped_compendium.yaml` — are not exported, since this
+table exists to describe the concord and identifier files above:
+
+| Column            | Type   | Meaning                                                              |
+|-------------------|--------|----------------------------------------------------------------------|
+| filename          | STRING | Absolute path of the metadata YAML file                              |
+| subject_filename  | STRING | The file the metadata describes (the `<subject>` of a sidecar, or the metadata file's own name for a bare `metadata.yaml`) |
+| subject_file_path | STRING | Absolute path of the described file (or its directory, for a bare `metadata.yaml`) |
+| metadata_json     | STRING | The metadata YAML contents                                          |
+
+Labels are intentionally not exported here: `ids/` files carry only `CURIE\tbiolink:Type`, and the
+label for any identifier that landed in a clique is already available in `Node.parquet` (join
+`Identifier.curie` to `Node.curie`).
 
 [`normalizedInformationContent` from Ubergraph]: https://github.com/INCATools/ubergraph/#graph-organization

@@ -1,10 +1,47 @@
 import json
 import os
+import subprocess
+from pathlib import Path
 
 import pytest
 
+from src.model.intermediates import read_concords
 from src.node import NodeFactory
 from src.util import get_config
+
+REPO_ROOT = Path(__file__).parent.parent
+
+# ---------------------------------------------------------------------------
+# Repository file listing (used by the checks on the repository's own files)
+# ---------------------------------------------------------------------------
+
+
+def tracked_files(*pathspecs: str) -> list[Path]:
+    """Every file Git tracks that matches any of `pathspecs` (all of them if none are given), as
+    sorted absolute paths.
+
+    Asking Git rather than walking the tree is what keeps this off `babel_downloads/`,
+    `babel_outputs/`, `.venv/` and `data/`: an `rglob("*")` from the repo root descends into all of
+    them before anything can filter them out, which on a machine with a finished build is a
+    multi-million-file walk. Untracked files are nobody else's problem, so Git's index is also the
+    right scope for a check on the repository's own files.
+
+    An index entry can outlive its file (deleted in the working tree, deletion not yet staged), so
+    entries with no file on disk are dropped: a check should judge the tree as it now stands, not
+    fail until someone remembers `git rm`.
+
+    `tests/test_docs_links.py` keeps a private copy of this (`_tracked_files()`, with no pathspecs)
+    rather than importing it, because that file is kept in sync with NameResolution's
+    `tests/test_docs_links.py`, which has no such conftest. Change the two together.
+    """
+    listing = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", *pathspecs],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return sorted(p for p in (REPO_ROOT / name for name in listing.split("\0") if name) if p.is_file())
+
 
 # ---------------------------------------------------------------------------
 # TSV output assertion helpers (used by both datahandler and pipeline tests)
@@ -20,6 +57,29 @@ def read_tsv(path: str) -> list[list[str]]:
             if stripped:
                 rows.append(stripped.split("\t"))
     return rows
+
+
+def assert_large_tsv_file_valid(path: str, num_columns: int, expected_prefix: str) -> None:
+    """Stream-validate a TSV too large to hold in memory: every line has num_columns, column 0 is a
+    CURIE, and at least one CURIE carries expected_prefix.
+
+    The assert_*_file_valid helpers below all go through read_tsv(), which materializes the whole
+    file as a list. That is fine for a handler test over a tmp_path fixture, but NCBIGene's real
+    labels/taxa/descriptions files are ~70 million rows (2-3.5 GB each), where the list costs tens of
+    GB. Use this instead when the file is a full pipeline output rather than a fixture.
+    """
+    found_prefix = False
+    with open(path) as f:
+        for line in f:
+            stripped = line.rstrip("\n")
+            if not stripped:
+                continue
+            cols = stripped.split("\t")
+            assert len(cols) == num_columns, f"Expected {num_columns} columns, got {len(cols)}: {cols}"
+            assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
+            if not found_prefix and cols[0].startswith(expected_prefix):
+                found_prefix = True
+    assert found_prefix, f"No {expected_prefix} CURIEs found in {path}"
 
 
 def assert_labels_file_valid(path: str) -> list[list[str]]:
@@ -53,11 +113,14 @@ def assert_ids_file_valid(path: str) -> list[list[str]]:
 
 
 def assert_concordance_file_valid(path: str) -> list[list[str]]:
-    """Assert the file is non-empty and every line is CURIE\\trelation\\tCURIE; return the rows."""
-    rows = read_tsv(path)
+    """Assert the file is non-empty and every line is CURIE\\trelation\\tCURIE; return the rows.
+
+    Rows are read with src.model.intermediates.read_concords, the parser every build step uses, so a
+    row this accepts is one the build accepts (it raises MalformedConcordRowError otherwise).
+    """
+    rows = [list(row) for row in read_concords(path)]
     assert rows, f"Concordance file is empty: {path}"
     for cols in rows:
-        assert len(cols) == 3, f"Expected 3 columns, got {len(cols)}: {cols}"
         assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
         assert ":" in cols[2], f"Third column is not a CURIE: {cols[2]}"
     return rows
@@ -120,11 +183,14 @@ def geneprotein_conflation_file(tmp_path_factory):
 # Biolink Model version used throughout the test suite.  Should match config.yaml.
 BIOLINK_VERSION = get_config()["biolink_version"]
 
-# Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30
+# Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30.
+# A test carrying several of these marks gets the longest of them (see max() in
+# pytest_collection_modifyitems), so `slow` is how a pipeline test that really does need an hour
+# asks for one -- the plain `pipeline` budget is deliberately tighter than that.
 MARK_TIMEOUTS = {
-    "network": 600,
-    "slow": 600,
-    "pipeline": 3600,
+    "network": 600,  # a download can stall on a slow mirror; 10 min before we call it hung.
+    "slow": 3600,  # `slow` means genuinely long-running: a full-file scan, an hour to be safe.
+    "pipeline": 900,  # most pipeline tests run in well under 15 min once the download is cached.
 }
 
 

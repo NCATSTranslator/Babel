@@ -13,6 +13,8 @@ Babel currently generates two conflations:
    [ChemicalEntity Biolink type](https://biolink.github.io/biolink-model/ChemicalEntity/#valid-id-prefixes),
    followed by (2) within each prefix group: lower information content first, larger cliques first,
    and finally from the numerically smallest suffix to the numerically largest suffix.
+   `input_data/manual_concords/drugchemical.tsv` adds pairs no source links; how to write a row is
+   in [`input_data/manual_concords/README.md`](../input_data/manual_concords/README.md).
 
 ## How are conflations generated in Babel and used in NodeNorm?
 
@@ -25,6 +27,9 @@ on, NodeNorm will:
 3. If the clique identifier is part of a conflation, we construct a new clique whose preferred
    identifier is the first identifier in the clique, and which consists of all the identifiers from
    all the cliques included in that conflation.
+
+For how to turn each conflation on when querying, see the
+[NodeNorm API documentation](https://github.com/NCATSTranslator/NodeNormalization/blob/main/documentation/API.md).
 
 ## How are types handled for conflated cliques?
 

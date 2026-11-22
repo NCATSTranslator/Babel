@@ -32,7 +32,7 @@ authors:
     family-names: Yi
     affiliation: Renaissance Computing Institute, University of North Carolina
     orcid: https://orcid.org/0000-0002-5699-1259
-repository-code: 'https://github.com/TranslatorSRI/Babel'
+repository-code: 'https://github.com/NCATSTranslator/Babel'
 abstract: >-
   Babel creates cliques of equivalent identifiers across
   many biomedical vocabularies.

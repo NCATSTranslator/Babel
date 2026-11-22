@@ -26,14 +26,22 @@ UNICHEM_STRUCT_TSV_HEADER = "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n"
 
 def download_unichem_structure():
     """Download UniChem structure file. Gzip integrity is verified at download time; column-format
-    validation happens in read_inchikeys() (called from write_unichem_concords)."""
-    pull_via_wget(_UNICHEM_HTTP_BASE, "structure.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
+    validation happens in read_inchikeys() (called from write_unichem_concords).
+
+    structure.tsv.gz is ~12GB, so we let wget itself retry+resume (--continue) across transient
+    connection drops rather than relying on Snakemake's retries, which deletes the partial output
+    before rerunning the rule and would restart the download from 0% every time."""
+    pull_via_wget(
+        _UNICHEM_HTTP_BASE, "structure.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True, retries=5
+    )
 
 
 def download_unichem_reference():
     """Download UniChem reference file. Gzip integrity is verified at download time; header and
     column-format validation happens in filter_unichem()."""
-    pull_via_wget(_UNICHEM_HTTP_BASE, "reference.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
+    pull_via_wget(
+        _UNICHEM_HTTP_BASE, "reference.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True, retries=5
+    )
 
 
 def filter_unichem(ref_file, ref_filtered):

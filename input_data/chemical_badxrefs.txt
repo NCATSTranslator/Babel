@@ -1,0 +1,252 @@
+# Individually wrong cross-reference pairs to drop from the chemical concords.
+#
+# Format: "SUBJECT OBJECT", space separated, one pair per line, "#" comments (src/babel_utils.py:read_badxrefs).
+#
+# Every pair here attaches a substance with no structure of its own (a biologic, polymer, mixture or conjugate) to
+# the clique of a structure that substance is not. glom() runs with unique_prefixes=[INCHIKEY], so a
+# structure-less record has no key to protect it and one bad xref is enough. The pairs were found with
+# babel-inchikey-audit (docs/tools/InchikeyAudit.md) on Babel 2026jul22 and reviewed by hand: tier A components
+# triaged "likely misattached" or "review" and judged wrong. Each block lists every concord edge that attached the
+# component, so dropping them separates it cleanly. Categories:
+#
+#   misattached         the key is an unrelated substance
+#   component           the key is one part of the substance (ADC payload, conjugate ligand, radiolabel, chelator)
+#   polymer -> monomer  the key is the polymer's bare monomer or a small oligomer, a substance in its own right
+#   different but related substance   e.g. another species' protein, or a hormone's releasing hormone
+
+# Ado-Trastuzumab Emtansine -- component: ADC attached to its DM1 linker-payload. Clique UNII:SE2KH7T06F (INCHIKEY:WPWQMVXPTHKASL-PUXYSECUSA-N).
+#   DrugCentral: DrugCentral:4990 "trastuzumab emtansine" -> PUBCHEM.COMPOUND:168318470 "[(1S,2R,3S,5S,6S,20R,21S)-11-chloro-21-hydroxy-12,20-dimethoxy-2,5,..."
+DrugCentral:4990 PUBCHEM.COMPOUND:168318470
+
+# AGALSIDASE BETA -- misattached: enzyme attached to eliglustat tartrate. Clique CHEBI:83353 (INCHIKEY:KUBARPMUNHKBIQ-VTHUDJRQSA-N).
+#   DrugCentral: DrugCentral:5018 "agalsidase beta" -> PUBCHEM.COMPOUND:52918379 "Eliglustat Tartrate"
+DrugCentral:5018 PUBCHEM.COMPOUND:52918379
+
+# ALN-PCS -- component: inclisiran attached to the GalNAc-conjugate structure titled cemdisiran. Clique CHEBI:176399 (INCHIKEY:LQRNAUZEMLGYOX-LZVIIAQDSA-N).
+#   DrugCentral: DrugCentral:5498 "inclisiran" -> PUBCHEM.COMPOUND:126480325 "Cemdisiran, terminal sugar modification-"
+DrugCentral:5498 PUBCHEM.COMPOUND:126480325
+
+# ANAKINRA -- misattached: IL-1Ra protein attached to an unrelated C20H23N5O7S2 small molecule. Clique UNII:9013DUQ28K (INCHIKEY:HMLGSIZOMSVISS-ONJSNURVSA-N).
+#   DrugCentral: DrugCentral:5017 "anakinra" -> PUBCHEM.COMPOUND:90470007 "C20H23N5O7S2"
+DrugCentral:5017 PUBCHEM.COMPOUND:90470007
+
+# ARCITUMOMAB -- component: Tc-99m-labelled antibody fragment attached to a bare technetium atom. Clique CHEBI:33371 (INCHIKEY:GKLVYJBZJHMRIY-OUBTZVSYSA-N).
+#   DrugCentral: DrugCentral:5127 "arcitumomab" -> PUBCHEM.COMPOUND:26476 "Technetium Tc-99m arcitumomab"
+#   PUBCHEM_MESH: PUBCHEM.COMPOUND:26476 "Technetium Tc-99m arcitumomab" -> MESH:C114976 "technetium Tc-99m arcitumomab"
+DrugCentral:5127 PUBCHEM.COMPOUND:26476
+PUBCHEM.COMPOUND:26476 MESH:C114976
+
+# ASPARAGINASE -- misattached: enzyme attached to asparaginate. Clique CHEBI:32660 (INCHIKEY:DCXYFEDJOCDNAF-UHFFFAOYSA-M).
+#   DrugCentral: DrugCentral:5070 "asparaginase" -> PUBCHEM.COMPOUND:5460875 "Asparaginate"
+DrugCentral:5070 PUBCHEM.COMPOUND:5460875
+
+# BRENTUXIMAB VEDOTIN -- component: ADC attached to its vedotin linker-payload (PubChem CID titled Adcetris). Clique UNII:7XL5ISS668 (INCHIKEY:IUXIDMFEGGOWEH-VYWCTOLSSA-N).
+#   DrugCentral: DrugCentral:4964 "brentuximab vedotin" -> PUBCHEM.COMPOUND:117723179 "Adcetris"
+DrugCentral:4964 PUBCHEM.COMPOUND:117723179
+
+# CALCIUM POLYSTYRENE SULFONATE -- polymer -> monomer: polymer attached to calcium styrenesulfonate monomer. Clique UNII:HUI2S00793 (INCHIKEY:IJBYVKWTVVYTPL-UHFFFAOYSA-M).
+#   DrugCentral: DrugCentral:4871 "calcium polystyrene sulfonate" -> PUBCHEM.COMPOUND:169893 "Calcium;2-ethenylbenzenesulfonate"
+DrugCentral:4871 PUBCHEM.COMPOUND:169893
+
+# CETUXIMAB -- misattached: antibody attached to a 20-heavy-atom structure on a CID titled Erbitux. Clique UNII:PQX0D8J21J (INCHIKEY:LVVRHAVPVOVPGG-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4954 "cetuximab" -> PUBCHEM.COMPOUND:85668777 "Erbitux"
+DrugCentral:4954 PUBCHEM.COMPOUND:85668777
+
+# CHONDROITIN SULFATE SODIUM -- polymer -> monomer: polymer attached to its GlcA-GalNAc4S disaccharide repeat unit. Clique CHEBI:145591 (INCHIKEY:AVJBPWGFOQAPRH-MMPMEFKSSA-N).
+# Once cut loose it then joins PubChem's own Chondroitin Sulfate record (CID 24766) via DrugCentral.
+#   wikipedia_mesh_chebi: MESH:D002809 "Chondroitin Sulfates" -> CHEBI:18250 "chondroitin 4'-sulfate"
+MESH:D002809 CHEBI:18250
+
+# CHYMOPAPAIN -- misattached: enzyme attached to Tiron; ChEBI 193860 and HMDB0029845 also carry Tiron's structure. Clique CHEBI:193860 (INCHIKEY:XXAXVMUWHZHZMJ-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5131 "chymopapain" -> PUBCHEM.COMPOUND:9002 "4,5-Dihydroxy-1,3-benzenedisulfonic acid"
+DrugCentral:5131 PUBCHEM.COMPOUND:9002
+
+# CHYMOTRYPSIN -- misattached: enzyme attached to a peptide p-nitroanilide substrate. Clique UNII:BVS505O332 (INCHIKEY:CFYIUBWVKZQDOG-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5040 "chymotrypsin" -> PUBCHEM.COMPOUND:4052643 "4-Hydroxy-4-((2-hydroxy-2-((2-hydroxy-2-((1-(4-nitroanilino)-1-oxo-..."
+DrugCentral:5040 PUBCHEM.COMPOUND:4052643
+
+# CIDEFERRON -- component: iron complex attached to its naphthol disulfonate ligand. Clique UNII:6Y99O91ULZ (INCHIKEY:VNEBWJSWMVTSHK-UHFFFAOYSA-L).
+#   DrugCentral: DrugCentral:4104 "cideferron" -> PUBCHEM.COMPOUND:8673 "2-Naphthol-3,6-disulfonic acid disodium salt"
+DrugCentral:4104 PUBCHEM.COMPOUND:8673
+
+# CROFELEMER -- misattached: proanthocyanidin oligomer attached to an unrelated isoxazole carboxamide. Clique UNII:PY79D6C8RX (INCHIKEY:JDNAIBCYTQGWFC-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4744 "crofelemer" -> PUBCHEM.COMPOUND:17397714 "N-[(2-methoxyphenyl)methyl]-5-phenyl-1,2-oxazole-3-carboxamide"
+DrugCentral:4744 PUBCHEM.COMPOUND:17397714
+
+# CROSPOVIDONE -- polymer -> monomer: polymer attached to N-vinyl-2-pyrrolidone. Clique CHEBI:53248 (INCHIKEY:WHNWPMSKXPGLAX-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4278 "crospovidone" -> PUBCHEM.COMPOUND:6917 "N-vinyl-2-pyrrolidone"
+DrugCentral:4278 PUBCHEM.COMPOUND:6917
+
+# DEFIBROTIDE -- misattached: oligonucleotide mixture attached to STA-1474. Clique UNII:438HCF2X0M (INCHIKEY:JNWFIPVDEINBAI-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5092 "defibrotide" -> PUBCHEM.COMPOUND:135565962 "Sta-1474"
+DrugCentral:5092 PUBCHEM.COMPOUND:135565962
+
+# DIMETHICONE -- polymer -> monomer: polymer attached to octamethyltrisiloxane. Clique CHEBI:31498 (INCHIKEY:CXQXSVUQTKDNFP-UHFFFAOYSA-N).
+# Once cut loose it then joins the simethicone clique (CID 6433516) -- closer, but simethicone is dimethicone + silica.
+#   DrugCentral: DrugCentral:3152 "dimethicone" -> CHEBI:31498 "dimethicone macromolecule"
+DrugCentral:3152 CHEBI:31498
+
+# ELAPEGADEMASE -- component: PEGylated enzyme attached to a 17-heavy-atom fragment on a CID titled elapegademase. Clique UNII:9R3D3Y0UHS (INCHIKEY:XNGDIOBPVDBNQH-QMMMGPOBSA-N).
+#   DrugCentral: DrugCentral:5318 "elapegademase" -> PUBCHEM.COMPOUND:121488177 "Elapegademase"
+DrugCentral:5318 PUBCHEM.COMPOUND:121488177
+
+# ESTROGENS, CONJUGATED -- component: mixture attached to estrone sodium sulfate, a drug in its own right. Clique CHEBI:8389 (INCHIKEY:VUCAHVBMSFIGAI-ZFINNJDLSA-M).
+# Once cut loose it then joins the Conjugated estrogens clique (CID 45357473, DB00286, MeSH D004966).
+#   DrugCentral: DrugCentral:4855 "conjugated estrogens" -> CHEBI:8389 "estrone sodium sulfate"
+DrugCentral:4855 CHEBI:8389
+
+# ETESEVIMAB -- misattached: antibody attached to an unrelated benzothiophene. Clique UNII:N7Q9NLF11I (INCHIKEY:BNUWPGVZRDEWEX-ISTRZQFTSA-N).
+#   DrugCentral: DrugCentral:5454 "etesevimab" -> PUBCHEM.COMPOUND:44468170 "(1r,4s,5r)-1,4,5-Trihydroxy-3-[(5-Methyl-1-Benzothiophen-2-Yl)metho..."
+DrugCentral:5454 PUBCHEM.COMPOUND:44468170
+
+# FERUMOXSIL -- component: siloxane-coated iron oxide attached to hematite. Clique UNII:1K09F3G675 (INCHIKEY:LIKBJVNGSGBSGK-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5146 "ferumoxsil" -> PUBCHEM.COMPOUND:14833 "Hematite (Fe2O3)"
+DrugCentral:5146 PUBCHEM.COMPOUND:14833
+
+# FRUNEVETMAB -- misattached: antibody attached to an unrelated tricyclic heterocycle. Clique UNII:77O28MCS79 (INCHIKEY:XZJKMCMRBQLRNX-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5649 "frunevetmab" -> PUBCHEM.COMPOUND:168317717 "2-(7-bromo-12-methyl-9-oxo-5-thia-1,10,11-triazatricyclo[6.4.0.02,6..."
+DrugCentral:5649 PUBCHEM.COMPOUND:168317717
+
+# GEMTUZUMAB OZOGAMICIN -- component: ADC attached to its calicheamicin linker-payload (CID titled Mylotarg). Clique UNII:8GZG754X6M (INCHIKEY:IUPYOZANCCCTSM-HATVIOBMSA-N).
+#   DrugCentral: DrugCentral:4980 "gemtuzumab ozogamicin" -> PUBCHEM.COMPOUND:168322462 "Mylotarg"
+DrugCentral:4980 PUBCHEM.COMPOUND:168322462
+
+# GIVOSIRAN -- component: siRNA attached to its GalNAc ligand. Clique UNII:ROV204583W (INCHIKEY:RUPXJRIDSUCQAN-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5354 "givosiran" -> PUBCHEM.COMPOUND:156323004 "N-[1,3-bis[3-[3-[5-[3-acetamido-4,5-dihydroxy-6-(hydroxymethyl)oxan..."
+DrugCentral:5354 PUBCHEM.COMPOUND:156323004
+
+# GLUCARPIDASE -- misattached: enzyme attached to a 4-heavy-atom structure on a CID titled gamma-glutamyl hydrolase. Clique UNII:2GFP9BJD79 (INCHIKEY:LZQXMCNBQHANEY-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5138 "glucarpidase" -> PUBCHEM.COMPOUND:21195079 "gamma-Glutamyl hydrolase"
+DrugCentral:5138 PUBCHEM.COMPOUND:21195079
+
+# Human Growth Hormone -- different but related substance: somatropin (growth hormone) attached to GHRH(1-43). Clique UNII:NQX9KB6PCL (INCHIKEY:ORNDKVCWLUZAQL-FOWIMTFFSA-N).
+#   DrugCentral: DrugCentral:4848 "somatropin" -> PUBCHEM.COMPOUND:16132356 "Somatotropin releasing hormone (1-43)"
+DrugCentral:4848 PUBCHEM.COMPOUND:16132356
+
+# HYALURONIDASE (HUMAN RECOMBINANT) -- misattached: enzyme attached to an indolium dye hydrobromide. Clique PUBCHEM.COMPOUND:91820602 (INCHIKEY:SVMKEDBUSSWSFY-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5033 "hyaluronidase" -> PUBCHEM.COMPOUND:91820602 "6-(3,3-Dimethyl-2-methylideneindol-1-yl)hexanoic acid;hydrobromide"
+DrugCentral:5033 PUBCHEM.COMPOUND:91820602
+
+# IBRITUMOMAB TIUXETAN -- component: antibody conjugate attached to its tiuxetan chelator. Clique UNII:4Q52C550XK (INCHIKEY:RTQWWZBSTRGEAV-PKHIMPSTSA-N).
+#   DrugCentral: DrugCentral:4984 "ibritumomab tiuxetan" -> PUBCHEM.COMPOUND:74890578 "2-[[(2s)-2-[Bis(carboxymethyl)amino]-3-[4-(methylcarbamoylamino)phe..."
+DrugCentral:4984 PUBCHEM.COMPOUND:74890578
+
+# ICODEXTRIN -- misattached: glucose polymer attached to guanabenz. Clique CHEBI:92998 (INCHIKEY:WDZVGELJXXEGPV-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4105 "icodextrin" -> PUBCHEM.COMPOUND:3517 "2-[(2,6-Dichlorophenyl)methylideneamino]guanidine"
+DrugCentral:4105 PUBCHEM.COMPOUND:3517
+
+# INSULIN BEEF -- different but related substance: bovine insulin attached to human insulin zinc; the species differ by three residues. Clique CHEBI:228608 (INCHIKEY:LEMUFSYUPGXXCM-JNEQYSBXSA-N).
+#   DrugCentral: DrugCentral:5192 "insulin beef" -> PUBCHEM.COMPOUND:24839622 "Insulin human zinc [USP]"
+DrugCentral:5192 PUBCHEM.COMPOUND:24839622
+
+# IRON DEXTRAN -- misattached: iron-dextran complex attached to iron sulfate. Clique CHEBI:78291 (INCHIKEY:MVZXTUSAYBWAAM-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5562 "iron dextran" -> PUBCHEM.COMPOUND:105075 "Sulfuric acid, iron salt (1:?)"
+DrugCentral:5562 PUBCHEM.COMPOUND:105075
+
+# LIPEGFILGRASTIM -- component: glycoPEGylated protein attached to a glycan-linker fragment. Clique UNII:4AWF0N6QV3 (INCHIKEY:GAQMWPRWVIGRRV-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4991 "lipegfilgrastim" -> PUBCHEM.COMPOUND:77910626 "2-[[5-Acetamido-6-(1-amino-1-carboxypropan-2-yl)oxy-3,4-dihydroxyox..."
+DrugCentral:4991 PUBCHEM.COMPOUND:77910626
+
+# LYAPOLATE SODIUM -- polymer -> monomer: polymer attached to sodium vinylsulfonate monomer. Clique UNII:9461405D9F (INCHIKEY:BWYYYTVSBPRQCN-UHFFFAOYSA-M).
+#   DrugCentral: DrugCentral:4705 "sodium apolate" -> PUBCHEM.COMPOUND:3270262 "Sodium vinylsulfonate"
+DrugCentral:4705 PUBCHEM.COMPOUND:3270262
+
+# MIRVETUXIMAB SORAVTANSINE -- component: ADC attached to a 64-heavy-atom structure (CID titled huMov 19). Clique UNII:98DE7VN88D (INCHIKEY:ZOHXWSHGANNQGO-DSIKUUPMSA-N).
+#   DrugCentral: DrugCentral:5691 "mirvetuximab soravtansine" -> PUBCHEM.COMPOUND:91810695 "huMov 19"
+DrugCentral:5691 PUBCHEM.COMPOUND:91810695
+
+# MOXETUMOMAB PASUDOTOX -- misattached: immunotoxin attached to a 21-heavy-atom structure on a CID titled HA 22. Clique UNII:2NDX4B6N8F (INCHIKEY:JSKLXDBRUMMHQV-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5314 "moxetumomab pasudotox" -> PUBCHEM.COMPOUND:3035755 "HA 22"
+DrugCentral:5314 PUBCHEM.COMPOUND:3035755
+
+# OBINUTUZUMAB -- misattached: antibody attached to gibberellin A101. Clique UNII:O43472U9X8 (INCHIKEY:TVHWJBUVLOSPPI-NTQCNERDSA-N).
+#   DrugCentral: DrugCentral:4983 "obinutuzumab" -> PUBCHEM.COMPOUND:14160522 "Gibberellin A101"
+DrugCentral:4983 PUBCHEM.COMPOUND:14160522
+
+# OFATUMUMAB -- misattached: antibody attached to dimethyl ether. Clique CHEBI:28887 (INCHIKEY:LCGLNKUTAGEVQW-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4951 "ofatumumab" -> PUBCHEM.COMPOUND:8254 "Dimethyl Ether"
+DrugCentral:4951 PUBCHEM.COMPOUND:8254
+
+# OPRELVEKIN -- misattached: IL-11 attached to an unrelated succinimide. Clique UNII:HM5641GA6F (INCHIKEY:CPDUOSJMCFQXID-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5026 "oprelvekin" -> PUBCHEM.COMPOUND:146069 "N-(3-Methyl-2-pyridyl)-3-(4-chlorophenyl)succinimide"
+DrugCentral:5026 PUBCHEM.COMPOUND:146069
+
+# ORGOTEIN -- misattached: superoxide dismutase protein attached to a metal-ion structure. Clique UNII:PKE82W49V1 (INCHIKEY:TUGDLVFMIQZYPA-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5592 "orgotein" -> PUBCHEM.COMPOUND:72941490 "Copper-zinc superoxide dismutase"
+#   PUBCHEM_MESH: PUBCHEM.COMPOUND:72941490 "Copper-zinc superoxide dismutase" -> MESH:C005180 "orgotein"
+DrugCentral:5592 PUBCHEM.COMPOUND:72941490
+PUBCHEM.COMPOUND:72941490 MESH:C005180
+
+# PEGAPTANIB -- component: PEGylated aptamer attached to its lysine-linker fragment. Clique UNII:2H1PA8H1EN (INCHIKEY:WLCZTRVUXYALDD-IBGZPJMESA-N).
+#   DrugCentral: DrugCentral:4905 "pegaptanib" -> PUBCHEM.COMPOUND:56603655 "7-[[(2S)-2,6-bis(2-methoxyethoxycarbonylamino)hexanoyl]amino]heptox..."
+DrugCentral:4905 PUBCHEM.COMPOUND:56603655
+
+# PEGASPARGASE -- misattached: PEGylated enzyme attached to an unrelated screening compound. Clique UNII:7D96IR0PPM (INCHIKEY:QXLQZLBNPTZMRK-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5082 "pegaspargase" -> PUBCHEM.COMPOUND:436058 "PMID27977313-Compound-29"
+DrugCentral:5082 PUBCHEM.COMPOUND:436058
+
+# PEGFILGRASTIM -- component: PEGylated protein attached to a glycan-linker fragment. Clique UNII:3A58010674 (INCHIKEY:GAQMWPRWVIGRRV-IVDGIBIRSA-N).
+#   DrugCentral: DrugCentral:4986 "pegfilgrastim" -> PUBCHEM.COMPOUND:70683024 "(2R,4S,5R,6R)-2-[[(2R,3R,4R,5R,6S)-5-acetamido-6-[(1S,2R)-1-amino-1..."
+DrugCentral:4986 PUBCHEM.COMPOUND:70683024
+
+# POLIHEXANIDE -- polymer -> monomer: polymer attached to a single hexyl biguanide unit. Clique CHEBI:149520 (INCHIKEY:VAZJLPXFVQHDFB-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4692 "polihexanide" -> PUBCHEM.COMPOUND:20977 "N-Hexylimidodicarbonimidic diamide"
+#   DrugCentral: DrugCentral:4692 "polihexanide" -> CHEMBL.COMPOUND:CHEMBL2106939 "POLIHEXANIDE"
+DrugCentral:4692 PUBCHEM.COMPOUND:20977
+DrugCentral:4692 CHEMBL.COMPOUND:CHEMBL2106939
+
+# POLYESTRADIOL PHOSPHATE -- polymer -> monomer: polymer attached to estradiol phosphate. Clique UNII:P14877CDX2 (INCHIKEY:DGPHKOYFSODERC-CMZLOHJFSA-N).
+#   DrugCentral: DrugCentral:3482 "polyestradiol phosphate" -> PUBCHEM.COMPOUND:68579 "Phosphoric acid--estra-1(10),2,4-triene-3,17-diol (1/1)"
+DrugCentral:3482 PUBCHEM.COMPOUND:68579
+
+# POLYETHYLENE GLYCOL -- polymer -> monomer: polymer attached to ethylene glycol; ChEBI's PEG record itself sits in the core. Clique CHEBI:30742 (INCHIKEY:LYCAIKOWRPUZTN-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4253 "macrogol" -> CHEBI:46793 "poly(ethylene glycol)"
+#   DrugCentral: DrugCentral:4253 "macrogol" -> CHEMBL.COMPOUND:CHEMBL457299 "ETHYLENE GLYCOL"
+#   DrugCentral: DrugCentral:4253 "macrogol" -> PUBCHEM.COMPOUND:174 "Ethylene Glycol"
+#   wikipedia_mesh_chebi: MESH:D011092 "Polyethylene Glycols" -> CHEBI:46793 "poly(ethylene glycol)"
+DrugCentral:4253 CHEBI:46793
+DrugCentral:4253 CHEMBL.COMPOUND:CHEMBL457299
+DrugCentral:4253 PUBCHEM.COMPOUND:174
+MESH:D011092 CHEBI:46793
+
+# POLYVINYL ALCOHOL -- polymer -> monomer: polymer attached to ethanol. Clique CHEBI:16236 (INCHIKEY:LFQSCWFLJHTTHZ-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4279 "polyvinyl alcohol" -> CHEBI:17246 "poly(vinyl alcohol) macromolecule"
+#   wikipedia_mesh_chebi: MESH:D011142 "Polyvinyl Alcohol" -> CHEBI:17246 "poly(vinyl alcohol) macromolecule"
+DrugCentral:4279 CHEBI:17246
+MESH:D011142 CHEBI:17246
+
+# ROMIPLOSTIM -- misattached: peptibody attached to semaxanib. Clique CHEBI:91083 (INCHIKEY:WUWDLXZGHZSWQZ-WQLSENKSSA-N).
+#   DrugCentral: DrugCentral:4996 "romiplostim" -> PUBCHEM.COMPOUND:5329098 "Semaxanib"
+DrugCentral:4996 PUBCHEM.COMPOUND:5329098
+
+# SEBELIPASE ALFA -- misattached: enzyme attached to an unrelated hexapeptide. Clique UNII:K4YTU42T8G (INCHIKEY:BFPVYAOMWYSCLY-YTZISMEFSA-N).
+#   DrugCentral: DrugCentral:5028 "sebelipase alfa" -> PUBCHEM.COMPOUND:71354164 "H-Gly-Ala-Pro-Arg-Phe-Val-NH2"
+DrugCentral:5028 PUBCHEM.COMPOUND:71354164
+
+# SULODEXIDE -- misattached: glycosaminoglycan mixture attached to N6,2'-O-dimethyladenosine. Clique CHEBI:229469 (INCHIKEY:GRYSXUXXBDSYRT-WOUKDFQISA-N).
+#   DrugCentral: DrugCentral:4726 "sulodexide" -> PUBCHEM.COMPOUND:6453528 "N6,2'-O-Dimethyladenosine"
+DrugCentral:4726 PUBCHEM.COMPOUND:6453528
+
+# TECELEUKIN -- misattached: IL-2 attached to X-Gal. Clique CHEBI:75055 (INCHIKEY:OPIFSICVWOWJMJ-AEOCFKNESA-N).
+#   DrugCentral: DrugCentral:5484 "teceleukin" -> PUBCHEM.COMPOUND:65181 "X-Gal"
+DrugCentral:5484 PUBCHEM.COMPOUND:65181
+
+# TEPROTUMUMAB -- misattached: antibody attached to a nitrostyrylquinoline. Clique UNII:Y64GQ0KC0A (INCHIKEY:URIXDBULDXTIHZ-CSKARUKUSA-N).
+#   DrugCentral: DrugCentral:5387 "teprotumumab" -> PUBCHEM.COMPOUND:5376617 "2-[(E)-2-(3-nitrophenyl)vinyl]quinoline"
+DrugCentral:5387 PUBCHEM.COMPOUND:5376617
+
+# THYROTROPIN -- different but related substance: thyrotropin (TSH) attached to thyrotropin-releasing hormone. Clique CHEBI:81567 (INCHIKEY:XNSAINXGIQZQOO-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4930 "thyrotropin alfa" -> PUBCHEM.COMPOUND:32281 "5-Oxoprolylhistidylprolinamide"
+DrugCentral:4930 PUBCHEM.COMPOUND:32281
+
+# TOCILIZUMAB -- misattached: antibody attached to a MEK-inhibitor-like benzamide. Clique UNII:I031V2H011 (INCHIKEY:AMNKRBRQQAMACZ-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:4933 "tocilizumab" -> PUBCHEM.COMPOUND:10150081 "2-[(4-ethynyl-2-fluorophenyl)amino]-3,4-difluoro-N-(2-hydroxyethoxy..."
+DrugCentral:4933 PUBCHEM.COMPOUND:10150081
+
+# TRASTUZUMAB DERUXTECAN -- component: ADC attached to its deruxtecan linker-payload. Clique UNII:5384HK7574 (INCHIKEY:NGZLCPPVJKWNFY-OMQSLZIDSA-N).
+#   DrugCentral: DrugCentral:5367 "trastuzumab deruxtecan" -> PUBCHEM.COMPOUND:132508503 "6-(2,5-dioxo-3-sulfanylpyrrolidin-1-yl)-N-[2-[[2-[[(2S)-1-[[2-[[2-[..."
+DrugCentral:5367 PUBCHEM.COMPOUND:132508503
+
+# VELMANASE ALFA -- misattached: enzyme attached to zinc(2+). Clique CHEBI:29105 (INCHIKEY:PTFCDOFLOPIGGS-UHFFFAOYSA-N).
+#   DrugCentral: DrugCentral:5718 "velmanase" -> PUBCHEM.COMPOUND:32051 "Zinc(2+)"
+DrugCentral:5718 PUBCHEM.COMPOUND:32051

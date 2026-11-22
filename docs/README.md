@@ -16,7 +16,7 @@ This folder contains reference documentation for Babel, organized by audience.
 | Document                             | Description                                                                             |
 |--------------------------------------|-----------------------------------------------------------------------------------------|
 | [RunningBabel.md](./RunningBabel.md) | Build instructions, configuration, Snakemake targets, and system requirements.          |
-| [tools/README.md](./tools/README.md) | Developer/operations tools under `tools/`: the `tools/slurm` run analyzer (failing-rule aggregation and resource right-sizing) and the `tools/memory` RDF-load estimator. Per-tool detail under [tools/](./tools/). |
+| [tools/README.md](./tools/README.md) | Developer tools under `src/tools/`: the source-impact report, the build-vs-build clique diff, the SLURM run analyzer, and the RDF-load estimator — plus the convention for writing a new one. Per-tool detail under [tools/](./tools/). |
 | [Deployment.md](./Deployment.md)     | Release checklist and deployment instructions for Node Normalization and Name Resolver. |
 | [Babel.ipynb](./Babel.ipynb)         | Interactive Jupyter notebook demonstrating what running Babel looks like.               |
 
@@ -27,5 +27,6 @@ This folder contains reference documentation for Babel, organized by audience.
 | [Architecture.md](./Architecture.md) | Source code layout, data-flow narrative, key data structures (concord files, compendium JSONL), and key patterns (factory pattern, TSVSQLiteLoader, union-find, Biolink Model integration).                                              |
 | [Development.md](./Development.md)   | Development workflow, how to obtain prerequisites, how to build individual compendia, known challenges, and ideas for improving the pipeline.                                                                                            |
 | [Testing.md](./Testing.md)           | Testing strategy: what to automate, recommended cadence by environment (per-PR, nightly, weekly, pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other testing strategies worth considering.                      |
+| [AgentInstructions.md](./AgentInstructions.md) | The `AGENTS.md` files for coding agents: why there are no `CLAUDE.md` files, how to add a directory-scoped one, and which Claude Code versions load them. |
 | [Triage.md](./Triage.md)             | **Part 1 (for users):** how to file a useful bug report, assign priority/impact/size, and track when your issue will be addressed. **Part 2 (for developers):** triage checklist, automated test syntax, and sprint planning heuristics. |
 | [sources/README.md](./sources/)      | Per-source documentation: how Babel downloads, parses, types, and routes an individual upstream data source's identifiers, with one directory per source named by its CURIE prefix.                                                       |

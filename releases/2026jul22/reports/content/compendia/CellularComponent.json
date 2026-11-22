@@ -1,0 +1,60 @@
+{
+  "compendium_path": "babel_outputs/compendia/CellularComponent.txt",
+  "count_by_biolink_type": {
+    "biolink:CellularComponent": 9469
+  },
+  "count_by_prefix": {
+    "CL": 1,
+    "GO": 4075,
+    "MESH": 278,
+    "NCIT": 1453,
+    "SNOMEDCT": 565,
+    "UBERON": 7,
+    "UMLS": 8439
+  },
+  "count_lines": 9469,
+  "counters": {
+    "clique_count": 9469,
+    "cliques_by_description_count": {
+      "0": 4052,
+      "1": 5319,
+      "2": 91,
+      "3": 7
+    },
+    "cliques_by_id_count": {
+      "1": 4546,
+      "2": 4644,
+      "3": 169,
+      "4": 81,
+      "5": 24,
+      "6": 4,
+      "9": 1
+    },
+    "cliques_by_label_count": {
+      "0": 391,
+      "1": 4566,
+      "2": 4298,
+      "3": 165,
+      "4": 44,
+      "5": 4,
+      "7": 1
+    },
+    "cliques_by_unique_description_count": {
+      "0": 4052,
+      "1": 5319,
+      "2": 91,
+      "3": 7
+    },
+    "cliques_by_unique_label_count": {
+      "0": 391,
+      "1": 8542,
+      "2": 458,
+      "3": 64,
+      "4": 12,
+      "5": 1,
+      "6": 1
+    }
+  },
+  "name": "CellularComponent",
+  "report_path": "babel_outputs/reports/content/compendia/CellularComponent.json"
+}

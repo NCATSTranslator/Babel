@@ -6,7 +6,7 @@ import urllib.request
 from src.babel_utils import get_config, get_user_agent, pull_via_ftp
 from src.metadata.provenance import write_metadata
 from src.prefixes import PANTHERFAMILY
-from src.util import get_logger
+from src.util import ensure_parent_dir, get_logger
 
 logger = get_logger(__name__)
 
@@ -31,7 +31,7 @@ def pull_pantherfamily():
 
     http_url = HTTP_BASE + FTP_FILE
     logger.info(f"Downloading {http_url} → {ofilename}")
-    os.makedirs(os.path.dirname(ofilename), exist_ok=True)
+    ensure_parent_dir(ofilename)
     req = urllib.request.Request(http_url, headers={"User-Agent": get_user_agent()})
     try:
         with urllib.request.urlopen(req, timeout=300) as resp, open(ofilename, "wb") as outf:

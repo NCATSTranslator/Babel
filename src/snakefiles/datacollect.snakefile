@@ -12,6 +12,7 @@ import src.datahandlers.uniprotkb as uniprotkb
 import src.datahandlers.mods as mods
 import src.datahandlers.ncit as ncit
 import src.datahandlers.doid as doid
+import src.datahandlers.gard as gard
 import src.datahandlers.orphanet as orphanet
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
@@ -218,6 +219,9 @@ rule get_uniprotkb_labels:
         outfile=config["download_directory"] + "/UniProtKB/labels",
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_labels.tsv"
+    resources:
+        # Peaks at ~40 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
+        mem="48G",
     run:
         uniprotkb.pull_uniprot_labels(input.sprot_input, input.trembl_input, output.outfile)
 
@@ -228,14 +232,37 @@ rule get_uniprotkb_labels:
 rule get_mesh:
     output:
         config["download_directory"] + "/MESH/mesh.nt",
+        # The dump's URL, SHA-1 and MeSH year, for the registry concords' metadata.
+        rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_mesh.tsv"
     retries: 3  # MeSH FTP download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
+    params:
+        # A param, so that changing mesh_year reruns the download.
+        mesh_year=config["mesh_year"],
     run:
-        mesh.pull_mesh()
+        mesh.pull_mesh(params.mesh_year, output.rdf_source)
+
+
+# The MeSH XML is only used for registry numbers (CAS, UNII, NCBITaxon), which the RDF dump no longer carries.
+rule get_mesh_xml:
+    output:
+        config["download_directory"] + "/MESH/desc.xml.gz",
+        config["download_directory"] + "/MESH/supp.xml.gz",
+        # Each file's URL (current or archived directory), SHA-1 and NLM timestamp, for the registry concords'
+        # metadata. NLM publishes no checksums for the XML, and the current year's can change between downloads.
+        xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_mesh_xml.tsv"
+    retries: 3  # MeSH FTP download occasionally fails transiently.
+    params:
+        # A param, so that changing mesh_year reruns the download.
+        mesh_year=config["mesh_year"],
+    run:
+        mesh.pull_mesh_xml(params.mesh_year, output.xml_sources)
 
 
 rule get_mesh_labels:
@@ -247,6 +274,31 @@ rule get_mesh_labels:
         config["output_directory"] + "/benchmarks/get_mesh_labels.tsv"
     run:
         mesh.pull_mesh_labels()
+
+
+# Registry numbers (CAS, UNII, EC, NCBI Taxon) of the MeSH records in the RDF dump, parsed once from the XML for
+# rules get_chemical_mesh_relationships and get_taxon_relationships.
+rule get_mesh_registry:
+    input:
+        desc_xml=config["download_directory"] + "/MESH/desc.xml.gz",
+        supp_xml=config["download_directory"] + "/MESH/supp.xml.gz",
+        labels=config["download_directory"] + "/MESH/labels",
+        # Checked to be for the same MeSH year before the XML is filtered against the dump's labels.
+        rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
+    output:
+        config["download_directory"] + "/MESH/registry.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_mesh_registry.tsv"
+    run:
+        mesh.write_mesh_registry(
+            input.desc_xml,
+            input.supp_xml,
+            input.labels,
+            output[0],
+            rdf_source_file=input.rdf_source,
+            xml_sources_file=input.xml_sources,
+        )
 
 
 rule get_mesh_synonyms:
@@ -618,6 +670,42 @@ rule get_orphanet_labels_and_synonyms:
         orphanet.pull_orphanet_labels_and_synonyms(input.infile, output.labelfile, output.synonymfile)
 
 
+### GARD
+
+
+rule get_gard:
+    # NCATS Genetic and Rare Diseases registry term list. The distribution is a Salesforce
+    # ContentVersion download link (query string, no stable filename), fetched directly rather
+    # than via pull_via_urllib (whose url + in_file_name assembly does not fit a query string).
+    output:
+        outfile=config["download_directory"] + "/GARD/gard.csv",
+        # Provenance for the download: which upload, from where, when, and what Babel keeps of it.
+        # Written here because this rule is the only place that sees the HTTP response, and the
+        # response carries the two strings that stand in for GARD's missing version number.
+        metadata_yaml=config["download_directory"] + "/GARD/metadata.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gard.tsv"
+    retries: 3  # Salesforce CDN occasionally fails transiently.
+    params:
+        # Declared as params (not read from config inside run:) so that repointing
+        # gard_download_url actually retriggers the download instead of reusing a stale CSV.
+        url=config["gard_download_url"],
+    run:
+        gard.pull_gard(params.url, output.outfile, output.metadata_yaml)
+
+
+rule get_gard_labels_and_synonyms:
+    input:
+        infile=config["download_directory"] + "/GARD/gard.csv",
+    output:
+        labelfile=config["download_directory"] + "/GARD/labels",
+        synonymfile=config["download_directory"] + "/GARD/synonyms",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gard_labels_and_synonyms.tsv"
+    run:
+        gard.pull_gard_labels_and_synonyms(input.infile, output.labelfile, output.synonymfile)
+
+
 ### Reactome
 
 
@@ -669,7 +757,7 @@ rule get_rhea_labels:
     benchmark:
         config["output_directory"] + "/benchmarks/get_rhea_labels.tsv"
     run:
-        rhea.make_labels(output.labelfile)
+        rhea.make_labels(input.infile, output.labelfile)
 
 
 ### EC
@@ -697,7 +785,7 @@ rule get_EC_labels:
     benchmark:
         config["output_directory"] + "/benchmarks/get_EC_labels.tsv"
     run:
-        ec.make_labels(output.labelfile, output.synonymfile)
+        ec.make_labels(input.infile, output.labelfile, output.synonymfile)
 
 
 ### SMPDB
@@ -835,17 +923,28 @@ rule chembl_labels_and_smiles:
 
 
 ### DrugBank requires a login... but not for basic vocabulary information.
-rule get_drugbank_labels_and_synonyms:
+rule get_drugbank_vocabulary:
     output:
         outfile=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_drugbank_vocabulary.tsv"
+    retries: 3  # DrugBank download occasionally fails transiently.
+    run:
+        drugbank.download_drugbank_vocabulary(config["drugbank_version"], output.outfile)
+
+
+# Split out from get_drugbank_vocabulary so that rule's `retries: 3` only re-runs the flaky
+# download, not the label/synonym extraction.
+rule get_drugbank_labels_and_synonyms:
+    input:
+        infile=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
+    output:
         labels=config["download_directory"] + "/DRUGBANK/labels",
         synonyms=config["download_directory"] + "/DRUGBANK/synonyms",
     benchmark:
         config["output_directory"] + "/benchmarks/get_drugbank_labels_and_synonyms.tsv"
-    retries: 3  # DrugBank download occasionally fails transiently.
     run:
-        drugbank.download_drugbank_vocabulary(config["drugbank_version"], output.outfile)
-        drugbank.extract_drugbank_labels_and_synonyms(output.outfile, output.labels, output.synonyms)
+        drugbank.extract_drugbank_labels_and_synonyms(input.infile, output.labels, output.synonyms)
 
 
 ### GTOPDB We're only pulling ligands.  Maybe one day we'll want the whole db?
@@ -944,6 +1043,9 @@ rule hmdb_labels_and_synonyms:
         smifile=config["download_directory"] + "/HMDB/smiles",
     benchmark:
         config["output_directory"] + "/benchmarks/hmdb_labels_and_synonyms.tsv"
+    resources:
+        # Peaks at ~30 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
+        mem="48G",
     run:
         hmdb.make_labels_and_synonyms_and_smiles(input.infile, output.labelfile, output.synfile, output.smifile)
 
@@ -1080,6 +1182,8 @@ rule get_chebi:
     output:
         config["download_directory"] + "/CHEBI/ChEBI_complete.sdf",
         config["download_directory"] + "/CHEBI/database_accession.tsv",
+        config["download_directory"] + "/CHEBI/source.tsv",
+        config["download_directory"] + "/CHEBI/status.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_chebi.tsv"
     retries: 3  # ChEBI FTP download occasionally fails transiently.
