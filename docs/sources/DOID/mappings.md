@@ -25,7 +25,7 @@ single member the prefix renames moved.
 
 MONDO is not at fault. Its concord's most-shared target is claimed by just two subjects — i.e.
 essentially 1:1 curated exact matches — and the `MONDO:0019064 -> DOID:2476` edge is correct. Every
-many-to-one edge here is DOID's. This is the failure mode [`docs/sources/CLAUDE.md`](../CLAUDE.md)
+many-to-one edge here is DOID's. This is the failure mode [`docs/sources/AGENTS.md`](../AGENTS.md)
 documents under "An OBO `hasDbXref` is not an equivalence".
 
 ## Why the filter is scoped to ICD, and why it is a filter rather than an exclusion
@@ -76,9 +76,9 @@ The third column is what ships. Against the categorical exclusion it **keeps 4,8
 identifiers** — very nearly the 4,841 1:1 rows — while fixing the same mega-cliques: every probe
 collapses to the same size either way, and the largest clique in the build falls from 307 to 99.
 
-The probes are anchored on **DOID**, not MONDO. `glom()`'s `DISEASE_UNIQUE_PREFIXES` refuses a merge
-that would put two MONDO ids in one clique, so in the `ICD kept` column an inflated family
-*fragments* and a MONDO probe lands in an arbitrary small piece of it — reading as though the
+The probes are anchored on **DOID**, not MONDO. `glom()`'s `disease_unique_prefixes` (`config.yaml`)
+refuses a merge that would put two MONDO ids in one clique, so in the `ICD kept` column an inflated
+family *fragments* and a MONDO probe lands in an arbitrary small piece of it — reading as though the
 problem were absent. DOID is unrestricted, so a DOID probe measures the merge itself.
 
 It does leave more large cliques than the exclusion (23 vs 16 at `>=50`, 747 vs 609 at `>=20`).
@@ -143,10 +143,10 @@ confirms it: ICD members go from 38 to 6,452 across the two disease compendia �
 `ICD9` 2,192, `ICD10CM` 2,012 and `icd11` 5 — with `ICD0` contributing nothing on either side.
 
 MONDO's `ICD10CM:` had the same defect and is worked around here, by listing the prefix in
-`config.yaml: disease_extra_prefixes` so `write_compendium()` keeps it (see "Open before release"
-below). `ICD0` is deliberately **not** given the same treatment: an ICD-O code is a tumour
-*morphology*, so emitting one asserts a disease equivalence nobody has decided. That question is
-[issue #1037](https://github.com/NCATSTranslator/Babel/issues/1037). Neither is a regression this
+`config.yaml: disease_extra_prefixes_by_biolink_class` so `write_compendium()` keeps it (see "Open
+before release" below). `ICD0` is deliberately **not** given the same treatment: an ICD-O code is a
+tumour *morphology*, so emitting one asserts a disease equivalence nobody has decided. That question
+is [issue #1037](https://github.com/NCATSTranslator/Babel/issues/1037). Neither is a regression this
 change introduces.
 
 ## Overuse in DOID's other namespaces is still open
@@ -189,9 +189,9 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
   cliques together, which is what mappings that were previously joining nothing should do.
 
   The `ICD10CM:` members are emitted deliberately ahead of the Biolink Model, which registers no
-  such prefix for `biolink:Disease` — see `config.yaml: disease_extra_prefixes`. They ride along as
-  clique members and can never be the preferred CURIE (`write_compendium()` appends
-  `extra_prefixes` after the registered ones), so they will not normalize until
+  such prefix for `biolink:Disease` — see `config.yaml: disease_extra_prefixes_by_biolink_class`.
+  They ride along as clique members and can never be the preferred CURIE (`write_compendium()`
+  appends `extra_prefixes` after the registered ones), so they will not normalize until
   [issue #1033](https://github.com/NCATSTranslator/Babel/issues/1033) unifies the spelling. Keeping
   MONDO's ~2,030 curated ICD-10 mappings in the output beats discarding them and re-deriving them
   later.
@@ -206,7 +206,7 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
   boundary — see `input_data/umls_badxrefs.txt` and `input_data/badHPx.txt`. The upstream error is
   that `UMLS:C0015306` "Hereditary Multiple Exostoses" and `NCIT:C3339` "Familial Adenomatous
   Polyposis", both diseases, sit inside HP phenotype cliques; those pairs work around it rather
-  than fixing it. This is the check [`docs/sources/CLAUDE.md`](../CLAUDE.md) describes under "Where
+  than fixing it. This is the check [`docs/sources/AGENTS.md`](../AGENTS.md) describes under "Where
   an identifier ends up is a claim about it".
 
 - [ ] **EFO and HP emit ICD xrefs too** (62 and 46 rows), and MONDO emits 2,030 under the other

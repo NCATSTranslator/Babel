@@ -21,7 +21,7 @@ Each scenario rebuilds the DOID concord through the production
 ``build_disease_doid_relationships()`` -- toggling the production
 ``OVERUSE_FILTERED_CONCORDS`` -- and then replays the production
 ``compute_cliques_for_impact_report()`` over a finished build's ``intermediate/disease/``. Nothing
-here reimplements the pipeline, so the measurement cannot drift from it (see docs/sources/CLAUDE.md,
+here reimplements the pipeline, so the measurement cannot drift from it (see docs/sources/AGENTS.md,
 "Replaying a pipeline function beats rebuilding to measure a change"). A replay only sees the
 cliques the build already produced, so it cannot show cliques that move *between* compendia --
 confirm with ``babel-clique-diff`` on a real build before trusting the totals.
@@ -56,7 +56,7 @@ from src.prefixes import DOID
 
 # Cliques probed individually in the report, one per ICD-10 code that inflated a clique.
 #
-# Anchored on DOID, not MONDO. glom()'s DISEASE_UNIQUE_PREFIXES refuses a merge that would put two
+# Anchored on DOID, not MONDO. glom()'s disease_unique_prefixes (config.yaml) refuses a merge that would put two
 # MONDO ids in one clique, so in the "ICD kept" scenario the inflated family *fragments* and a MONDO
 # probe lands in an arbitrary small piece of it -- reading as though the problem were absent. DOID is
 # not a restricted prefix, so a DOID probe measures the merge itself. Each of these is the family

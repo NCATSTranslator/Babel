@@ -1,3 +1,4 @@
+import io
 from collections import defaultdict
 from os import path
 
@@ -12,12 +13,16 @@ from src.babel_utils import (
     read_badxrefs,
     read_identifier_file,
     remove_overused_xrefs,
-    write_compendium,
+    unique_prefixes_from_config,
 )
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
+from src.datahandlers.gard import normalize_gard_curie
 from src.metadata.provenance import write_concord_metadata
+from src.model.compendia import write_typed_compendia
+from src.model.intermediates import read_concords
 from src.prefixes import (
     DOID,
+    GARD,
     HP,
     ICD0,
     ICD9,
@@ -47,8 +52,14 @@ DISEASE_OBO_SOURCES = {
 # by the Babel prefix `config.yaml: disease_xref_prefixes` names. YAML cannot say "OMIM, unless the
 # id starts with PS, in which case OMIM.PS", so the config states the common case and the exception
 # lives here; norm() accepts either a replacement prefix or a callable taking the whole CURIE.
+#
+# GARD is a rename of the local id, not the prefix: sources write the registry's zero-padded form
+# (GARD:0006038) and Babel standardizes on the unpadded one (GARD:6038). Every source that emits GARD
+# xrefs must list `GARD: GARD` in its disease_xref_prefixes block to pick this up; a source that does
+# not would reintroduce the padded/unpadded split (see src/datahandlers/gard.py, "Local-id form").
 LOCAL_ID_DEPENDENT_RENAMES = {
     OMIM: lambda curie: Text.omim_curie(Text.un_curie(curie)),
+    GARD: normalize_gard_curie,
 }
 
 
@@ -70,14 +81,6 @@ def get_xref_prefix_map(source):
         )
     return {key: LOCAL_ID_DEPENDENT_RENAMES.get(value, value) for key, value in mapping.items()}
 
-
-# Prefixes glom() rejects a *same-prefix* merge for: if a clique would end up holding two
-# distinct identifiers of one of these prefixes (e.g. two different MONDO ids, or two
-# different HP/MP ids), the merge is refused rather than silently accepted. MONDO, HP, and MP
-# are each meant to be the single authoritative identifier of their kind within a clique, so
-# an accidental same-prefix collision (e.g. via a bad transitive MESH/SNOMED bridge) is a
-# data-quality signal worth catching rather than merging through.
-DISEASE_UNIQUE_PREFIXES = [MONDO, HP, MP]
 
 # Prefix groups that must never co-occur in a single clique. After glom, any clique that
 # holds identifiers from two or more prefixes within a group is split: the first-listed
@@ -136,16 +139,33 @@ DOID_ICD_XREF_PREFIXES = [ICD10, ICD9, ICD0, ICD11]
 # mapped to the target prefixes the filter may drop (None = every namespace, the original
 # behaviour). Other concord sources are trusted as-is. MONDO/HP/EFO/MP are unscoped because their
 # UberGraph xrefs have the "one xref target claimed by many source ids" failure mode across the
-# board; DOID is scoped to ICD because that is the only namespace of its xrefs where being claimed
-# twice reliably means the mapping is wrong -- MESH:D010195 "Pancreatitis" is legitimately claimed
-# by both DOID:4989 "pancreatitis" and DOID:2913 "acute pancreatitis", and an unscoped filter would
-# discard the correct mapping along with the too-broad one.
+# board; DOID is scoped to ICD and GARD because those are the only namespaces of its xrefs where
+# being claimed twice reliably means the mapping is wrong -- MESH:D010195 "Pancreatitis" is
+# legitimately claimed by both DOID:4989 "pancreatitis" and DOID:2913 "acute pancreatitis", and an
+# unscoped filter would discard the correct mapping along with the too-broad one.
+#
+# GARD joins DOID's list because a registry term names one rare disease, so two DOID terms citing
+# it is the ICD family-code failure in miniature. 12 of DOID's 2,196 distinct GARD targets are
+# claimed twice: GARD:625 fuses DOID:0051080 "Alport syndrome 3B" with DOID:0110033 "Alport
+# syndrome 2", and GARD:7674 pulls DOID:0060160 "childhood spinal muscular atrophy" out of its
+# MONDO clique. MONDO's own mapping (MONDO_GARD) still places every one of the 12 in its proper
+# clique, so the filter costs nothing -- and it makes DOID:0061030 "hemophilia"'s typo GARD:0418 ->
+# GARD:418 "Essential pentosuria" (claimed by DOID:0111258 too) a no-op; see src/datahandlers/gard.py.
+#
+# MONDO_GARD is MONDO's hasDbXref mapping to GARD, taken without a bad-xrefs file. It is 1:1 today
+# (tests/pipeline/test_mondo_gard.py), but MONDO is a unique prefix, so a future release mapping one
+# GARD id to two MONDO terms would make glom() hand the id to whichever row sorts first with no
+# error. Routing it through the filter turns that into "neither claims it" -- the id then reaches
+# its clique only through DOID, or stays a single-identifier clique -- instead of a silent wrong
+# merge. The file is deduplicated when written (build_disease_obo_relationships), which matters
+# here: the filter counts rows, so a pair written once per MONDO root would count as overused.
 OVERUSE_FILTERED_CONCORDS = {
     "MONDO": None,
     "HP": None,
     "EFO": None,
     "MP": None,
-    "DOID": DOID_ICD_XREF_PREFIXES,
+    "DOID": DOID_ICD_XREF_PREFIXES + [GARD],
+    f"{MONDO}_{GARD}": [GARD],
 }
 
 # Per-source bad-xref files used when build_compendium is called without explicit
@@ -251,7 +271,10 @@ def write_omim_ids(infile, outfile):
                 outf.write(f"{OMIM}:{chunks[0]}\t{DISEASE}\n")
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the disease ids/MESH. Records with an NCBI Taxon registry number in mesh_registry (rule
+    get_mesh_registry's TSV) are left to taxon, whatever tree they are in; mesh.write_ids() decides that (#1240).
+    """
     # NOTE: C02 (Virus Diseases) and C03 (Parasitic Diseases) are intentionally absent
     # below.  Before adding them, verify that MESH terms in those trees have adequate
     # cross-references to MONDO (our primary disease source) and/or HPO (our primary
@@ -284,17 +307,18 @@ def write_mesh_ids(outfile):
     ]
     meshmap = {i: DISEASE for i in dcodes}
     meshmap["C23"] = PHENOTYPIC_FEATURE
-    mesh.write_ids(meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE])
+    mesh.write_ids(
+        meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE], pipeline="disease", mesh_registry=mesh_registry
+    )
 
 
-def write_umls_ids(mrsty, outfile, badumlsfile):
-    badumls = set()
-    with open(badumlsfile) as inf:
-        for line in inf:
-            if line.startswith("#"):
-                continue
-            umlscui = line.split()[0]
-            badumls.add(umlscui)
+def write_umls_ids(mrsty, outfile, badumlsfile, *, mesh_ownership=None):
+    """Select the UMLS CUIs the disease/phenotype pipeline claims by semantic type, minus ``badumls``.
+
+    ``mesh_ownership`` (the umls_mesh_ownership rule's output) makes a CUI follow its MeSH descriptor
+    (umls.apply_mesh_ownership): a CUI another pipeline owns is dropped here and a CUI this pipeline owns is added.
+    """
+    badumls = umls.read_cui_blocklist(badumlsfile)
     # Disease
     # B2.2.1.2.1 Disease or Syndrome
     # A1.2.2.1 Congenital Abnormality
@@ -333,7 +357,14 @@ def write_umls_ids(mrsty, outfile, badumlsfile):
     # A2.3 Organism Attribute
     # Includes things like "Age" which will merge with EFOs
     umlsmap["A2.3"] = PHENOTYPIC_FEATURE
-    umls.write_umls_ids(mrsty, umlsmap, outfile, blocklist_umls_ids=badumls)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        blocklist_umls_ids=badumls,
+        mesh_ownership=mesh_ownership,
+        pipeline="disease",
+    )
 
 
 def build_disease_obo_relationships(outdir, metadata_yamls):
@@ -373,6 +404,52 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
         sources=[{"type": "UberGraph", "name": "MONDO"}],
         description=f"ubergraph.build_sets() (close matches) of {MONDO}:0000001 and {MONDO}:0042489, including ORPHANET prefixes",
         concord_filename=f"{outdir}/{MONDO}_close",
+    )
+
+    # MONDO's GARD mappings are the one hasDbXref exception in this build. MONDO asserts all
+    # ~15,930 of them as oboInOwl:hasDbXref and *none* as skos:exactMatch/closeMatch, so the two
+    # concords above see none of them -- and GARD, being a registry rather than an ontology,
+    # asserts no mappings of its own. Without this file 98% of GARD lands in single-identifier
+    # cliques that duplicate concepts MONDO already names, which is exactly the split-clique
+    # outcome an ingest is supposed to avoid (see docs/AddingNewSources.md, "Prefer joining an
+    # existing clique").
+    #
+    # It gets its own concord rather than being folded into MONDO's, and the allowlist is
+    # fail-closed at exactly one prefix, because MONDO's *other* hasDbXref targets are emphatically
+    # not equivalences -- an unrestricted pass would merge on ICD/MEDDRA family codes the way
+    # DOID's did (#1031). Keeping it separate puts the exception in `disease_concords` where a
+    # reviewer sees it, and lets it be filtered or dropped without touching MONDO's exact matches.
+    # The mapping is 1:1 in both directions today (tests/pipeline/test_mondo_gard.py checks the
+    # real concord); OVERUSE_FILTERED_CONCORDS drops any GARD id a future MONDO release maps
+    # twice, so that property is enforced at build time and not only in a pipeline test.
+    #
+    # MONDO writes GARD in the registry's zero-padded form (GARD:0022702); `mondo_prefixes` carries
+    # the GARD -> normalize_gard_curie rename that strips it (LOCAL_ID_DEPENDENT_RENAMES), without
+    # which these would not join DOID's unpadded xrefs or GARD's own ids file. See
+    # docs/sources/MONDO/README.md.
+    #
+    # Terms under both roots would be written once per root; the rows are deduplicated because
+    # remove_overused_xrefs counts rows, and a doubled pair would read as a GARD id claimed twice.
+    buffer = io.StringIO()
+    for mondo_root in ("MONDO:0000001", "MONDO:0042489"):
+        build_sets(mondo_root, {MONDO: buffer}, set_type="xref", other_prefixes=mondo_prefixes, allowed_prefixes={GARD})
+    with open(f"{outdir}/{MONDO}_{GARD}", "w") as outfile:
+        outfile.writelines(sorted(set(buffer.getvalue().splitlines(keepends=True))))
+
+    write_concord_metadata(
+        metadata_yamls[f"{MONDO}_{GARD}"],
+        name="build_disease_obo_relationships()",
+        sources=[{"type": "UberGraph", "name": "MONDO"}],
+        description=(
+            "ubergraph.build_sets() (oboInOwl:hasDbXref) of MONDO:0000001 and MONDO:0042489, "
+            f"restricted to target prefix {GARD} and unpadded by gard.normalize_gard_curie(). "
+            "MONDO asserts its GARD mappings only as hasDbXref, never as skos:exactMatch, so they "
+            "are invisible to the MONDO/MONDO_close concords; every other hasDbXref target is "
+            "deliberately excluded. Rationale and the excluded namespaces: "
+            "docs/sources/MONDO/README.md"
+        ),
+        url="https://github.com/NCATSTranslator/Babel/blob/main/docs/sources/MONDO/README.md",
+        concord_filename=f"{outdir}/{MONDO}_{GARD}",
     )
 
     # MP cross-references. Standard subClassOf walk from the MP root. Most of MP's declared
@@ -433,9 +510,169 @@ def build_disease_doid_relationships(idfile, outfile, metadata_yaml):
         metadata_yaml,
         name="build_disease_doid_relationships()",
         description=f"build_disease_doid_relationships() using the DOID ID file {idfile} and other_prefixes "
-        f"{other_prefixes}; ICD targets ({DOID_ICD_XREF_PREFIXES}) are kept here and overuse-filtered at glom",
+        f"{other_prefixes}; ICD and GARD targets ({DOID_ICD_XREF_PREFIXES + [GARD]}) are kept here and overuse-filtered at glom",
         concord_filename=outfile,
         sources=[{"type": "DOID", "name": "doid.build_xrefs"}],
+    )
+
+
+def normalize_label_for_matching(label):
+    """Fold a label to the key `build_gard_label_concord()` matches on.
+
+    Case-insensitive: a source that writes "Genu varum" and one that writes "Genu Varum" mean the
+    same disease, and requiring identical casing does not merely lose those matches -- measured
+    against the GARD ids MONDO and DOID already place, case-sensitive matching is ten times *worse*
+    (2.64% wrong against 0.21%), because it skips past the right clique on a capital letter and then
+    matches some other clique that happens to be capitalized the same way.
+    """
+    return label.strip().lower()
+
+
+def build_gard_label_concord(
+    gard_labels,
+    match_ids_files,
+    match_labels_files,
+    other_concords,
+    outfile,
+    metadata_yaml,
+):
+    """Link GARD registry terms to identically labelled identifiers already in this pipeline.
+
+    GARD is a registry, not an ontology: it publishes no cross-references at all, so its terms reach
+    cliques only through MONDO's and DOID's inbound xrefs (the MONDO_GARD and DOID concords). ~277
+    registry terms are mapped by neither and ship as single-identifier cliques that duplicate a
+    concept Babel already names -- `GARD:27461` "Odontogenic Carcinoma" sits alone beside the
+    existing `UMLS:C5401355` + `NCIT:C173720` clique carrying the identical label. No source Babel
+    ingests connects them: the registry CSV has no xref column, MRCONSO has no GARD source
+    vocabulary, and NCIt asserts no GARD provenance. The label is the only signal there is, and it
+    measures well -- see docs/sources/GARD/label-matches/README.md for the numbers and how to reproduce
+    them.
+
+    The rule, for each GARD id **no other disease concord mentions**: walk `match_ids_files` in order
+    (the order of `config.yaml: disease_gard_label_match_prefixes`) and stop at the first vocabulary
+    holding an identifier with the same normalized label. Emit one row if that vocabulary holds
+    exactly one such identifier; skip the term otherwise.
+
+    Two guards carry the safety of this concord, and neither is optional:
+
+    1. **Skip GARD ids another concord already places.** Those already sit in a curated clique, and
+       re-deciding them by label would be a licence to fuse. Run over them as a held-out test, the
+       rule disagrees with the xref-derived clique 33 times in 15,370 -- harmless as an error rate,
+       catastrophic as 33 attempted merges of curated MONDO cliques.
+
+    2. **At most one row per GARD id.** Because guard 1 leaves only GARD ids that appear in no other
+       concord, each is a single-identifier clique, so one pair can only union `{GARD:x}` into the
+       target's clique. This concord is therefore *structurally incapable* of merging two
+       pre-existing cliques -- the invariant is enforced here, by construction, rather than detected
+       downstream by a warning nobody reads (AGENTS.md, "A log warning is not a control"). Emitting
+       every matching identifier instead would have put 475 existing clique pairs at risk of fusion.
+
+    A third guard used to live here and does not any more, which is worth knowing before adding it
+    back. `disease_gard_ids` types every registry term `biolink:Disease`, but a handful name
+    concepts HP also names, and the clique type vote rightly follows HP -- five terms today,
+    "Chilblains" among them. While `config.yaml`'s extra-prefixes allowlist named GARD for
+    `biolink:Disease` only, joining such a clique **deleted** the GARD identifier rather than moving
+    it to `PhenotypicFeature.txt`, so this function refused to link those targets and shipped a
+    duplicate single-identifier Disease clique beside the phenotype clique naming the same thing.
+    The allowlist now names GARD for both classes, so the identifier follows its clique and the
+    guard has nothing left to prevent. Do not reintroduce it: it cost five correct links, and the
+    check it needed (reglomming every other concord, because the clique that types those five is
+    formed through UMLS two hops from the target, where no label or ids-file inspection reaches it)
+    was by far the most expensive thing in this module.
+
+    HP and MP are absent from `disease_gard_label_match_prefixes` for a related but separate reason:
+    `split_mutually_exclusive_cliques()` keeps phenotype and disease cliques disjoint on purpose, so
+    matching a GARD term *directly* onto an HP or MP term asserts an identity this pipeline is built
+    to refuse. Reaching an HP-led clique through one of its other members, as those five do, is a
+    different thing and is fine.
+
+    There is no OVERUSE_FILTERED_CONCORDS entry. An identifier claimed by two GARD ids means the
+    registry carries the same label twice; both joining the same clique is the right outcome, not an
+    overuse to filter.
+
+    :param gard_labels: `babel_downloads/GARD/labels`, the registry's labels (unpadded CURIEs).
+    :param match_ids_files: this pipeline's ids files for the match pool, in priority order. The ids
+        file, not the labels file, is the authoritative identifier set: `babel_downloads/NCIT/labels`
+        carries every NCIt term, chemicals and anatomy included, and matching against those would
+        link a rare disease to whatever else happens to share its name.
+    :param match_labels_files: the corresponding `babel_downloads/<PREFIX>/labels`, same order.
+    :param other_concords: every other disease concord. Any GARD CURIE they name is skipped
+        (guard 1).
+    """
+    if len(match_ids_files) != len(match_labels_files):
+        raise ValueError(
+            f"match_ids_files ({len(match_ids_files)}) and match_labels_files ({len(match_labels_files)}) "
+            "must be parallel lists in the same priority order"
+        )
+
+    # Guard 1. Read the GARD ids from the concord files themselves rather than from a hardcoded
+    # (MONDO_GARD, DOID) pair, so a third source that starts emitting GARD xrefs cannot silently
+    # escape this.
+    claimed = set()
+    for concord in other_concords:
+        for row in read_concords(concord):
+            for curie in row:
+                if Text.get_prefix_or_none(curie) == GARD:
+                    claimed.add(curie)
+
+    # normalized label -> CURIEs, one dict per pool vocabulary, in priority order.
+    labels_by_vocabulary = []
+    for idsfile, labelsfile in zip(match_ids_files, match_labels_files):
+        with open(idsfile) as inf:
+            known_ids = {line.split("\t")[0] for line in inf}
+        matchable = defaultdict(set)
+        with open(labelsfile) as inf:
+            for line in inf:
+                curie, _, label = line.rstrip("\n").partition("\t")
+                if curie in known_ids and label.strip():
+                    matchable[normalize_label_for_matching(label)].add(curie)
+        labels_by_vocabulary.append(matchable)
+        logger.info(f"build_gard_label_concord(): {len(matchable)} matchable labels from {labelsfile} ({idsfile})")
+
+    # Guard 2: one row per GARD id, at most.
+    count_rows = count_skipped_claimed = count_skipped_ambiguous = count_unmatched = 0
+    with open(gard_labels) as inf, open(outfile, "w") as outf:
+        for line in inf:
+            gard_curie, _, gard_label = line.rstrip("\n").partition("\t")
+            if gard_curie in claimed:
+                count_skipped_claimed += 1
+                continue
+            key = normalize_label_for_matching(gard_label)
+            for matchable in labels_by_vocabulary:
+                if key not in matchable:
+                    continue
+                if len(matchable[key]) == 1:
+                    outf.write(f"{gard_curie}\txref\t{next(iter(matchable[key]))}\n")
+                    count_rows += 1
+                else:
+                    # Two identifiers of one vocabulary share this label: the vocabulary itself does
+                    # not say which concept the registry means, so neither can we.
+                    count_skipped_ambiguous += 1
+                break
+            else:
+                count_unmatched += 1
+
+    logger.info(
+        f"build_gard_label_concord(): wrote {count_rows} rows to {outfile}; "
+        f"skipped {count_skipped_claimed} GARD ids already placed by another concord, "
+        f"{count_skipped_ambiguous} ambiguous within a vocabulary, and "
+        f"{count_unmatched} with no label match"
+    )
+
+    write_concord_metadata(
+        metadata_yaml,
+        name="build_gard_label_concord()",
+        sources=[{"type": "GARD", "name": "GARD registry labels"}],
+        description=(
+            "build_gard_label_concord() links each GARD term that no other disease concord places to the one "
+            "identically labelled identifier (case-insensitive) in the first of "
+            f"{[path.basename(f) for f in match_ids_files]} that holds exactly one. GARD publishes no "
+            "cross-references, so a label match is the only signal "
+            "available; one row per GARD id means this concord can join a GARD id to an existing clique but never "
+            "merge two of them. Measured precision and the full row list: docs/sources/GARD/label-matches/README.md"
+        ),
+        url="https://github.com/NCATSTranslator/Babel/blob/main/docs/sources/GARD/label-matches/README.md",
+        concord_filename=outfile,
     )
 
 
@@ -446,6 +683,7 @@ def compute_cliques_for_impact_report(
     *,
     mondoclose=None,
     badxrefs=None,
+    mesh_ownership=None,
 ):
     """Load disease/phenotype identifier and concord files and return the union-find
     clique state without writing compendia.
@@ -461,14 +699,19 @@ def compute_cliques_for_impact_report(
       look for a path in `concordances` whose basename matches MONDO_CLOSE_BASENAME
       and pull it out of the iterated list. If absent the close map is empty (which
       preserves the CLI's ability to run before all intermediates are built).
-    * Per-source bad-xrefs filtering for HP/MONDO/UMLS, and `remove_overused_xrefs`
-      only for MONDO/HP/EFO. If `badxrefs` is None we use ``DEFAULT_BAD_XREFS``.
+    * A concord named ``A_B`` (``MONDO_close``, ``MONDO_GARD``) is excluded when either
+      ``A`` or ``B`` is in `excluded_sources`, so ``--source GARD`` and ``--source MONDO``
+      both see a "before" state without MONDO's GARD mappings.
+    * Per-source bad-xrefs filtering (``DEFAULT_BAD_XREFS`` when `badxrefs` is None) and
+      `remove_overused_xrefs` scoped per ``OVERUSE_FILTERED_CONCORDS``.
 
     :param concordances: list of paths to concord files
     :param identifiers: list of paths to ids files
     :param excluded_sources: set of source basenames (e.g. ``{"MP"}``) to skip
     :param mondoclose: explicit MONDO_close path; otherwise discovered by basename
     :param badxrefs: explicit basename->path dict; otherwise DEFAULT_BAD_XREFS
+    :param mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another
+        pipeline owns are skipped (umls.read_cuis_owned_elsewhere). None skips nothing.
     :returns: ``(dicts, types)`` — glom dict-of-sets and the CURIE->biolink-type map
     """
     excluded = set(excluded_sources)
@@ -489,18 +732,22 @@ def compute_cliques_for_impact_report(
             f"(known concords: {sorted(concord_basenames)}). Fix the key or register the concord."
         )
 
+    # A concord named `A_B` (MONDO_close, MONDO_GARD) is A's data about B, so it must be skipped
+    # whenever *either* side is excluded: a `--source GARD` impact-report "before" run that kept
+    # MONDO_GARD would already hold every GARD CURIE and report that adding GARD merged nothing,
+    # and a `--source MONDO` run that kept it would under-count MONDO by ~15.9k joins.
+    def is_excluded(concord_path):
+        return bool(excluded & set(path.basename(concord_path).split("_")))
+
     # MONDO_close is not a regular concord; pull it out of the iterated list so it
     # isn't double-loaded. Production already passes it as a separate `mondoclose`
     # argument and doesn't include it in `concordances`; this branch only fires when
-    # the impact-report CLI auto-discovered concord files from disk. MONDO_close is
-    # MONDO's own close-match data, so it must be skipped whenever "MONDO" itself is
-    # excluded -- otherwise a `--source MONDO` impact-report "before" computation would
-    # still apply the close-match guard even though MONDO is supposed to be fully absent.
+    # the impact-report CLI auto-discovered concord files from disk.
     iterated_concords = []
     discovered_mondoclose = None
     for c in concordances:
         if path.basename(c) == MONDO_CLOSE_BASENAME:
-            if MONDO not in excluded:
+            if not is_excluded(c):
                 discovered_mondoclose = c
         else:
             iterated_concords.append(c)
@@ -509,6 +756,9 @@ def compute_cliques_for_impact_report(
     elif MONDO in excluded:
         mondoclose = None
 
+    owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "disease")
+    # MONDO, HP and MP: see disease_unique_prefixes in config.yaml.
+    unique_prefixes = unique_prefixes_from_config("disease_unique_prefixes")
     dicts = {}
     types = {}
     for ifile in identifiers:
@@ -516,34 +766,27 @@ def compute_cliques_for_impact_report(
             continue
         logger.info("Reading identifiers from %s", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=DISEASE_UNIQUE_PREFIXES)
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
 
     close_mondos = defaultdict(set)
     if mondoclose is not None:
-        with open(mondoclose) as inf:
-            for line in inf:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                # MONDO_close is a 3-column concord (subject, predicate, object), written by
-                # ubergraph.build_sets() exactly like the regular concords below.
-                #
-                # NOTE: this intentionally preserves the long-standing behaviour from `main` of
-                # keying on x[1] (the predicate, e.g. "oio:closeMatch") rather than x[2] (the
-                # close-match object). Because no clique ever contains the literal predicate
-                # string, glom()'s `close=` guard never matches and has effectively been a no-op.
-                # Fixing it to x[2] activates the guard and changes disease clique merging
-                # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
-                # to a dedicated follow-up PR (#888, `fix-mondo-close-guard`) with its own
-                # before/after impact analysis rather than riding along with the MP addition.
-                x = tuple(stripped.split("\t"))
-                if len(x) != 3:
-                    raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
-                close_mondos[x[0]].add(x[1])
+        # MONDO_close is a 3-column concord (subject, predicate, object), written by
+        # ubergraph.build_sets() exactly like the regular concords below, and read by the same
+        # strict parser.
+        for subject, predicate, _obj in read_concords(mondoclose):
+            # NOTE: this intentionally preserves the long-standing behaviour from `main` of
+            # keying on the predicate (e.g. "oio:closeMatch") rather than the object (the
+            # close-match CURIE). Because no clique ever contains the literal predicate
+            # string, glom()'s `close=` guard never matches and has effectively been a no-op.
+            # Fixing it to the object activates the guard and changes disease clique merging
+            # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
+            # to a dedicated follow-up PR (#888, `fix-mondo-close-guard`) with its own
+            # before/after impact analysis rather than riding along with the MP addition.
+            close_mondos[subject].add(predicate)
 
     for infile in iterated_concords:
-        if path.basename(infile) in excluded:
+        if is_excluded(infile):
             continue
         logger.info("Reading concords from %s", infile)
         pairs = []
@@ -554,19 +797,15 @@ def compute_cliques_for_impact_report(
         else:
             logger.info("No bad xrefs configured for %s", pref)
             bad_pairs = set()
-        with open(infile) as inf:
-            for line in inf:
-                stuff = line.strip().split("\t")
-                if len(stuff) != 3:
-                    raise RuntimeError('Line "', line.strip(), '" is not a valid concord: ', stuff)
-                x = tuple([stuff[0].strip(), stuff[2].strip()])
-                if x not in bad_pairs:
-                    pairs.append(x)
+        for subject, _predicate, obj in read_concords(infile):
+            x = (subject, obj)
+            if x not in bad_pairs and not umls.names_cui_owned_elsewhere(subject, obj, owned_elsewhere):
+                pairs.append(x)
         if pref in OVERUSE_FILTERED_CONCORDS:
             newpairs = remove_overused_xrefs(pairs, target_prefixes=OVERUSE_FILTERED_CONCORDS[pref])
         else:
             newpairs = pairs
-        glom(dicts, newpairs, unique_prefixes=DISEASE_UNIQUE_PREFIXES, close={MONDO: close_mondos})
+        glom(dicts, newpairs, unique_prefixes=unique_prefixes, close={MONDO: close_mondos})
 
     # Enforce HP/MP (and any other configured) disjointness as the final step, so BOTH the
     # real build (build_compendium) and the source-impact report (which diffs these dicts)
@@ -643,31 +882,34 @@ def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=None):
     return dicts
 
 
-def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename):
+def build_compendium(
+    concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename, mesh_ownership=None
+):
     """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
+    :identifiers: a list of files from which to read identifiers and optional categories
+    :mesh_ownership: the umls_mesh_ownership rule's file (see compute_cliques_for_impact_report)"""
     dicts, types = compute_cliques_for_impact_report(
         concordances,
         identifiers,
         mondoclose=mondoclose,
         badxrefs=badxrefs,
+        mesh_ownership=mesh_ownership,
     )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
-    # Prefixes Biolink does not register for these classes but that we ship anyway; without this
-    # write_compendium() drops them silently after they have already merged cliques. See
-    # config.yaml: disease_extra_prefixes for which, and why each one is there.
-    extra_prefixes = get_config()["disease_extra_prefixes"]
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(
-            metadata_yamls,
-            sets,
-            f"{baretype}.txt",
-            biotype,
-            {},
-            extra_prefixes=extra_prefixes,
-            icrdf_filename=icrdf_filename,
-        )
+    # Prefixes Biolink does not register for a clique's class but that we ship anyway; without this
+    # write_compendium() drops them silently, after they have already merged cliques in glom(). See
+    # config.yaml: disease_extra_prefixes_by_biolink_class for which, and why each one is there.
+    #
+    # extra_prefixes is a per-class allowlist and this loop writes several classes, so the list is
+    # looked up per class rather than passed whole: an exemption argued for one class must not be
+    # granted to the rest. A class with no entry gets nothing.
+    extra_prefixes_by_class = get_config()["disease_extra_prefixes_by_biolink_class"]
+    write_typed_compendia(
+        metadata_yamls,
+        typed_sets,
+        icrdf_filename,
+        extra_prefixes_for=lambda biotype: extra_prefixes_by_class.get(biotype, []),
+    )
 
 
 def classify_disease_clique(equivalent_ids, types):

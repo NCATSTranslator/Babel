@@ -1,8 +1,18 @@
 """Tests for src/util.py helpers."""
 
+import duckdb
 import pytest
+import yaml
 
-from src.util import Text, _biolink_ref, ensure_parent_dir
+from src.util import (
+    Text,
+    _biolink_ref,
+    curie_format_problem,
+    ensure_parent_dir,
+    safe_load_yaml_unique_keys,
+    sql_list,
+    sql_str,
+)
 
 
 @pytest.mark.unit
@@ -66,6 +76,19 @@ class TestGetBiolinkModelToolkitNetwork:
         element = toolkit.get_element("chemical entity")
         assert element is not None
 
+    def test_toolkit_is_cached_per_version(self):
+        """Two calls for the same version must return the same Toolkit, and different versions must not share one.
+
+        Constructing a Toolkit fetches biolink-model.yaml over the network and parses it through
+        linkml. write_compendium() builds a NodeFactory -- and so a Toolkit -- on every call, and
+        the chemical build calls write_compendium once per entry in config.yaml: chemical_outputs,
+        so without the cache that is eight fetches and eight parses in one rule.
+        """
+        from src.util import get_biolink_model_toolkit
+
+        assert get_biolink_model_toolkit("4.4.2") is get_biolink_model_toolkit("4.4.2")
+        assert get_biolink_model_toolkit("4.4.2") is not get_biolink_model_toolkit("4.4.1")
+
 
 @pytest.mark.unit
 class TestEnsureParentDir:
@@ -111,3 +134,85 @@ class TestOmimCurie:
         """omim.org URLs reach the same helper, so the two call sites cannot drift."""
         assert Text.opt_to_curie("https://omim.org/PS303350") == "OMIM.PS:303350"
         assert Text.opt_to_curie("https://omim.org/115210") == "OMIM:115210"
+
+
+# CURIE FORMAT
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "curie",
+    [
+        # Malformed CURIEs shipped in babel-1.18 (2026jul22).
+        "UniProtKB:P0DP24|P0DP23|P0DP25",  # #1109
+        "doi:10.3760/cma. j. issn.2095-4352. 2014. 07.015",  # PMID:25027433, #1112
+        "doi:10.31857/S0026898424050076, EDN: HUNTKB",  # PMID:39970118, #1112
+        "PMID:25167691 ",  # trailing space, from the EFO xrefs
+        "PMID:1\t2",
+        "NCIT:C123 ",  # non-breaking space
+        "MONDO:0000001\x00",
+        "MONDO0000001",
+        ":0000001",
+        "MONDO:",
+    ],
+)
+def test_curie_format_problem_rejects_malformed_curies(curie):
+    """Should report a problem for whitespace, "|", control characters, or a missing prefix/local ID."""
+    assert curie_format_problem(curie) is not None
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "curie",
+    [
+        # Real shipped CURIEs whose local IDs use punctuation that an "alphanumeric only" rule would reject.
+        "INCHIKEY:RGXATDXOZOLMMY-UHFFFAOYSA-N",
+        "PANTHER.FAMILY:PTHR24377:SF1013",
+        "UniProtKB:P0DP24-1",
+        "EC:7.6.2.4",
+        "ENSEMBL:F53B6.2c.1",
+        "REACT:R-HSA-937045",
+        "icd11:2A81.Z",
+        "doi:10.1097/01.brs.0000182083.43553.fa",
+    ],
+)
+def test_curie_format_problem_accepts_valid_punctuation(curie):
+    """Should accept real CURIEs whose local IDs contain punctuation, including further colons."""
+    assert curie_format_problem(curie) is None
+
+
+# YAML LOADING
+
+
+@pytest.mark.unit
+def test_safe_load_yaml_unique_keys_reads_what_safe_load_reads():
+    """A document without repeated keys, nested mappings included, should load exactly as yaml.safe_load()."""
+    text = "a: [1, 2]\nb:\n  c: x\n  d: y\n"
+    assert safe_load_yaml_unique_keys(text) == yaml.safe_load(text)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a: 1\nb: 2\na: 3\n", id="top-level"),
+        pytest.param("outer:\n  a: 1\n  a: 2\n", id="nested"),
+    ],
+)
+def test_safe_load_yaml_unique_keys_refuses_a_repeated_key(text):
+    """A mapping that repeats a key should raise, naming the key, where yaml.safe_load() would silently keep the
+    last value."""
+    with pytest.raises(yaml.constructor.ConstructorError, match="duplicate key 'a'"):
+        safe_load_yaml_unique_keys(text)
+
+
+# SQL LITERALS
+
+
+@pytest.mark.unit
+def test_sql_str_and_sql_list_survive_an_embedded_quote():
+    """A value holding a single quote (a path like gaurav's-builds) should round-trip through DuckDB unchanged."""
+    value = "/home/me/gaurav's-builds/duckdb"
+    con = duckdb.connect()
+    assert con.sql(f"SELECT {sql_str(value)}").fetchone()[0] == value
+    assert con.sql(f"SELECT {sql_list([value, 'plain'])}").fetchone()[0] == [value, "plain"]

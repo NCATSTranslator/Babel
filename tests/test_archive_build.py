@@ -75,6 +75,17 @@ def test_manifest_takes_the_summary_files_and_nothing_else(tmp_path):
 
 
 @pytest.mark.unit
+def test_manifest_takes_optional_files_only_when_present(tmp_path):
+    """A build from before reports/umls_mesh_skew.json existed (2026jul22) must still archive; a later one
+    archives the file."""
+    build = _make_build(tmp_path)
+    assert "reports/umls_mesh_skew.json" not in abd.resolve_manifest(build)
+
+    (build / "reports" / "umls_mesh_skew.json").write_text("{}")
+    assert "reports/umls_mesh_skew.json" in abd.resolve_manifest(build)
+
+
+@pytest.mark.unit
 def test_a_missing_required_file_names_every_one_that_is_missing(tmp_path):
     """One report per run, not one per re-run: an incomplete build should fail once, informatively."""
     build = _make_build(tmp_path)

@@ -2,6 +2,7 @@
 
 Invocation:
     uv run source-impact-report --source EMAPA
+    uv run source-impact-report --source GARD --concord GARD --concord GARD_label
 
 The CLI discovers where the source contributes (across one or more pipelines),
 runs a synthetic re-glom with and without the source for each registered pipeline,
@@ -38,6 +39,7 @@ from src.model.glom_diff import (
     cliques_from_compendia,
     diff_cliques,
 )
+from src.model.intermediates import is_metadata_sidecar
 from src.model.source import SourceContribution, discover_source, scan_concords_for_curies, summarize_xref_groups
 from src.reports.source_impact import (
     EXPANDED_SAMPLE_LIMIT,
@@ -108,14 +110,10 @@ PIPELINE_CONFIG: dict[str, dict] = {
 
 
 def _list_source_files(directory: pathlib.Path) -> list[pathlib.Path]:
-    """Return non-metadata files in a `concords/` or `ids/` directory."""
+    """Return the non-metadata files in a `concords/` or `ids/` directory (see `is_metadata_sidecar()`)."""
     if not directory.exists():
         return []
-    return sorted(
-        p
-        for p in directory.iterdir()
-        if p.is_file() and not p.name.startswith("metadata-") and not p.name.endswith(".yaml")
-    )
+    return sorted(p for p in directory.iterdir() if p.is_file() and not is_metadata_sidecar(p.name))
 
 
 def _compute_synthetic_diff(
@@ -139,8 +137,14 @@ def _compute_synthetic_diff(
 
     logger.info("synthetic diff for %s: %d ids files, %d concord files", pipeline, len(identifiers), len(concordances))
 
-    after_dicts, after_types = compute_fn(concordances, identifiers)
-    before_dicts, _ = compute_fn(concordances, identifiers, excluded_sources={source_name})
+    # The build skips concord pairs naming a CUI another pipeline owns (umls.read_cuis_owned_elsewhere); an
+    # intermediate directory from before the umls_mesh_ownership rule has no such file and skips nothing.
+    mesh_ownership = intermediate_root / "umls" / "mesh_ownership.tsv"
+    mesh_ownership = str(mesh_ownership) if mesh_ownership.exists() else None
+    after_dicts, after_types = compute_fn(concordances, identifiers, mesh_ownership=mesh_ownership)
+    before_dicts, _ = compute_fn(
+        concordances, identifiers, excluded_sources={source_name}, mesh_ownership=mesh_ownership
+    )
 
     diff = diff_cliques(before_dicts, after_dicts, source_curies, babel_pipeline=pipeline)
     return diff, after_types
@@ -418,6 +422,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Name of the source (matches the basename used in intermediate/<type>/{ids,concords}/<name>).",
     )
     parser.add_argument(
+        "--concord",
+        action="append",
+        dest="concords",
+        default=None,
+        metavar="NAME",
+        help="Basename of a concord file this source writes, repeatable. Default: the source name. "
+        "Pass it when a source's concord is named something else -- GARD's label-match concord is "
+        "GARD_label, so: --source GARD --concord GARD --concord GARD_label. Without it that concord "
+        "is treated as another source's data and the report says zero cross-references were added. "
+        "The names used are recorded in the report header.",
+    )
+    parser.add_argument(
         "--pipelines",
         default=None,
         help="Comma-separated list of pipelines to analyse. Default: auto-detect from filesystem.",
@@ -506,7 +522,7 @@ def main(argv: list[str] | None = None) -> int:
     intermediate_root = pathlib.Path(args.intermediate_root)
     compendia_root = pathlib.Path(args.compendia_root)
 
-    contribution = discover_source(args.source, intermediate_root)
+    contribution = discover_source(args.source, intermediate_root, concord_names=args.concords)
     if not contribution.by_pipeline:
         logger.error(
             "no intermediate files found for source %r under %s",
@@ -567,7 +583,7 @@ def main(argv: list[str] | None = None) -> int:
     xref_groups = [
         group
         for st in sorted(xref_rows_by_pipeline)
-        for group in summarize_xref_groups(xref_rows_by_pipeline[st], st, contribution.name)
+        for group in summarize_xref_groups(xref_rows_by_pipeline[st], st, contribution.concord_names)
     ]
 
     lookup = _build_lookup_context(

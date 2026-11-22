@@ -75,8 +75,25 @@ In `src/createcompendia/<pipeline>.py`:
 - Add concord-extraction logic. For OBO sources sharing `build_anatomy_obo_relationships()`,
   this means adding the source to the open-file map and the prefix list. Other sources have
   bespoke extraction functions (`build_anatomy_umls_relationships`, etc.).
-- Include the source's prefix in the `unique_prefixes` argument to `glom()` if its
-  identifiers must remain pairwise-unique within a clique.
+- Write only well-formed CURIEs, into both the ids file and the concords. `write_compendium()` fails
+  the compendium rule if any CURIE it writes has whitespace, `|` or a control character, or lacks a
+  prefix or local ID (`curie_format_problem()` in `src/util.py`). A CURIE can reach a compendium
+  through a concord alone: #1109 shipped `UniProtKB:P0DP24|P0DP23|P0DP25` because NCIt lists
+  several accessions in one field. Parse a multi-valued field, and skip what you can't parse, where
+  the source is read.
+- Add the source's prefix to `config.yaml: <pipeline>_unique_prefixes` if its identifiers must
+  remain pairwise-unique within a clique. Every pipeline whose `glom()` can merge anything keeps
+  its restriction there (#882) and reads it with `unique_prefixes_from_config()`, which rejects
+  anything but a list of prefixes defined in `src/prefixes.py`: `UBERON` rather than `[UBERON]`
+  used to restrict the letters U, B, E, R, O and N instead, without a word
+  (`validate_unique_prefixes()` in `src/babel_utils.py`). It also rejects an empty list. The rule
+  that runs the builder declares the entry as a `params:` value (`unique_prefixes=config[...]`), so
+  that editing it reruns the rule; a new reader needs one too, and
+  `tests/babel_utils/test_unique_prefixes_from_config.py` fails without it.
+  `glom()` has no default for `unique_prefixes`, so a new pipeline must name its restriction; pass
+  `()` in code only where it cannot matter, such as a builder that loads ids files alone
+  (`cell_line`, `genefamily`, `macromolecular_complex`), or where restricting nothing is the
+  design (the GeneProtein conflation).
 
   **This can silently delete identifiers, so check what it makes compete.** `glom()` keeps
   whichever CURIE of a restricted prefix it encounters **first** and refuses the rest. A refused
@@ -114,6 +131,48 @@ In `src/createcompendia/<pipeline>.py`:
   ended up unrestricted — but UBERON and GO are still restricted, so the ordering guarantee is what
   makes any such tie-break reproducible.)
 
+#### Prefer joining an existing clique
+
+A new source's identifiers should end up **in the cliques that already describe those concepts**,
+not in new cliques beside them. Two cliques for one concept is worse than either alternative: Node
+Normalization returns two different answers depending on which identifier a caller happens to hold,
+and Name Resolver returns both for one query, so a user has to decide by hand which "zygomycosis"
+they meant. A source that lands as thousands of single-identifier cliques has usually not been
+integrated — it has been *deposited*.
+
+So when a source arrives with few or no cross-references, treat "does anything already map these
+identifiers?" as a question to answer before shipping, not after. It is often another vocabulary
+that carries the mapping, and it may carry it in a form the pipeline does not currently read. GARD
+is the worked example: as a registry it asserts no mappings at all, and DOID's xrefs cover only
+2,195 of its 16,214 terms — but MONDO maps 15,930 of them, purely as `oboInOwl:hasDbXref`, which the
+MONDO concord (exact matches only) does not read. Ingesting those as a separate `MONDO_GARD` concord
+took GARD from 14,319 stranded single-identifier cliques to 277, and the disease compendium grew by
+258 cliques instead of 14,319. See [`docs/sources/MONDO/README.md`](sources/MONDO/README.md).
+
+This does **not** license trusting every `hasDbXref` — most are not equivalences, and the reasons
+are in [`docs/sources/AGENTS.md`](sources/AGENTS.md). It means the question deserves asking per
+namespace rather than being settled once per source. Two signals worth weighing:
+
+- **A 1:1 mapping is strong evidence of curation.** When N terms on one side map to exactly N on the
+  other, with no target claimed twice, someone has already done the disambiguation — very likely a
+  domain expert, and very likely more carefully than a heuristic will. MONDO↔GARD is 1:1 in both
+  directions across 15,936 pairs. A many-to-one mapping is the opposite signal: it usually means one
+  side names families and the other names members, which is how DOID's ICD codes fused 61 mutually
+  exclusive subtypes into a single clique
+  ([#1031](https://github.com/NCATSTranslator/Babel/issues/1031)).
+- **Label agreement across the pair.** Cheap to check in bulk, and it distinguishes "these are the
+  same thing" from "these are related things".
+
+When the answer is yes for one namespace and no for the rest, scope the exception rather than
+widening the rule: a separate concord file with `allowed_prefixes` fixed at that one prefix keeps
+the exception visible in `config.yaml: <pipeline>_concords`, lets it be filtered or dropped on its
+own, and gives it a metadata block that records why it exists. Then make the build enforce the
+property you relied on rather than only testing it: here, an `OVERUSE_FILTERED_CONCORDS` entry
+scoped to GARD drops any id a future MONDO release maps twice, so the 1:1 assumption fails closed
+instead of silently awarding the id to whichever row sorts first. A `pipeline`-marked test on top
+(`tests/pipeline/test_mondo_gard.py`) tells you *when* the source loses the property, which the
+filter alone would hide.
+
 ### 4. Wire Snakemake rules
 
 In `src/snakefiles/<pipeline>.snakefile`:
@@ -133,6 +192,7 @@ Add the source name to the per-pipeline config lists:
 - `<pipeline>_prefixes`
 - `<pipeline>_ids`
 - `<pipeline>_concords`
+- `<pipeline>_unique_prefixes` if the source's identifiers must stay one per clique (step 3)
 - `generate_dirs_for_labels_and_synonyms_prefixes` if the source produces its own labels
   and synonyms (UberGraph-backed sources typically do not).
 
@@ -149,7 +209,7 @@ Optional expansion files: `download.md`, `filtering.md`, `mappings.md`.
 The PR itself is read by a subject-matter expert rather than a code reviewer, so lead its
 description with what the addition does to existing cliques and how the source will be
 represented, and put each judgement call to them as a checkbox. See "Writing the PR for a new
-source" in [`docs/sources/CLAUDE.md`](sources/CLAUDE.md) for the section order that works, and
+source" in [`docs/sources/AGENTS.md`](sources/AGENTS.md) for the section order that works, and
 [#781](https://github.com/NCATSTranslator/Babel/pull/781) for the worked example.
 
 Wherever a doc file mentions a specific ontology term by CURIE, link it to its OBO PURL
@@ -280,7 +340,7 @@ on a laptop is to assemble the inputs from a published build:
 
    ```bash
    BASE="https://stars.renci.org/var/babel/<recent-build>/intermediate/anatomy"
-   ROOT="/tmp/impact/intermediate/anatomy"
+   ROOT="data/impact/intermediate/anatomy"
    mkdir -p "$ROOT/ids" "$ROOT/concords"
    for f in UBERON GO CL MESH NCIT UMLS; do
        curl -sf "$BASE/ids/$f" -o "$ROOT/ids/$f"
@@ -297,7 +357,7 @@ on a laptop is to assemble the inputs from a published build:
 
    ```bash
    uv run source-impact-report --source <SOURCE> --mode synthetic \
-       --intermediate-root /tmp/impact/intermediate \
+       --intermediate-root data/impact/intermediate \
        --output docs/sources/<SOURCE>/impact-report.md
    ```
 

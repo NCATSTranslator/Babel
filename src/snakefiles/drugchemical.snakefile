@@ -74,6 +74,9 @@ rule drugchemical_conflation:
         # Peaked at 57.0 GiB = 61.2 GB on both babel-1.17 and 2026jul22 (see docs/tools/Resources.md),
         # i.e. 96% of 64 GB -- raised a bucket rather than run the next release that close to an OOM.
         mem="96G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["drugchemical_unique_prefixes"],
     run:
         drugchemical.build_conflation(
             input.drugchemical_manual_concord,

@@ -4,11 +4,11 @@ import re
 import shutil
 import sqlite3
 import subprocess
-import tempfile
 import time
 import traceback
 import urllib
-from collections import defaultdict
+from collections import ChainMap, Counter, defaultdict
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timedelta
 from enum import Enum
 from ftplib import FTP
@@ -25,7 +25,8 @@ from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
 from src.synonyms.filter import get_synonym_filter
-from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
+from src.util import Text, curie_format_problem, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
+from src.utils.ftp import retrieve_ftp_file
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
@@ -60,10 +61,14 @@ class TypedClique(NamedTuple):
         (e.g. ``"biolink:Disease"``).  Use the named constants in ``src/categories.py``
         rather than raw strings.
     :param identifiers: The list of CURIEs that belong to this clique.
+    :param labels: Optional ``{curie: label}`` for this clique only, consulted before the ``labels``
+        mapping passed to :func:`write_compendium`. Lets a caller stream tens of millions of cliques
+        (Publication: one title per PMID) without first building one global labels dict.
     """
 
     node_type: str
     identifiers: list[str]
+    labels: dict[str, str] | None = None
 
 
 def parse_rdf_literal(literal: str) -> str:
@@ -165,7 +170,9 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
     """Retrieve data via ftp.
     Setting decompress=True will ungzip the data
     If outfilename is None (default) then the data will be returned.
-    Otherwise it will be written to the downloads directory."""
+    Otherwise it will be written to the downloads directory, through src.utils.ftp.retrieve_ftp_file(), so the
+    file only ever appears complete: an interrupted transfer or decompression leaves nothing under its name for
+    a later run to mistake for a finished download."""
     ftp = FTP(ftpsite)
     ftp.login()
     ftp.cwd(ftpdir)
@@ -187,24 +194,24 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
     print(f"  writing data to {ofilename}")
     print(f"{ftpsite}/{ftpdir}/{ftpfile}")
     if not decompress_data:
-        with open(ofilename, "wb") as ofile:
-            ftp.retrbinary(f"RETR {ftpfile}", ofile.write)
-            ftp.quit()
+        retrieve_ftp_file(ftp, ftpfile, ofilename)
+        ftp.quit()
     else:
         # Stream the compressed file to a temp file rather than buffering it all in
         # memory with BytesIO+gzip.decompress — the old approach needed ~2× the
         # uncompressed size in RAM (e.g. ~35+ GB for ChEMBL's 17 GB TTL).
-        tmp_path = None  # set before try so finally can always check it
+        tmp_path = f"{ofilename}.download.gz"
+        part_path = f"{ofilename}.part"
         try:
-            with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
-                tmp_path = tmp.name
-                ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
-                ftp.quit()
-            with gzip.open(tmp_path, "rt") as gz_in, open(ofilename, "w") as ofile:
+            retrieve_ftp_file(ftp, ftpfile, tmp_path)
+            ftp.quit()
+            with gzip.open(tmp_path, "rt") as gz_in, open(part_path, "w") as ofile:
                 shutil.copyfileobj(gz_in, ofile)
+            os.replace(part_path, ofilename)
         finally:
-            if tmp_path is not None and os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+            for path in (tmp_path, part_path):
+                if os.path.exists(path):
+                    os.unlink(path)
     return ofilename
 
 
@@ -277,17 +284,33 @@ def raise_if_cloudflare_challenge(download_url: str, local_file_name: str, error
     Retrying or changing the User-Agent won't help: this is served identically to a real
     browser. Raise immediately with instructions for a human to download the file manually.
 
+    A challenge page also has to load Cloudflare's widget, so it carries a Content-Security-Policy
+    naming `challenges.cloudflare.com`. That is checked as a fallback: it is a property of how the
+    page works rather than a label Cloudflare chose, so it still identifies a challenge if
+    `cf-mitigated` is ever renamed. A plain 403 (a wrong URL, an IP block) carries neither signal
+    and keeps the caller's normal retry.
+
     Only an HTTPError carries response headers; a plain URLError (DNS failure, connection
     refused) has no `.headers` at all, so we getattr() rather than narrowing the caller's
     except clause to HTTPError and duplicating its retry body.
     """
     headers = getattr(error, "headers", None)
-    if headers is not None and headers.get("cf-mitigated") == "challenge":
-        raise RuntimeError(
-            f"{download_url} is behind a Cloudflare bot challenge (cf-mitigated: challenge) and cannot be "
-            "downloaded automatically. Please download the file manually in a browser and place it at "
-            f"{local_file_name}, then re-run this rule."
-        )
+    if headers is None:
+        return
+
+    if headers.get("cf-mitigated") == "challenge":
+        signal = "cf-mitigated: challenge"
+    elif "challenges.cloudflare.com" in (headers.get("content-security-policy") or ""):
+        signal = "a content-security-policy allowing challenges.cloudflare.com"
+    else:
+        return
+
+    raise RuntimeError(
+        f"{download_url} is behind a Cloudflare bot challenge ({signal}) and cannot be downloaded "
+        "automatically: the challenge is served to real browsers too, so neither retrying nor changing "
+        "the User-Agent will get past it. Please download the file manually in a browser and place it at "
+        f"{local_file_name}, then re-run this rule -- an already-present file is used as-is."
+    )
 
 
 def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, verify_gzip=False):
@@ -676,6 +699,7 @@ def write_compendium(
     extra_prefixes=None,
     icrdf_filename=None,
     properties_jsonl_gz_files=None,
+    ic_factory=None,
 ):
     """
     :param metadata_yaml: The YAML files containing the metadata for this compendium.
@@ -691,23 +715,42 @@ def write_compendium(
         never win the preferred-CURIE contest -- which also means such an identifier will not
         normalize on its own, and is visible only in the clique's equivalent identifiers. That is the
         intended shape for shipping a prefix ahead of the Biolink Model (see
-        `config.yaml: disease_extra_prefixes`), and the reason it is safe to do so.
+        `config.yaml: disease_extra_prefixes_by_biolink_class`), and the reason it is safe to do so.
+
+        It is a **per-class** allowlist. A caller that loops over several node types must scope the
+        list to the class it was reasoned about, or an exemption earned on one class's grounds is
+        silently granted to all of them -- e.g. passing a disease-derived list unscoped also lets
+        those prefixes into `PhenotypicFeature.txt`. See `diseasephenotype.build_compendium`, which
+        applies its list to `DISEASE` only.
     :param icrdf_filename: (REQUIRED) The file to read the information content from (icRDF.tsv). Although this is a
         named parameter to make it easier to specify this when calling write_compendium(), it is REQUIRED, and
         write_compendium() will throw a RuntimeError if it is not specified. This is to ensure that it has been
         properly specified as a prerequisite in a Snakemake file, so that write_compendium() is not run until after
         icRDF.tsv has been generated.
     :param properties_files: (OPTIONAL) A list of SQLite3 files containing properties to be added to the output.
+    :param ic_factory: (OPTIONAL) An ``InformationContentFactory`` already loaded from `icrdf_filename`, for a
+        caller that writes several compendia in one rule: loading icRDF.tsv (~3.9 million rows) is otherwise
+        repeated on every call. `icrdf_filename` is still required, and must name the file the factory was
+        loaded from, so the file is still declared as the rule's input. The factory is passed explicitly
+        rather than cached in ``src/node.py`` because a module-level cache keeps the several-hundred-MB
+        dict for the life of the process, which in a local Snakemake run is every rule that follows.
     :return:
     """
-    logger.info(
-        f"Starting write_compendium({metadata_yamls}, {len(synonym_list)} slists, {ofname}, {node_type}, {len(labels)} labels, {extra_prefixes}, {icrdf_filename}, {properties_jsonl_gz_files}): {get_memory_usage_summary()}"
-    )
-
+    # Check the arguments before loading anything: the factories below fetch the Biolink Model over the network.
+    if not icrdf_filename:
+        raise RuntimeError("No icrdf_filename parameter provided to write_compendium() -- this is required!")
+    if ic_factory is not None and os.path.realpath(ic_factory.ic_file) != os.path.realpath(icrdf_filename):
+        raise ValueError(
+            f"write_compendium() was given an ic_factory loaded from {ic_factory.ic_file}, "
+            f"but icrdf_filename is {icrdf_filename}."
+        )
     if extra_prefixes is None:
         extra_prefixes = []
     if labels is None:
         labels = {}
+    logger.info(
+        f"Starting write_compendium({metadata_yamls}, {len(synonym_list)} slists, {ofname}, {node_type}, {len(labels)} labels, {extra_prefixes}, {icrdf_filename}, {properties_jsonl_gz_files}): {get_memory_usage_summary()}"
+    )
     config = get_config()
     cdir = config["output_directory"]
     biolink_version = config["biolink_version"]
@@ -724,11 +767,9 @@ def write_compendium(
     # Load the per-type label length demotion config. Types not listed here are never demoted.
     demote_labels_longer_than = config.get("demote_labels_longer_than", {})
 
-    # Create an InformationContentFactory based on the specified icRDF.tsv file. Default to the one in the download
-    # directory.
-    if not icrdf_filename:
-        raise RuntimeError("No icrdf_filename parameter provided to write_compendium() -- this is required!")
-    ic_factory = InformationContentFactory(icrdf_filename)
+    # Create an InformationContentFactory from icRDF.tsv, unless the caller passed one in (checked above).
+    if ic_factory is None:
+        ic_factory = InformationContentFactory(icrdf_filename)
     logger.info(f"InformationContentFactory ready: {ic_factory} with {get_memory_usage_summary()}")
 
     description_factory = DescriptionFactory(make_local_name(""))
@@ -772,6 +813,9 @@ def write_compendium(
     count_eq_ids = 0
     count_synonyms = 0
 
+    # (curie, problem, clique leader) for every malformed CURIE; see raise_on_malformed_curies().
+    malformed_curies = []
+
     # Write compendium and synonym files.
     with (
         jsonlines.open(os.path.join(cdir, "compendia", ofname), "w") as outf,
@@ -783,9 +827,13 @@ def write_compendium(
         total_slist = len(synonym_list)
 
         for slist in synonym_list:
+            clique_labels = labels
             if isinstance(slist, TypedClique):
                 current_node_type = slist.node_type
                 input_identifiers = slist.identifiers
+                if slist.labels:
+                    # A view, not a merged copy: copying `labels` would cost O(len(labels)) per clique.
+                    clique_labels = ChainMap(slist.labels, labels)
             else:
                 if node_type is None:
                     raise RuntimeError("write_compendium() requires node_type unless every clique is a TypedClique.")
@@ -816,7 +864,7 @@ def write_compendium(
             node = node_factory.create_node(
                 input_identifiers=input_identifiers,
                 node_type=current_node_type,
-                labels=labels,
+                labels=clique_labels,
                 extra_prefixes=extra_prefixes,
             )
             if node is None:
@@ -860,6 +908,8 @@ def write_compendium(
 
                     identifier_list.append(iid)
                     current_curies.add(iid)
+                    if problem := curie_format_problem(iid):
+                        malformed_curies.append((iid, problem, node["identifiers"][0]["identifier"]))
 
                     if "label" in nid:
                         curie_labels[iid] = nid["label"]
@@ -873,18 +923,18 @@ def write_compendium(
                         # ac_labelled will be a list that consists of either LabeledID (if the CURIE could be labeled)
                         # or str objects (consisting of an unlabeled CURIE).
                         ac_labelled = node_factory.apply_labels(
-                            input_identifiers=additional_curies, labels=labels, node_types=types
+                            input_identifiers=additional_curies, labels=clique_labels, node_types=types
                         )
 
                         for prop, label in zip(props, ac_labelled):
                             additional_curie = Text.get_curie(label)
-                            if ":" not in additional_curie:
-                                raise ValueError(
-                                    f"Additional ID '{additional_curie}' for '{iid}' is not a valid CURIE: {prop}, {label} (from {ac_labelled})"
-                                )
                             if additional_curie not in current_curies:
                                 identifier_list.append(additional_curie)
                                 current_curies.add(additional_curie)
+                                if problem := curie_format_problem(additional_curie):
+                                    malformed_curies.append(
+                                        (additional_curie, f"{problem}, additional ID of {iid}", iid)
+                                    )
 
                                 # Track the property sources we used.
                                 property_source_count[prop.source] += 1
@@ -1004,6 +1054,8 @@ def write_compendium(
                     traceback.print_exc()
                     raise ex
 
+    raise_on_malformed_curies(malformed_curies, ofname)
+
     # Log a per-compendium summary of any obsolete labels that were filtered.
     filtered_this_run = synonym_filter.filtered_count - filter_count_snapshot
     if filtered_this_run > 0:
@@ -1029,13 +1081,124 @@ def write_compendium(
     taxon_factory.close()
 
 
-def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={}):
+def raise_on_malformed_curies(malformed_curies, ofname):
+    """Raise if write_compendium() wrote any malformed CURIE (see curie_format_problem()) into ``ofname``.
+
+    ``malformed_curies`` is a list of (curie, problem, clique leader) tuples. write_compendium()
+    collects every one before calling this, so a single failed run lists them all. A CURIE can
+    reach a compendium through a concord alone, without ever appearing in an ids file (#1109), so
+    this is checked on what is written rather than on the inputs. Fix the source that produced the
+    CURIE; don't catch this error.
+    """
+    if not malformed_curies:
+        return
+    for curie, problem, leader in malformed_curies:
+        logger.error(f"Malformed CURIE in {ofname}: {curie!r} ({problem}) in clique {leader}")
+    by_prefix = Counter(curie.partition(":")[0] for curie, _, _ in malformed_curies)
+    examples = ", ".join(repr(curie) for curie, _, _ in malformed_curies[:10])
+    raise ValueError(
+        f"{len(malformed_curies):,} malformed CURIE(s) in {ofname} (by prefix: {dict(by_prefix)}), e.g. {examples}"
+    )
+
+
+def validate_unique_prefixes(unique_prefixes) -> frozenset[str]:
+    """Return ``unique_prefixes`` as a frozenset of prefixes, raising ValueError if it isn't a collection of them.
+
+    glom() restricts each prefix in unique_prefixes to one identifier per clique, and nothing checks
+    that a restricted prefix exists, so every malformed value it used to accept failed silently, by
+    restricting the wrong prefixes or none:
+
+    * a string is a collection of its characters, so ``"UBERON"`` restricted U, B, E, R, O and N
+      and not UBERON -- a config.yaml entry such as ``anatomy_unique_prefixes: UBERON`` written
+      without brackets would do this;
+    * ``bytes`` iterate as ints, which match no prefix;
+    * a mapping iterates as its keys, which is never what was meant;
+    * a one-shot iterator (a generator, ``map()``, ``filter()``) was used up by the first group,
+      leaving every later group in the call unrestricted;
+    * ``None`` (a config.yaml key with no value) only failed once there was a group to check, and
+      then with an unhelpful TypeError;
+    * an element that isn't a non-empty string without a colon, such as ``"UBERON:"``, matches no
+      identifier's prefix.
+
+    Each of these raises ValueError here instead. Returning a frozenset, rather than handing back
+    what was passed, is what makes the iterator case safe, and lets glom() test membership directly.
+    An empty collection is valid: cell_line, genefamily and macromolecular_complex load only ids
+    files, where nothing merges, and the geneprotein conflation restricts nothing by design, so they
+    pass ``()``. For a value read from config.yaml, where an empty list is more likely a lost entry
+    than a decision, use unique_prefixes_from_config().
+    """
+    if isinstance(unique_prefixes, str):
+        raise ValueError(
+            f"unique_prefixes must be a collection of prefixes, not the string {unique_prefixes!r}; "
+            f"did you mean [{unique_prefixes!r}]?"
+        )
+    if isinstance(unique_prefixes, (bytes, bytearray, Mapping)) or not isinstance(unique_prefixes, Iterable):
+        raise ValueError(
+            f"unique_prefixes must be a collection of prefix strings, not {type(unique_prefixes).__name__} "
+            f"{unique_prefixes!r}"
+        )
+    prefixes = list(unique_prefixes)
+    bad = [p for p in prefixes if not isinstance(p, str) or not p or ":" in p]
+    if bad:
+        raise ValueError(
+            f"unique_prefixes must hold non-empty prefix strings without a colon; got {bad!r} in {prefixes!r}"
+        )
+    return frozenset(prefixes)
+
+
+def unique_prefixes_from_config(config_key: str) -> frozenset[str]:
+    """Read a pipeline's unique prefixes from config.yaml, checking each is a prefix Babel knows.
+
+    Every pipeline whose glom() can merge anything keeps its restriction in config.yaml as
+    ``<pipeline>_unique_prefixes`` (#882), so that one file shows where merges are refused and why.
+    Call this where the glom() runs, not at import time, so a module can be imported without a
+    complete config.
+
+    On top of validate_unique_prefixes(), this rejects any prefix that isn't one of the constants in
+    src/prefixes.py, since a misspelt prefix (``UBRON``) restricts nothing without a word. It also
+    rejects an empty list, which is more likely an entry emptied by a bad merge than a decision, and
+    would turn off every restriction without a word. A pipeline that restricts nothing by design
+    (the geneprotein conflation) passes ``unique_prefixes=()`` in code and has no entry.
+    """
+    from src import prefixes as prefix_constants
+
+    value = get_config().get(config_key)
+    try:
+        unique_prefixes = validate_unique_prefixes(value)
+    except ValueError as err:
+        raise ValueError(f"config.yaml: {config_key}: {err}") from err
+    if not unique_prefixes:
+        raise ValueError(f"config.yaml: {config_key} is empty; list at least one prefix to keep unique per clique")
+    known = {v for k, v in vars(prefix_constants).items() if k.isupper() and isinstance(v, str)}
+    unknown = sorted(unique_prefixes - known)
+    if unknown:
+        raise ValueError(f"config.yaml: {config_key} names prefixes not defined in src/prefixes.py: {unknown}")
+    return unique_prefixes
+
+
+def glom(conc_set, newgroups, *, unique_prefixes, pref="HP", close=None):
     """We want to construct sets containing equivalent identifiers.
     conc_set is a dictionary where the values are these equivalent identifier sets and
     the keys are all of the elements in the set.   For each element in a set, there is a key
     in the dictionary that points to the set.
     newgroups is an iterable that of new equivalence groups (expressed as sets,tuples,or lists)
-    with which we want to update conc_set."""
+    with which we want to update conc_set.
+    unique_prefixes is any non-string collection of prefix strings (list, tuple, set, frozenset, or
+    even a one-shot iterator); anything else raises ValueError -- see validate_unique_prefixes().
+    It is a required keyword with no default: it used to default to (INCHIKEY,), which two
+    conflation builders inherited without anyone choosing it (#882). A pipeline's restriction
+    belongs in config.yaml as ``<pipeline>_unique_prefixes``, read with unique_prefixes_from_config();
+    pass ``()`` in code only where it cannot matter (a builder that loads ids files alone) or where
+    restricting nothing is the design (the geneprotein conflation).
+    close, if given, maps a prefix to {identifier: identifiers it must not share a clique with}.
+
+    tests/test_glom.py pins this function's whole behavior, quirks included, and restates it as a
+    short reference implementation (``reference_glom``) checked against this one over randomized
+    inputs. Read it before changing glom(), and test any replacement against it."""
+    # Validated before the first group, so a bad call fails even when it has nothing to merge.
+    unique_prefixes = validate_unique_prefixes(unique_prefixes)
+    if close is None:
+        close = {}
     n = 0
     bad = 0
     shit_prefixes = set(["KEGG", "PUBCHEM"])
@@ -1073,7 +1236,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
             print("input_set", group)
             print("esets")
             for eset in existing_sets:
-                print(" ", eset, group.intersection(eset))
+                print(" ", eset, eset.intersection(group))
         for check_element in newset:
             prefix = check_element.split(":")[0]
             if prefix in shit_prefixes:
@@ -1086,24 +1249,19 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         setok = True
         if test_id in group:
             print("setok?", setok)
-        for up in unique_prefixes:
-            if test_id in group:
-                print("up?", up)
-            idents = [e if isinstance(e, str) else e.identifier for e in newset]
-            if len(set([e for e in idents if (e.split(":")[0] == up)])) > 1:
-                bad += 1
-                setok = False
-                wrote = set()
-                for s in existing_sets:
-                    fs = frozenset(s)
-                    wrote.add(fs)
-                for gel in group:
-                    if Text.get_prefix_or_none(gel) == pref:
-                        # killer = gel
-                        pass
-                # for preset in wrote:
-                #    print(f'{killer}\t{set(group).intersection(preset)}\t{preset}\n')
-                # print('------------')
+        # One pass over the merged set: remember the first identifier seen for each restricted
+        # prefix, and stop at the first different identifier with the same prefix. (This used to
+        # rebuild the identifier list and re-split every CURIE once per restricted prefix, and keep
+        # checking after the group had already failed.)
+        if unique_prefixes:
+            first_with_prefix = {}
+            for element in newset:
+                ident = element if isinstance(element, str) else element.identifier
+                prefix = ident.split(":")[0]
+                if prefix in unique_prefixes and first_with_prefix.setdefault(prefix, ident) != ident:
+                    bad += 1
+                    setok = False
+                    break
         NPC = sum(1 for s in newset if s.startswith("PUBCHEM.COMPOUND:"))
         if ("PUBCHEM.COMPOUND:3100" in newset) and (NPC > 3):
             if debugit:
@@ -1301,17 +1459,21 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False, target_
     for k, v in pairlist:
         xref_counts_v[v] += 1
         xref_counts_k[k] += 1
+    # Append each surviving pair itself, not a rebuilt (k, v): the caller usually still holds the
+    # unfiltered list while this runs, so a copy would double the tuples alive at peak on exactly the
+    # large concords this filter exists for. It also keeps whatever container the caller used.
     improved_pairs = []
-    for k, v in pairlist:
+    for pair in pairlist:
+        k, v = pair
         if eligible is not None and (Text.get_prefix_or_none(v) or "") not in eligible:
-            improved_pairs.append((k, v))
+            improved_pairs.append(pair)
             continue
         if xref_counts_v[v] < 2:
             if bothways:
                 if xref_counts_k[k] < 2:
-                    improved_pairs.append((k, v))
+                    improved_pairs.append(pair)
             else:
-                improved_pairs.append((k, v))
+                improved_pairs.append(pair)
     return improved_pairs
 
 
