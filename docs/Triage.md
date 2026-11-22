@@ -90,8 +90,9 @@ exact expected values. It always fails, as a reminder.
 An assertion type that the harness does not recognise is a hard failure regardless of whether the
 issue is open or closed, so a typo or an invented name takes down the whole run rather than
 failing quietly. This document used to carry its own copy of the assertion table, and that copy
-drifted: the preferred-name issue template pre-filled a `HasPreferredName` assertion that has
-never existed. Check a name against the generated README rather than against prose.
+drifted: until the forms were fixed, the preferred-name issue form pre-filled a `HasPreferredName`
+assertion that has never existed. Check a name against the generated README rather than against
+prose.
 
 #### Checking an assertion you have written
 
@@ -143,9 +144,13 @@ Results for every configured repository, across all six environments, are publis
 - **Writing about the syntax runs it.** A complete `{{BabelTest|...}}` marker is picked up wherever
   it appears in an issue body — inside backticks and inside quoted blocks included. When quoting an
   example in an issue, leave the closing braces off.
-- **Fill in the template default or delete it.** The issue forms pre-fill a placeholder such as
-  `{{BabelTest|ResolvesWith|curie1|curie2|curie3}}`. Left as-is it is a test asserting something
-  about identifiers named `curie1` and `curie2`.
+- **Issue-form examples go in `placeholder:`, never `value:`.** The forms in
+  `.github/ISSUE_TEMPLATE/` show an example such as
+  `{{BabelTest|ResolvesWith|curie1|curie2|curie3}}` as greyed-out placeholder text, which is not
+  submitted. A `value:` *is* submitted when the
+  reporter leaves the optional field alone, and becomes a real test about identifiers named `curie1`
+  and `curie2` — one that fails for good once the issue is closed. An issue filed from an older
+  version of a form may still carry such a default; delete it or fill it in.
 - **Quote strings in the YAML form.** YAML 1.1 turns an unquoted `no`, `on` or `1.5` into a boolean
   or a float, which the harness rejects. This bites `HasLabel` labels and `SearchByName` queries.
 - **`HasLabel` is exact and case-sensitive.** `aspirin` does not match `Aspirin`.
