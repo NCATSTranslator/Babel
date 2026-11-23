@@ -642,6 +642,14 @@ def write_unichem_concords(structfile, reffile, outdir):
                 x = line.rstrip().split("\t")
                 src_id = x[1]
                 compound_id = x[2]
+                if src_id not in unichem_data_sources:
+                    # rule filter_unichem re-runs when data_sources changes (its params), so this
+                    # means the filtered file came from somewhere else or an older checkout.
+                    raise RuntimeError(
+                        f"{reffile} has a row for UniChem source {src_id!r}, which is not in "
+                        f"unichem_data_sources (src/datahandlers/unichem.py): it was filtered for a different "
+                        f"list of sources. Delete it and re-run rule filter_unichem."
+                    )
                 expected_prefix = unichem_data_sources[src_id]
                 outf = concfiles[src_id]
                 assert x[3] == "1", (  # Only '1' (current) assignments should be in this file
@@ -713,6 +721,19 @@ UNICHEM_OVERUSED_XREF_PREFIXES = (UNII, KEGGCOMPOUND, DRUGCENTRAL)
 
 
 def combine_unichem(concordances, output):
+    """Glom the structure concords (identifier -> INCHIKEY) into the partial every chemical clique grows from.
+
+    :param concordances: the UNICHEM_* concords, plus the concords in config.yaml's
+        chemical_structure_concords: sources whose own InChIKeys are used instead of UniChem's (GtoPdb,
+        #1206). Each file must have a single prefix in its first column.
+    :param output: the JSONL partial, one list of CURIEs per line.
+
+    INCHIKEY is a unique prefix, so one clique holds one structure, and two identifiers given the same
+    key share a clique. remove_overused_xrefs() is applied only to UNICHEM_OVERUSED_XREF_PREFIXES; for
+    every other source a key shared by several identifiers merges them. GtoPdb relies on that: it gives
+    a radiolabelled ligand its unlabelled compound's key (GTOPDB:1247 and GTOPDB:1204, histamine), and
+    filtering shared keys would strip the structure from both.
+    """
     # The same key as build_untyped_compendia(), and both rules declare it as a param so an edit reruns
     # both: the UniChem grouping and the build can't disagree.
     unique_prefixes = unique_prefixes_from_config("chemical_unique_prefixes")

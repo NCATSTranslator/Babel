@@ -169,7 +169,12 @@ def run_audit(tmp_path, concords, cliques, labels, structures):
     nodes = [f"{root}/duckdb/parquet/filename={t}/Node.parquet" for t in types]
     con = duckdb.connect()
     classify_chemical_glom_edges(
-        con, f"{root}/duckdb/Concord.parquet", edges, get_config()["chemical_concords"], UNICHEM_OVERUSED_XREF_PREFIXES
+        con,
+        f"{root}/duckdb/Concord.parquet",
+        edges,
+        get_config()["chemical_concords"],
+        UNICHEM_OVERUSED_XREF_PREFIXES,
+        structure_concords=get_config()["chemical_structure_concords"],
     )
     work = tmp_path / "work"
     work.mkdir()

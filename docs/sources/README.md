@@ -62,6 +62,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   [clique diff](./GARD/clique-diff.md) is the worked example of an ingest that *joins* existing
   cliques instead of duplicating them — 16,214 identifiers for +258 cliques — and of a bug neither
   the impact report nor a main-vs-branch diff can see.
+- **GTOPDB** ([GTOPDB/README.md](./GTOPDB/README.md)) — why GtoPdb ligand structures are read from
+  GtoPdb's own `ligands.tsv` and not from UniChem, which began stripping their stereochemistry in
+  2026 and put 5,728 ligands in the clique of the stereo-unspecified record; with the comparison
+  script and its output for three builds.
 - **HP** ([HP/README.md](./HP/README.md)) — the Human Phenotype Ontology as a disease/phenotype
   source: extracting identifiers from the [`HP:0000118`](http://purl.obolibrary.org/obo/HP_0000118)
   "Phenotypic abnormality" subtree, and tagging every ingested term with the taxon

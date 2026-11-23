@@ -47,14 +47,15 @@ from src.categories import CHEMICAL_MIXTURE, COMPLEX_MOLECULAR_MIXTURE, POLYPEPT
 from src.datahandlers.unichem import UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.model.glom_edges import APPLIED, REFUSED_INCHIKEY
-from src.prefixes import PUBCHEMCOMPOUND
+from src.prefixes import GTOPDB, PUBCHEMCOMPOUND
 from src.util import get_logger, sql_list, sql_str
 
 logger = get_logger(__name__)
 
-# Sources that normally record a structure: the ones UniChem covers. A member from one of these with no InChIKey of
-# its own is "structure-less where a structure was expected".
-STRUCTURE_SOURCE_PREFIXES = frozenset(unichem_data_sources.values())
+# Sources that normally record a structure: the ones UniChem covers, plus GtoPdb, whose structures Babel reads from
+# GtoPdb's own ligands.tsv rather than from UniChem (#1206, docs/sources/GTOPDB/README.md). A member from one of
+# these with no InChIKey of its own is "structure-less where a structure was expected".
+STRUCTURE_SOURCE_PREFIXES = frozenset(unichem_data_sources.values()) | {GTOPDB}
 
 # Declared Biolink types (from the chemical ids files) that say "not a small molecule". MolecularMixture is left out
 # on purpose: it is how salts and hydrates are typed, and those legitimately carry a key.

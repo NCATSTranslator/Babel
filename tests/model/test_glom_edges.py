@@ -45,6 +45,7 @@ def classify_rows(root, owned_elsewhere=(), bad_pairs=()):
         UNICHEM_OVERUSED_XREF_PREFIXES,
         owned_elsewhere,
         bad_pairs,
+        structure_concords=get_config()["chemical_structure_concords"],
     )
     return con.sql("SELECT base, subj, obj, verdict, key_dropped FROM glom_edge").fetchall()
 
@@ -291,6 +292,40 @@ def test_a_drug_cliques_dropped_gtopdb_key_edge_is_applied(tmp_path):
 
     assert rows[("GTOPDB", "GTOPDB:1", KEY_A)] == (APPLIED, True)
     assert rows[("DrugCentral", "DrugCentral:1", "PUBCHEM.COMPOUND:2")] == (REFUSED_INCHIKEY, False)
+
+
+# STRUCTURE CONCORDS (GtoPdb, #1206)
+
+
+@pytest.mark.unit
+def test_gtopdb_ligands_sharing_a_key_are_applied_once_gtopdb_is_a_structure_concord(tmp_path):
+    """Since #1206 combine_unichem() gloms GtoPdb's concord unfiltered, so two ligands given one key (a radiolabelled
+    ligand and its compound) were both applied, not dropped as an overused xref. A build has no UNICHEM_GTOPDB then."""
+    concords = [(concord("GTOPDB"), "GTOPDB:1204", KEY_A), (concord("GTOPDB"), "GTOPDB:1247", KEY_A)]
+    cliques = {"GTOPDB:1204": ("SmallMolecule", ["GTOPDB:1204", "GTOPDB:1247", KEY_A])}
+
+    verdicts = classify(write_build(tmp_path, concords, cliques))
+
+    assert verdicts[("GTOPDB", "GTOPDB:1204", KEY_A)] == APPLIED
+    assert verdicts[("GTOPDB", "GTOPDB:1247", KEY_A)] == APPLIED
+
+
+@pytest.mark.unit
+def test_gtopdb_ligands_sharing_a_key_are_overused_in_a_build_that_still_has_unichems_copy(tmp_path):
+    """A build with UNICHEM_GTOPDB predates #1206: GtoPdb's concord was read only by build_untyped_compendia(),
+    whose overused filter dropped both ligands' edges to their shared key (UniChem's rows put them together)."""
+    concords = [
+        (concord("GTOPDB"), "GTOPDB:1204", KEY_A),
+        (concord("GTOPDB"), "GTOPDB:1247", KEY_A),
+        (unichem("GTOPDB"), "GTOPDB:1204", KEY_A),
+        (unichem("GTOPDB"), "GTOPDB:1247", KEY_A),
+    ]
+    cliques = {"GTOPDB:1204": ("SmallMolecule", ["GTOPDB:1204", "GTOPDB:1247", KEY_A])}
+
+    verdicts = classify(write_build(tmp_path, concords, cliques))
+
+    assert verdicts[("GTOPDB", "GTOPDB:1204", KEY_A)] == FILTERED_OVERUSED
+    assert verdicts[("UNICHEM_GTOPDB", "GTOPDB:1204", KEY_A)] == APPLIED
 
 
 # OVERUSE BEFORE OUTPUT MEMBERSHIP
