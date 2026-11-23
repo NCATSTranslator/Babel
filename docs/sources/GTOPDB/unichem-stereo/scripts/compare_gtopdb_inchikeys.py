@@ -84,7 +84,10 @@ def classify(own, unichem):
         return "Same skeleton; UniChem stereo-less, GtoPdb specific"
     if own_flat and not uc_flat:
         return "Same skeleton; GtoPdb stereo-less, UniChem specific"
-    return "Same skeleton; two different stereo layers"
+    # The second block hashes every minor layer together (stereo, isotopes and the rest), so this also catches an
+    # isotope-labelled ligand whose stereo one source dropped while both kept the isotope layer. All 84 in 2026jul22
+    # are isotope-labelled in GtoPdb's ligands.tsv: 69 radiolabelled, most of the rest deuterated drugs.
+    return "Same skeleton; different stereo or isotope layers"
 
 
 def share_stereo_less(keys):
@@ -167,7 +170,7 @@ def select_csv_rows(rows, limit=None, with_cliques=True):
     """Order the CSV rows so the ones that would change a reviewer's mind come first, then cap them.
 
     Every row that is not the ordinary case comes first, in this order: a difference other than
-    COMMON_DIFFERENCE (two different stereo layers, a different skeleton), a ligand whose own key is
+    COMMON_DIFFERENCE (different stereo or isotope layers, a different skeleton), a ligand whose own key is
     in no clique (it would form a new one), and a ligand in no clique now. The ordinary rows -- a
     stereo-less UniChem key, and a ligand that joins the existing clique of its own key -- fill the
     rest of the cap, spread evenly across them in CURIE order rather than taken from the start, so
