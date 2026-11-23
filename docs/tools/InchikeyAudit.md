@@ -37,7 +37,10 @@ Three steps outside `glom()` are modelled:
 
 - **Pre-glom filters:** `remove_overused_xrefs`, plus the CUI-ownership skip and the
   `chemical_badxrefs` pairs, for builds that have them. A filtered edge is reported as filtered
-  even when the filter left an endpoint in no output.
+  even when the filter left an endpoint in no output. A concord in
+  `config.yaml: chemical_structure_concords` (GtoPdb's, since #1206) is glommed with the UniChem
+  files and skips the overused and bad-xref filters, unless the build still has its
+  `UNICHEM_<name>` copy, which means it predates the move.
 - **The post-glom #83 split:** `create_typed_sets()` moves `MolecularMixture`-typed members into
   their own keyless clique. Each one is rejoined to the parent holding its members' keys (UniChem
   or GtoPdb edges), or, when none has a key edge, to the one keyed SmallMolecule clique an xref
@@ -56,7 +59,8 @@ Three steps outside `glom()` are modelled:
 2. **Components:** the connected groups of the remaining structure-less members, each attached to
    the core by **boundary edges**.
 3. **Tier:** set by how many structure-bearing sources (UniChem's: ChEBI, ChEMBL, DrugBank,
-   DrugCentral, GtoPdb, HMDB, PubChem, UNII) list a member of the component with no structure.
+   DrugCentral, HMDB, PubChem, UNII; plus GtoPdb, whose structures come from its own `ligands.tsv`
+   since #1206) list a member of the component with no structure.
    - **A:** three or more.
    - **B:** one or two.
    - **T:** none, but a member is declared `Polypeptide`, `ComplexMolecularMixture` or

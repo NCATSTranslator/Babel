@@ -117,6 +117,7 @@ def main(argv=None):
                 UNICHEM_OVERUSED_XREF_PREFIXES,
                 owned,
                 bad_pairs,
+                structure_concords=config["chemical_structure_concords"],
             )
             audit_chemical_inchikeys(
                 con, scratch, node_parquets, f"{lookup}/duckdb/Identifier.parquet", args.structure_file
