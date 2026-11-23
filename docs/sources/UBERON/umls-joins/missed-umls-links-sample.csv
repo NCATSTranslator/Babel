@@ -1,0 +1,83 @@
+uberon_id,uberon_label,umls_id,umls_string,bridge,joined_after
+UBERON:0001095,caudal vertebra,UMLS:C5441553,Caudal Vertebra,FMA,False
+UBERON:0002869,diffuse reticular nucleus,UMLS:C2330547,Nucleus subparabrachialis,FMA,False
+UBERON:0002891,cortical amygdaloid nucleus,UMLS:C3496488,"Cortical Nucleus, Posterior",FMA,False
+UBERON:0003691,epidural space,UMLS:C0228133,Cranial epidural space,FMA,False
+UBERON:0004321,middle phalanx of manual digit 3,UMLS:C0223830,Middle phalanx middle finger,FMA,False
+UBERON:0004390,epiphysis of metacarpal bone,UMLS:C0730413,Epiphysis of metacarpal,FMA,False
+UBERON:0004409,distal epiphysis of phalanx of manus,UMLS:C4082211,Distal end of phalanx of hand,FMA,False
+UBERON:0004414,proximal epiphysis of phalanx of manus,UMLS:C0223804,Basal epiphysis of phalanx of hand,FMA,False
+UBERON:0005048,mucosa of fallopian tube,UMLS:C0736937,Mucosa of fallopian tube,FMA,False
+UBERON:0005843,sacral spinal cord,UMLS:C0457849,Pars sacralis,FMA,False
+UBERON:0006607,medial umbilical ligament,UMLS:C0227706,Ligamentum umbilicale mediale,FMA,False
+UBERON:0007118,umbilicus,UMLS:C3887539,Umbilical Region,FMA,False
+UBERON:0007182,muscle layer of infundibulum of uterine tube,UMLS:C0736954,Muscle layer of infundibulum of fallopian tube,FMA,False
+UBERON:0013691,buttock,UMLS:C0282082,Gluteal Region,FMA,False
+UBERON:0015865,pancreaticosplenic lymph node,UMLS:C0229781,JPS 11 node,FMA,False
+UBERON:0034703,inflow tract of right ventricle,UMLS:C0225891,Inflow part of right ventricle,FMA,False
+UBERON:0000012,somatic nervous system,UMLS:C0504216,Somatic nervous system,FMA,True
+UBERON:0000711,splenius capitis,UMLS:C0224098,Musculus splenius capitis,FMA,True
+UBERON:0002213,cartilaginous joint,UMLS:C0224518,Articulatio cartilaginea,FMA,True
+UBERON:0002505,spiral modiolar artery,UMLS:C0226244,A. spiralis modioli,FMA,True
+UBERON:0005361,superior glossopharyngeal IX ganglion,UMLS:C1744609,Ehrenritter's ganglion,FMA,True
+UBERON:0005611,inner canthus,UMLS:C0229247,Angulus oculi medialis,FMA,True
+UBERON:0006450,L2 segment of lumbar spinal cord,UMLS:C2328941,L2 segment,FMA,True
+UBERON:0006685,pharyngeal tubercle,UMLS:C1184891,Pharyngeal tubercle,FMA,True
+UBERON:0006813,nasal skeleton,UMLS:C0458552,Nasal skeleton,FMA,True
+UBERON:0011908,gastrocnemius lateralis,UMLS:C0224459,Caput laterale (M. gastrocnemius),FMA,True
+UBERON:0016636,supplemental motor cortex,UMLS:C3496173,Juxtapositional lobule cortex,FMA,True
+UBERON:0035882,sphenomaxillary suture,UMLS:C0224538,Sphenomaxillary suture,FMA,True
+UBERON:0038093,jejunal lymph node,UMLS:C4247892,Jejunal lymph node,FMA,True
+UBERON:0038923,malar lymph node,UMLS:C0931668,Malar lymph node,FMA,True
+UBERON:0039162,inferior ileocolic lymph node,UMLS:C2331339,Inferior ileocolic lymph node,FMA,True
+UBERON:8920003,right marginal artery,UMLS:C0226050,AM - Acute marginal artery,FMA,True
+UBERON:0001021,nerve,UMLS:C1280200,Entire peripheral nerve,SCTID,False
+UBERON:0004319,distal phalanx of pedal digit 5,UMLS:C0447974,Distal phalanx of fifth toe,SCTID,False
+UBERON:0000332,yellow bone marrow,UMLS:C1282727,All yellow bone marrow,SCTID,True
+UBERON:0001232,collecting duct of renal tubule,UMLS:C0222607,Collecting duct,SCTID,True
+UBERON:0001875,globus pallidus,UMLS:C1284620,Entire globus pallidus,SCTID,True
+UBERON:0002098,apex of heart,UMLS:C1284306,Entire apex of heart,SCTID,True
+UBERON:0002221,fontanelle,UMLS:C1305726,Entire fontanel of skull,SCTID,True
+UBERON:0002440,inferior cervical ganglion,UMLS:C1281050,Entire inferior cervical ganglion,SCTID,True
+UBERON:0002583,commissure of superior colliculus,UMLS:C1289679,Commissure of superior colliculus,SCTID,True
+UBERON:0002721,lateral sulcus,UMLS:C1289648,Entire fissure of Sylvius,SCTID,True
+UBERON:0004773,superior eyelid tarsus,UMLS:C1289222,Entire superior tarsal plate,SCTID,True
+UBERON:0005193,ethmoidal artery,UMLS:C1305299,Entire ethmoid artery,SCTID,True
+UBERON:0005734,tunica adventitia of blood vessel,UMLS:C0225987,Structure of tunica adventitia of vessel,SCTID,True
+UBERON:0006587,ligamentum venosum,UMLS:C1268250,Entire ligamentum venosum of liver,SCTID,True
+UBERON:0006719,lateral pterygoid muscle,UMLS:C1321531,Entire lateral pterygoid,SCTID,True
+UBERON:0008805,gingival groove,UMLS:C1280386,Entire gingival crevice,SCTID,True
+UBERON:0009552,distal segment of manual digit,UMLS:C0729895,Fingertip,SCTID,True
+UBERON:0009990,medial condyle of tibia,UMLS:C1279120,Entire medial condyle of tibia,SCTID,True
+UBERON:0000331,ileal mucosa,UMLS:C0227317,Ileal mucosa,SCTID+FMA,True
+UBERON:0000397,colonic epithelium,UMLS:C0227353,Colon epithelium,SCTID+FMA,True
+UBERON:0002222,perichondrium,UMLS:C0225361,Perichondrium,SCTID+FMA,True
+UBERON:0002511,trabecula carnea,UMLS:C0502348,Set of trabeculae carneae of heart,SCTID+FMA,True
+UBERON:0002818,posterolateral fissure of cerebellum,UMLS:C0228502,Dorsolateral fissure of cerebellum,SCTID+FMA,True
+UBERON:0004383,epiphysis of tibia,UMLS:C1282300,Epiphysis of tibia,SCTID+FMA,True
+UBERON:0004415,proximal epiphysis of metatarsal bone,UMLS:C0825672,Base of metatarsal,SCTID+FMA,True
+UBERON:0004441,proximal epiphysis of proximal phalanx of manual digit 3,UMLS:C0448088,Basal epiphysis of proximal phalanx of middle finger,SCTID+FMA,True
+UBERON:0006843,root of cranial nerve,UMLS:C0459226,Cranial nerve root,SCTID+FMA,True
+UBERON:0007178,muscularis mucosae of colon,UMLS:C0227350,Lamina muscularis of colonic mucosa,SCTID+FMA,True
+UBERON:0007635,nucleus of medulla oblongata,UMLS:C0582847,CNS nuclei (medulla oblongata),SCTID+FMA,True
+UBERON:0008607,transverse muscle of auricle,UMLS:C0448323,Entire transversus auriculae,SCTID+FMA,True
+UBERON:0010307,conjunctival fornix,UMLS:C0456207,Conjunctival fornix,SCTID+FMA,True
+UBERON:0011317,nerve to stylopharyngeus from glossopharyngeal nerve,UMLS:C0459309,Branch of glossopharyngeal nerve to stylopharyngeus,SCTID+FMA,True
+UBERON:0012401,small intestine smooth muscle circular layer,UMLS:C0227271,Circular layer of small intestine muscularis propria,SCTID+FMA,True
+UBERON:0014473,precentral fissure of cerebellum,UMLS:C0228476,Centrolingual cerebellar fissure,SCTID+FMA,True
+UBERON:0000094,membrane organ,UMLS:C1959648,Membrane organ structure,none,False
+UBERON:0001580,levator labii superioris,UMLS:C0448295,Entire levator labii superioris,none,False
+UBERON:0002389,manual digit,UMLS:C0851278,Finger,none,False
+UBERON:0002761,inferior frontal sulcus,UMLS:C4514146,Entire inferior frontal sulcus,none,False
+UBERON:0002887,basal amygdaloid nucleus,UMLS:C3496405,basal nucleus of the amygdala (Amaral),none,False
+UBERON:0004319,distal phalanx of pedal digit 5,UMLS:C4318472,Entire distal phalanx of little toe,none,False
+UBERON:0006461,S2 segment of sacral spinal cord,UMLS:C4514059,Entire second sacral spinal cord segment,none,False
+UBERON:0007177,lamina propria of mucosa of colon,UMLS:C4512641,Entire colonic lamina propria,none,False
+UBERON:0011532,female pubococcygeus muscle,UMLS:C1267097,Entire Pubovaginalis muscle,none,False
+UBERON:0012401,small intestine smooth muscle circular layer,UMLS:C4512340,Entire circular layer of small intestine muscularis propria,none,False
+UBERON:0013278,canal of Nuck,UMLS:C0392914,Canal of Nuck,none,False
+UBERON:0013477,blowhole,UMLS:C1562974,Blow hole,none,False
+UBERON:0027371,striosome,UMLS:C0597968,striosome,none,False
+UBERON:0034688,spermatic fascia,UMLS:C4514271,Entire spermatic fascia,none,False
+UBERON:0035805,muscle layer of sigmoid colon,UMLS:C5922808,Entire muscularis propria of sigmoid colon,none,False
+UBERON:8480018,posterior pararenal space,UMLS:C2951227,Posterior pararenal space,none,False
