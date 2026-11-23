@@ -526,6 +526,14 @@ def write_unichem_concords(structfile, reffile, outdir):
                 x = line.rstrip().split("\t")
                 src_id = x[1]
                 compound_id = x[2]
+                if src_id not in unichem_data_sources:
+                    # rule filter_unichem re-runs when data_sources changes (its params), so this
+                    # means the filtered file came from somewhere else or an older checkout.
+                    raise RuntimeError(
+                        f"{reffile} has a row for UniChem source {src_id!r}, which is not in "
+                        f"unichem_data_sources (src/datahandlers/unichem.py): it was filtered for a different "
+                        f"list of sources. Delete it and re-run rule filter_unichem."
+                    )
                 expected_prefix = unichem_data_sources[src_id]
                 outf = concfiles[src_id]
                 assert x[3] == "1", (  # Only '1' (current) assignments should be in this file

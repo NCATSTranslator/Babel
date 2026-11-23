@@ -834,8 +834,11 @@ rule filter_unichem:
         filteredreffile=config["download_directory"] + "/UNICHEM/reference.filtered.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/filter_unichem.tsv"
+    params:
+        # A params change re-runs the rule, so editing unichem.data_sources refilters a reused download.
+        source_ids=sorted(unichem.data_sources),
     run:
-        unichem.filter_unichem(input.reffile, output.filteredreffile)
+        unichem.filter_unichem(input.reffile, output.filteredreffile, params.source_ids)
 
 
 ### CHEMBL

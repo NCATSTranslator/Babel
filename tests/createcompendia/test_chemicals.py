@@ -108,6 +108,21 @@ def test_write_unichem_concords_raises_when_source_produces_no_entries(tmp_path)
         write_unichem_concords(str(struct), str(ref), str(tmp_path))
 
 
+@pytest.mark.unit
+def test_write_unichem_concords_raises_on_a_source_it_does_not_know(tmp_path):
+    """A reference.filtered.tsv filtered for an older source list (here, one still carrying
+    GtoPdb's source "4", dropped in #1206) should fail with a message saying how to fix it,
+    not with a bare KeyError."""
+    struct = tmp_path / "structure.tsv.gz"
+    ref = tmp_path / "reference.filtered.tsv"
+    _write_struct(struct)
+    assert "4" not in unichem_data_sources
+    _write_ref(ref, [*_bare_rows_for_other_sources(), ("1", CHEBI_SRC_ID, "100"), ("1", "4", "5688")])
+
+    with pytest.raises(RuntimeError, match="re-run rule filter_unichem"):
+        write_unichem_concords(str(struct), str(ref), str(tmp_path))
+
+
 # ----
 # FOOD-AND-EXTRACT TYPE VOTE (issues #828, #935)
 # ----

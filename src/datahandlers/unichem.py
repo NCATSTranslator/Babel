@@ -12,7 +12,7 @@ data_sources: dict = {
     # against 47.2% of GtoPdb's own), which put 5,728 GTOPDB IDs in the clique of the stereo-unspecified
     # record instead of the drug's. GtoPdb structures come from GtoPdb's ligands.tsv instead: see
     # rule chemical_unichem_concordia and docs/sources/GTOPDB/README.md (#1206). Don't re-add it
-    # without rerunning docs/sources/GTOPDB/unichem-stereo/compare_gtopdb_inchikeys.py.
+    # without rerunning docs/sources/GTOPDB/unichem-stereo/scripts/compare_gtopdb_inchikeys.py.
     # "6": KEGGCOMPOUND,  # Removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
     "7": CHEBI,
     "14": UNII,
@@ -49,9 +49,16 @@ def download_unichem_reference():
     )
 
 
-def filter_unichem(ref_file, ref_filtered):
-    """Filter UniChem reference file to those sources we're interested in."""
-    srcs = set(data_sources)
+def filter_unichem(ref_file, ref_filtered, source_ids):
+    """Filter UniChem reference file to the sources in source_ids (UniChem SRC_IDs, the keys of
+    data_sources).
+
+    rule filter_unichem passes the source list in through ``params:`` rather than this function
+    reading data_sources itself, so that Snakemake re-runs the rule whenever the list changes. A
+    filtered file left over from an older list would otherwise be reused, since the rule's code
+    and input are unchanged, and write_unichem_concords() would then meet rows for a source it no
+    longer knows (or none for one it has just gained)."""
+    srcs = set(source_ids)
     try:
         rf_handle = gzip.open(ref_file, "rt")
     except (OSError, gzip.BadGzipFile) as e:
