@@ -44,7 +44,7 @@ from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUC
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.predicates import HAS_ALTERNATIVE_ID
 from src.prefixes import CHEBI, DRUGBANK, GTOPDB, INCHIKEY, KEGGCOMPOUND, PUBCHEMCOMPOUND
-from src.util import get_config
+from src.util import get_config, get_repo_root
 
 # Derive CHEBI's UniChem source ID from the authoritative dict rather than hardcoding it.
 CHEBI_SRC_ID = next(k for k, v in unichem_data_sources.items() if v == CHEBI)
@@ -293,7 +293,7 @@ def test_create_typed_sets_leaves_a_clique_without_food_evidence_untouched():
 # that motivated this fix, and it happens to carry every tag make_chebi_relations() reads, so one
 # entry exercises all of CHEBI_SDF_KEYS. Re-derive it by extracting the chunk whose "> <ChEBI ID>"
 # tag holds CHEBI:421707.
-ABACAVIR_SDF = Path(__file__).parent.parent / "data" / "chebi_abacavir.sdf"
+ABACAVIR_SDF = get_repo_root() / "tests" / "data" / "chebi_abacavir.sdf"
 
 # The header of database_accession.tsv, copied verbatim from
 # https://ftp.ebi.ac.uk/pub/databases/chebi/flat_files/database_accession.tsv.gz (fetched 2026-07-21).

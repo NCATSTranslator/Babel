@@ -31,9 +31,9 @@ from src.datahandlers.gard import (
 from src.node import NodeFactory
 from src.prefixes import GARD, OIO
 from src.util import get_biolink_model_toolkit, get_config
-from tests.conftest import assert_labels_file_valid, assert_synonyms_file_valid
+from tests.conftest import REPO_ROOT, assert_labels_file_valid, assert_synonyms_file_valid
 
-FIXTURE = Path(__file__).resolve().parent.parent / "data" / "gard_sample.csv"
+FIXTURE = REPO_ROOT / "tests" / "data" / "gard_sample.csv"
 
 # Verbatim rows from the GARD distribution CSV. The distribution zero-pads local ids to seven
 # digits; Babel emits the unpadded form (what DOID's xrefs use), so the expected output ids drop
