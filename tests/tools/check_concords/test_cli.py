@@ -4,6 +4,7 @@ The parser and the tally are tested in tests/model/test_intermediates.py; these 
 files and the exit status. The HTTP crawl is exercised against a fake listing, not the network.
 """
 
+import curies
 import pytest
 
 from src.tools.check_concords import cli
@@ -38,6 +39,22 @@ def test_a_rejected_row_exits_one_and_is_shown(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "NCIT_UniProtKB\t2\t1\tempty column: 1" in out
     assert "first 'empty column' at line 2" in out
+
+
+@pytest.mark.unit
+def test_prefixes_lists_unknown_prefixes_without_failing(tmp_path, capsys, monkeypatch):
+    """Should list each file's unknown prefixes with --prefixes, and still exit 0: it is a report."""
+    monkeypatch.setattr(cli, "get_biolink_prefix_map", lambda: curies.Converter.from_prefix_map({"NCIT": "x"}))
+    assert cli.main(["--prefixes", str(_intermediate_tree(tmp_path))]) == 0
+    out = capsys.readouterr().out
+    assert "#   unknown object prefix 'UniProtKB'" not in out  # defined in src/prefixes.py
+    assert "# 0 distinct unknown prefixes" in out
+
+    (tmp_path / "intermediate" / "protein" / "concords" / "UMLS").write_text("UMLS:C1\teq\tMSH:D1\n")
+    assert cli.main(["--prefixes", str(tmp_path / "intermediate")]) == 0
+    out = capsys.readouterr().out
+    assert "#   unknown object prefix 'MSH': 1 rows, e.g. 'MSH:D1'" in out
+    assert "# 1 distinct unknown prefixes" in out
 
 
 @pytest.mark.unit

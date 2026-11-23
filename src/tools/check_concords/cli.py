@@ -15,6 +15,12 @@ downloaded::
 
 Prints one tab-separated line per file (``file``, ``rows``, ``rejected``, ``reasons``) and, for each
 file with rejects, the first rejected line of each kind. Exits 1 if any row was rejected.
+
+``--prefixes`` also lists, per file, every subject or object prefix that neither the Biolink Model
+(at ``config.yaml: biolink_version``) nor ``src/prefixes.py`` defines, with its row count and an
+example. This is a report, not a gate: it doesn't change the exit status, since every build has
+some (UBERON alone cross-references dozens of ontologies Babel doesn't ingest). It is the check for
+a missing rename in a source's ``config.yaml: *_xref_prefixes`` map.
 """
 
 import argparse
@@ -25,8 +31,9 @@ import sys
 import urllib.parse
 import urllib.request
 
+from src.model.concords import find_unknown_prefixes, known_curie_prefixes
 from src.model.intermediates import CONCORD_ENCODING, is_metadata_sidecar, scan_concord_lines
-from src.util import get_logger
+from src.util import get_biolink_prefix_map, get_logger
 
 logger = get_logger(__name__)
 
@@ -80,19 +87,26 @@ def find_remote_concords(url: str) -> list[str]:
     return sorted(found)
 
 
-def scan_target(name: str):
+def scan_target(name: str, count_prefixes: bool = False):
     """Scan one local path or URL, streaming it line by line."""
     if name.startswith(("http://", "https://")):
         with urllib.request.urlopen(name, timeout=HTTP_TIMEOUT_SECONDS) as resp:
-            return scan_concord_lines(io.TextIOWrapper(resp, encoding=CONCORD_ENCODING), name)
+            return scan_concord_lines(io.TextIOWrapper(resp, encoding=CONCORD_ENCODING), name, count_prefixes)
     with open(name, encoding=CONCORD_ENCODING) as inf:
-        return scan_concord_lines(inf, name)
+        return scan_concord_lines(inf, name, count_prefixes)
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("targets", nargs="+", help="Concord files, directories, or http(s) URLs.")
+    parser.add_argument(
+        "--prefixes",
+        action="store_true",
+        help="Also list each file's prefixes that neither Biolink nor src/prefixes.py defines (doesn't affect the exit status).",
+    )
     args = parser.parse_args(argv)
+    # Fetched before scanning, so a failed download fails fast rather than after an hour-long scan.
+    known = known_curie_prefixes(get_biolink_prefix_map().prefix_map) if args.prefixes else None
 
     files = []
     empty_targets = []
@@ -111,16 +125,28 @@ def main(argv=None):
 
     print("file\trows\trejected\treasons")
     total_rows = total_rejected = 0
+    unknown_prefixes: set[str | None] = set()
     for name in files:
         logger.info("scanning %s", name)
-        scan = scan_target(name)
+        scan = scan_target(name, count_prefixes=args.prefixes)
         total_rows += scan.rows
         total_rejected += scan.rejected
         reasons = ", ".join(f"{reason}: {count}" for reason, count in scan.rejects.most_common())
         print(f"{name}\t{scan.rows}\t{scan.rejected}\t{reasons}", flush=True)
         for reason, (line_number, line) in scan.examples.items():
             print(f"#   first '{reason}' at line {line_number}: {line!r}", flush=True)
+        if known is not None:
+            for unknown in find_unknown_prefixes(scan, known):
+                unknown_prefixes.add(unknown.prefix)
+                hint = f"; differs only in case from {unknown.case_variant_of}" if unknown.case_variant_of else ""
+                print(
+                    f"#   unknown {unknown.column} prefix {unknown.prefix!r}: {unknown.rows} rows, "
+                    f"e.g. {unknown.example!r}{hint}",
+                    flush=True,
+                )
     print(f"# {len(files)} files, {total_rows} rows, {total_rejected} rejected")
+    if known is not None:
+        print(f"# {len(unknown_prefixes)} distinct unknown prefixes")
     return 1 if total_rejected else 0
 
 
