@@ -76,7 +76,8 @@ SOURCE_WITH_LINKS = [
     for p in TRACKED_FILES
     # This file quotes the banned forms as regex source; excluding it is more honest than relying on
     # the backslashes in those patterns to keep them from matching themselves.
-    if p != Path(__file__)
+    # Resolved, because TRACKED_FILES holds paths under get_repo_root(), which resolves symlinks.
+    if p != Path(__file__).resolve()
     and (p.suffix in LINK_BEARING_SUFFIXES or p.name.startswith("Dockerfile") or p.name == "Snakefile")
 ]
 
