@@ -51,10 +51,18 @@ def handle_metabolite(metabolite, lfile, synfile, smifile):
 
 
 def make_labels_and_synonyms_and_smiles(inputfile, labelfile, synfile, smifile):
-    with open(inputfile) as inf:
-        xml = inf.read()
-    parsed = xmltodict.parse(xml)
-    metabolites = parsed["hmdb"]["metabolite"]
+    """Write HMDB labels, synonyms and SMILES from hmdb_metabolites.xml, one <metabolite> at a time.
+
+    xmltodict's streaming mode (item_depth=2) hands each <metabolite> under the <hmdb> root to the
+    callback as the same dict a whole-document parse would build, then drops it. Reading the whole
+    file into a string and parsing it in one go peaked at ~30 GB on babel-1.17.
+    """
+
     with open(labelfile, "w") as lfile, open(synfile, "w") as sfile, open(smifile, "w") as smiles:
-        for metabolite in metabolites:
+
+        def write_metabolite(_path, metabolite):
             handle_metabolite(metabolite, lfile, sfile, smiles)
+            return True  # Anything false-ish makes xmltodict stop parsing.
+
+        with open(inputfile, "rb") as inf:
+            xmltodict.parse(inf, item_depth=2, item_callback=write_metabolite)
