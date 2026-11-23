@@ -66,9 +66,11 @@ def get_repo_root():
 
     Prefer this to counting ``Path(__file__).parents[n]`` in each caller, where the count is wrong
     as soon as the caller moves. It needs no marker-file search because it counts from this file,
-    whose place in the repo is fixed. Scripts that must put the repo on ``sys.path`` before they
-    can import ``src`` (some under ``docs/``, and ``releases/scripts/``) can't call it, and compute
-    the root themselves.
+    whose place in the repo is fixed. Two kinds of script compute the root themselves instead: the
+    analysis scripts under ``docs/`` that put the repo on ``sys.path`` so they can import ``src``
+    (they need the root before this function is importable), and ``releases/scripts/``, which
+    deliberately imports nothing from ``src/`` because release tooling is kept independent of
+    pipeline code.
     """
     return Path(__file__).resolve().parents[1]
 
@@ -476,7 +478,7 @@ def get_config():
     if config_yaml is not None:
         return config_yaml
 
-    cname = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
+    cname = get_repo_root() / "config.yaml"
     with open(cname) as yaml_file:
         config_yaml = yaml.safe_load(yaml_file)
     return config_yaml
