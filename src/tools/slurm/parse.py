@@ -420,12 +420,8 @@ class JobEvent:
     failed: bool = False
 
 
-_TZ_OFFSET_RE = re.compile(r"([+-])(\d{2})(\d{2})$")
-
-
 def _parse_ts(ts_str: str) -> datetime:
-    # Normalise any bare ±HHMM offset → ±HH:MM for Python < 3.11 fromisoformat compatibility.
-    ts_str = _TZ_OFFSET_RE.sub(r"\1\2:\3", ts_str)
+    # fromisoformat() accepts bare ±HHMM offsets on Python 3.11+, so no normalisation is needed.
     return datetime.fromisoformat(ts_str)
 
 

@@ -23,7 +23,7 @@ jobs:
           fetch-tags: true
       - uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - run: uv sync --frozen
       - run: uv run pytest --collect-only -q
       - run: uv run pytest -m unit --no-cov -q
@@ -47,6 +47,6 @@ jobs:
           fetch-tags: true
       - uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - run: uv sync --frozen
       - run: uv run pytest --network -m "unit or network or slow" --no-cov -q

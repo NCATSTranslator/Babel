@@ -20,7 +20,10 @@ Three steps outside ``glom()`` also have to be modelled for the fates above to h
 * the pre-glom filters of ``chemicals.build_untyped_compendia()`` and ``chemicals.combine_unichem()``:
   ``remove_overused_xrefs`` (every untyped-stage concord, and the UniChem files of
   ``chemicals.UNICHEM_OVERUSED_XREF_PREFIXES``), from the CUI-follows-MeSH rule onward skipping pairs that name
-  a UMLS CUI another pipeline owns, and from ``input_data/chemical_badxrefs.txt`` onward skipping its pairs;
+  a UMLS CUI another pipeline owns, and from ``input_data/chemical_badxrefs.txt`` onward skipping its pairs. A
+  concord in ``config.yaml: chemical_structure_concords`` is glommed with the UniChem files, unfiltered, before the
+  untyped stage reads it again (GtoPdb since #1206), so its edges are modelled as UniChem edges; see
+  :func:`classify_chemical_glom_edges` for how a build from before that is told apart;
 * the post-glom split in ``chemicals.create_typed_sets()`` (Babel #83), which moves every ``MolecularMixture``-typed
   member of a clique whose PubChem CIDs disagree on type into a clique of their own, leaving the key with the rest.
   Each keyless split-off clique is rejoined to its parent: the single keyed clique its members' own keys sit in
@@ -91,6 +94,8 @@ def classify_chemical_glom_edges(
     unichem_overused_prefixes: Iterable[str],
     owned_elsewhere: Iterable[str] = (),
     bad_pairs: Iterable[tuple[str, str]] = (),
+    *,
+    structure_concords: Iterable[str],
 ) -> None:
     """Create table ``glom_edge`` in ``con``: one row per chemical concord edge with its verdict and pre-split sets.
 
@@ -105,6 +110,11 @@ def classify_chemical_glom_edges(
         (``umls.read_cuis_owned_elsewhere(mesh_ownership, "chemicals")``); empty for builds before that rule.
     :param bad_pairs: The bad xref pairs the build applied (``chemicals.read_applied_badxrefs()`` of its
         ``partials/applied_badxrefs.txt``), matched in either direction; empty for builds made before the file existed.
+    :param structure_concords: ``config.yaml: chemical_structure_concords`` -- concords ``combine_unichem()`` gloms
+        with the UniChem files, so they skip the overused and bad-xref filters (their second, untyped-stage read
+        changes nothing). Each source joined that list when its UniChem copy was dropped (GtoPdb, #1206), so one whose
+        ``UNICHEM_<name>`` file is still in the build predates the move, and is modelled as untyped-stage only.
+        Required, with no default, because leaving it out mislabels those edges without raising.
 
     Columns of ``glom_edge``: ``base`` (concord file name), ``is_unichem``, ``subj``, ``obj``, ``s_set``/``o_set``
     (hashed pre-split set of each endpoint, NULL if absent), ``key_dropped`` (a UniChem record->key edge whose key
@@ -158,16 +168,29 @@ def classify_chemical_glom_edges(
     overused_unichem = sql_list(f"UNICHEM_{p}" for p in unichem_overused_prefixes)
     concords = sql_str(concord_parquet)
     unichem_dir = sql_str(f"%{UNICHEM_CONCORD_DIR}%")
+    unichem_files = {
+        base
+        for (base,) in con.sql(
+            f"SELECT DISTINCT regexp_extract(filename, '[^/]+$') FROM read_parquet({concords}) "
+            f"WHERE filename LIKE {unichem_dir}"
+        ).fetchall()
+    }
+    structure_stage = [name for name in structure_concords if f"UNICHEM_{name}" not in unichem_files]
+    logger.info("structure concords glommed with the UniChem files in this build: %s", structure_stage)
+    structure = sql_list(structure_stage)
     con.sql(f"""
         CREATE OR REPLACE TABLE glom_edge_raw AS
-        WITH raw AS (
+        WITH raw0 AS (
             SELECT regexp_extract(filename, '[^/]+$') AS base, filename LIKE {unichem_dir} AS is_unichem, subj, obj
             FROM read_parquet({concords})
             WHERE filename LIKE '%/chemicals/concords/%'
+        ), raw AS (
+            -- glommed in combine_unichem(): a UniChem file, or a structure concord read there (see the docstring)
+            SELECT *, is_unichem OR list_contains({structure}, base) AS structure_stage FROM raw0
         ), fed AS (
             SELECT *, (subj IN (SELECT curie FROM owned_elsewhere) OR obj IN (SELECT curie FROM owned_elsewhere))
                       AS owned_elsewhere,
-                   NOT is_unichem AND (subj, obj) IN (SELECT (a, b) FROM bad_pair) AS badxref
+                   NOT structure_stage AND (subj, obj) IN (SELECT (a, b) FROM bad_pair) AS badxref
             FROM raw
             WHERE is_unichem OR list_contains({untyped}, base)
         )
@@ -175,7 +198,7 @@ def classify_chemical_glom_edges(
                -- remove_overused_xrefs(): drop every row whose object appears in 2+ rows of the same file. The
                -- build counts after skipping owned-elsewhere and bad-xref pairs, so they are left out here too.
                NOT owned_elsewhere AND NOT badxref
-                 AND (NOT is_unichem OR list_contains({overused_unichem}, base))
+                 AND (NOT structure_stage OR list_contains({overused_unichem}, base))
                  AND count(*) FILTER (WHERE NOT owned_elsewhere AND NOT badxref) OVER (PARTITION BY base, obj) >= 2
                  AS overused
         FROM fed
