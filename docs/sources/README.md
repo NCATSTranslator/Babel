@@ -90,6 +90,9 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   [UMLS/CuiFollowsMesh.md](./UMLS/CuiFollowsMesh.md) — how a CUI is assigned to the pipeline that
   claims its MeSH descriptor when its semantic type says otherwise, the replay that measures the
   rule against a published build, and the duplicate-clique-leader control behind it.
+- **UniChem** ([UniChem/README.md](./UniChem/README.md)) — the structure mapping most chemical
+  InChIKeys come from: what Babel reads from its dumps, how UniChem derives structures (RDKit,
+  current and obsolete assignments), and how to check a source's structures when they look wrong.
 - **NCBIGene** ([NCBIGene/quoting/README.md](./NCBIGene/quoting/README.md)) — an investigation into
   how the two free-text synonym columns (`Synonyms`/`otheraliases`, `Other_designations`/
   `otherdesignations`) in `gene_info.gz` are quoted, prompted by issue #744's `''…''` fragments and

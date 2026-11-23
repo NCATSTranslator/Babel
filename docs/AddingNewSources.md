@@ -184,6 +184,11 @@ In `src/snakefiles/<pipeline>.snakefile`:
   `config["sparql"]["max_attempts"]` and `retry_base_delay_seconds`), so a full UberGraph
   rule failure indicates something more persistent than a single-request glitch.
 - Add the source's concord output and metadata YAML to the existing concord-building rule.
+- Pass every value a rule's output depends on that is not an input file — a `config.yaml` setting
+  or a Python constant — through `params:`. Snakemake re-runs a rule when its params change, but
+  not when a constant its `run:` block reads does, so a local run that reuses `babel_downloads/`
+  silently keeps the old output. `rule filter_unichem` (its source list) and the MeSH download
+  rules (`mesh_year`) are the examples.
 
 ### 5. Update `config.yaml`
 
