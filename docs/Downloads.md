@@ -17,7 +17,8 @@ There are several different Babel outputs that we make available for download:
 * The `kgx/` directory contains the compendia files in the
   [Knowledge Graph Exchange (KGX) format](https://github.com/biolink/kgx).
 * The `sapbert-training-data/` directory contains the training data for the
-  [Babel-SAPBERT tool](https://github.com/renci-ner/sapbert).
+  [Babel-SAPBERT tool](https://github.com/renci-ner/sapbert), in the
+  [format described here](DataFormats.md#sapbert-training-data).
 * The `reports/` files are various reports generated to summarize the outputs.
   * `reports/content` directory contains JSON files summarizing the contents of the compendia files
     by prefix.
