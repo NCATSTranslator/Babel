@@ -1,7 +1,6 @@
 import gzip
 import hashlib
 import json
-import logging
 from collections import Counter, defaultdict
 
 import jsonlines
@@ -530,66 +529,79 @@ def write_chemical_ids_from_labels_and_smiles(labelfile, smifile, outfile):
             outf.write(f"{hmdbid}\t{ctype}\n")
 
 
+# The exact column list of GtoPdb's ligands.tsv, as parse_smifile() expects it. Any change upstream should stop
+# the build rather than silently shift which column is read as the ID or the SMILES, so the header is compared
+# against this list in full. Update it (and check the column names write_gtopdb_ids() passes) when GtoPdb changes
+# the file.
+GTOPDB_LIGANDS_COLUMNS = [
+    '"Ligand ID"',
+    '"Name"',
+    '"Species"',
+    '"Type"',
+    '"Approved"',
+    '"Withdrawn"',
+    '"Labelled"',
+    '"Radioactive"',
+    '"PubChem SID"',
+    '"PubChem CID"',
+    '"UniProt ID"',
+    '"Ensembl ID"',
+    '"ChEMBL ID"',
+    '"Ligand Subunit IDs"',
+    '"Ligand Subunit Name"',
+    '"Ligand Subunit UniProt IDs"',
+    '"Ligand Subunit Ensembl IDs"',
+    '"IUPAC name"',
+    '"INN"',
+    '"Synonyms"',
+    '"SMILES"',
+    '"InChIKey"',
+    '"InChI"',
+    '"GtoImmuPdb"',
+    '"GtoMPdb"',
+    '"Antibacterial"',
+]
+
+
 def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
-    idcol_index = None
-    smicol_index = None
+    """Write a `CURIE<TAB>Biolink type` row for every ligand in GtoPdb's ligands.tsv, typed from its SMILES.
+
+    `idcol` and `smicol` name the ID and SMILES columns exactly as the header spells them (quotes included); both
+    must be in GTOPDB_LIGANDS_COLUMNS. The version line is skipped, the header must match GTOPDB_LIGANDS_COLUMNS
+    exactly, and blank lines are skipped. With `stripquotes`, each field's surrounding double quotes are removed.
+    Raises ValueError for an unknown column name, a modified header, or a data row before the header.
+    """
+    for param, column in (("idcol", idcol), ("smicol", smicol)):
+        if column not in GTOPDB_LIGANDS_COLUMNS:
+            raise ValueError(f"parse_smifile() {param}={column!r} is not a column of GTOPDB_LIGANDS_COLUMNS")
+    # Both names are in the expected header, which a header row must match exactly, so these always succeed.
+    idcol_index = GTOPDB_LIGANDS_COLUMNS.index(idcol)
+    smicol_index = GTOPDB_LIGANDS_COLUMNS.index(smicol)
+    seen_header = False
     with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
+            if not line.strip():
+                # A blank line (such as a trailing one) has no columns to read.
+                continue
             if line.startswith('"# GtoPdb Version'):
                 # Version line! Skip.
                 continue
             if line.startswith('"Ligand ID"'):
                 # Header line! Check, then skip.
                 header = line.strip().split("\t")
-                # print("header: ", header)
-                assert header == [
-                    '"Ligand ID"',
-                    '"Name"',
-                    '"Species"',
-                    '"Type"',
-                    '"Approved"',
-                    '"Withdrawn"',
-                    '"Labelled"',
-                    '"Radioactive"',
-                    '"PubChem SID"',
-                    '"PubChem CID"',
-                    '"UniProt ID"',
-                    '"Ensembl ID"',
-                    '"ChEMBL ID"',
-                    '"Ligand Subunit IDs"',
-                    '"Ligand Subunit Name"',
-                    '"Ligand Subunit UniProt IDs"',
-                    '"Ligand Subunit Ensembl IDs"',
-                    '"IUPAC name"',
-                    '"INN"',
-                    '"Synonyms"',
-                    '"SMILES"',
-                    '"InChIKey"',
-                    '"InChI"',
-                    '"GtoImmuPdb"',
-                    '"GtoMPdb"',
-                    '"Antibacterial"',
-                ], f"SMIFile {infile} has a modified header, please update."
-                try:
-                    idcol_index = header.index(idcol)
-                except ValueError:
-                    logging.error(f"Could not find ID column '{idcol}' in header {header} for {infile}")
-                    exit(1)
-                try:
-                    smicol_index = header.index(smicol)
-                except ValueError:
-                    logging.error(f"Could not find SMILES column '{smicol}' in header {header} for {infile}")
-                    exit(1)
+                if header != GTOPDB_LIGANDS_COLUMNS:
+                    # An explicit raise rather than an assert, which `python -O` would skip.
+                    raise ValueError(f"SMIFile {infile} has a modified header, please update: {header}")
+                seen_header = True
                 continue
-            x = line.split("\t")
+            if not seen_header:
+                # Also what a header that doesn't start with exactly '"Ligand ID"' (a BOM, leading whitespace, a
+                # renamed first column) looks like, since it is then read as data.
+                raise ValueError(f"SMIFile {infile} has a data row before its '\"Ligand ID\"' header: {line!r}")
+            # Drop the line ending first, or the last field keeps it and stripquotes leaves a stray quote on it.
+            x = line.rstrip("\r\n").split("\t")
             if stripquotes:
                 x = [xi[1:-1] for xi in x]
-            if idcol_index is None:
-                logging.error(f"Could not find ID column '{idcol}' in {infile}")
-                exit(1)
-            if smicol_index is None:
-                logging.error(f"Could not find SMILES column '{smicol}' in {infile}")
-                exit(1)
             smi = x[smicol_index]
             dcid = f"{pref}:{x[idcol_index]}"
             ctype = get_type_from_smiles(smi)
@@ -1379,12 +1391,12 @@ def create_typed_sets(eqsets, types, food_types):
         """Type a clique as the most preferred of its voted type and any food/extract evidence on it."""
         typed_sets[min({biolink_type} | food_evidence, key=order.index) if food_evidence else biolink_type].add(ids)
 
-    # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
+    # logger.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
         # The evidence joins the vote below rather than overriding it. Recomputed per output clique in
         # the split branch, since a split sends the evidence CURIE to only one of the two halves.
         food_evidence = evidence_for(equivalent_ids)
-        # logging.warning(f"Processing equivalent_ids={equivalent_ids}.")
+        # logger.warning(f"Processing equivalent_ids={equivalent_ids}.")
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)
         found = False
@@ -1396,7 +1408,7 @@ def create_typed_sets(eqsets, types, food_types):
                     if x in types:
                         pctypes.add(types[x])
                     else:
-                        # logging.warning(f"No type found for {x}, skipping.")
+                        # logger.warning(f"No type found for {x}, skipping.")
                         pass
 
                 if len(pctypes) == 1:
@@ -1422,11 +1434,16 @@ def create_typed_sets(eqsets, types, food_types):
                         else:
                             all_other_ids.add(eq_id)
 
-                    logging.info(
-                        "Found a clique that that contains PUBCHEM types "
-                        + "({'biolink:SmallMolecule', 'biolink:MolecularMixture'}). This clique will be split "
-                        + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
-                        + f"a biolink:SmallMolecule ({all_other_ids})"
+                    # Debug, not info: this fires thousands of times per build (see the count above).
+                    logger.debug(
+                        "Found a clique that contains PUBCHEM types %s and %s. This clique will be split into a "
+                        "%s (%s) and a %s (%s)",
+                        SMALL_MOLECULE,
+                        MOLECULAR_MIXTURE,
+                        MOLECULAR_MIXTURE,
+                        molecular_mixture_ids,
+                        SMALL_MOLECULE,
+                        all_other_ids,
                     )
                     # Each half votes on its own evidence: an extract CURIE that lands in the small
                     # molecule half must not retype the mixture half to ComplexMolecularMixture.
@@ -1434,7 +1451,7 @@ def create_typed_sets(eqsets, types, food_types):
                     assign(SMALL_MOLECULE, frozenset(all_other_ids), evidence_for(all_other_ids))
                     found = True
                 else:
-                    logging.warning(
+                    logger.warning(
                         f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}"
                     )
         if not found:

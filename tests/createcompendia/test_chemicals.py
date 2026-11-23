@@ -930,3 +930,106 @@ def test_build_compendia_loads_icrdf_once_for_every_output(tmp_path, monkeypatch
     assert len(writes) == 2
     assert factories[0].ic_file == icrdf
     assert all(w["ic_factory"] is factories[0] and w["icrdf_filename"] == icrdf for w in writes)
+
+
+# ----
+# PARSE_SMIFILE (GtoPdb ligands)
+# ----
+
+
+@pytest.mark.unit
+def test_parse_smifile_raises_on_a_data_row_before_the_header(tmp_path):
+    """A ligands file whose first row is data, not the "Ligand ID" header, leaves the column indices unset, so
+    parse_smifile() should raise ValueError saying so, rather than exit the process or blame a missing column. The row
+    is synthetic: it only has to come before any header."""
+    from src.createcompendia.chemicals import write_gtopdb_ids
+
+    infile = tmp_path / "ligands.tsv"
+    infile.write_text('"1"\t"a ligand"\n')
+
+    with pytest.raises(ValueError, match="data row before"):
+        write_gtopdb_ids(str(infile), str(tmp_path / "ids"))
+
+
+@pytest.mark.unit
+def test_parse_smifile_raises_on_a_modified_header(tmp_path):
+    """A "Ligand ID" header that differs from the expected GtoPdb column list should raise ValueError (not an assert,
+    which `python -O` would skip). The header is synthetic: any deviation from the expected list will do."""
+    from src.createcompendia.chemicals import write_gtopdb_ids
+
+    infile = tmp_path / "ligands.tsv"
+    infile.write_text('"Ligand ID"\t"Name"\n')
+
+    with pytest.raises(ValueError, match="modified header"):
+        write_gtopdb_ids(str(infile), str(tmp_path / "ids"))
+
+
+@pytest.mark.unit
+def test_parse_smifile_raises_on_a_column_not_in_the_expected_header(tmp_path):
+    """A column name that GTOPDB_LIGANDS_COLUMNS doesn't list should raise ValueError naming the parameter, not a bare
+    `'"X"' is not in list` from index()."""
+    from src.createcompendia.chemicals import parse_smifile
+    from src.prefixes import GTOPDB
+
+    infile = tmp_path / "ligands.tsv"
+    infile.write_text("")
+
+    with pytest.raises(ValueError, match="smicol='\"Isomeric SMILES\"'"):
+        parse_smifile(str(infile), str(tmp_path / "ids"), '"Isomeric SMILES"', '"Ligand ID"', GTOPDB)
+
+
+# The version line, header and ethanol row (line 5302) copied verbatim from GtoPdb 2026.3.1's ligands.tsv.
+# Don't build the header from chemicals.GTOPDB_LIGANDS_COLUMNS: this copy is the only check that the constant still
+# matches the real file, and a header built from it would pass whatever the constant says.
+GTOPDB_LIGANDS_SAMPLE = (
+    '"# GtoPdb Version: 2026.3.1 - published: 2026-10-12"\n'
+    + "\t".join(
+        [
+            '"Ligand ID"',
+            '"Name"',
+            '"Species"',
+            '"Type"',
+            '"Approved"',
+            '"Withdrawn"',
+            '"Labelled"',
+            '"Radioactive"',
+            '"PubChem SID"',
+            '"PubChem CID"',
+            '"UniProt ID"',
+            '"Ensembl ID"',
+            '"ChEMBL ID"',
+            '"Ligand Subunit IDs"',
+            '"Ligand Subunit Name"',
+            '"Ligand Subunit UniProt IDs"',
+            '"Ligand Subunit Ensembl IDs"',
+            '"IUPAC name"',
+            '"INN"',
+            '"Synonyms"',
+            '"SMILES"',
+            '"InChIKey"',
+            '"InChI"',
+            '"GtoImmuPdb"',
+            '"GtoMPdb"',
+            '"Antibacterial"',
+        ]
+    )
+    + "\n"
+    + '"2299"\t"ethanol"\t""\t"Metabolite"\t""\t""\t""\t""\t"135651485"\t"702"\t""\t""\t"CHEMBL545"\t""\t""\t""\t""\t'
+    '"ethanol"\t""\t""\t"CCO"\t"LFQSCWFLJHTTHZ-UHFFFAOYSA-N"\t"InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3"\t""\t""\t""\n'
+)
+
+
+@pytest.mark.unit
+def test_parse_smifile_skips_blank_lines(tmp_path):
+    """A blank line, such as a trailing one, should be skipped rather than raise IndexError, and the rows around it
+    still typed from their SMILES."""
+    from src.categories import SMALL_MOLECULE
+    from src.createcompendia.chemicals import write_gtopdb_ids
+
+    infile = tmp_path / "ligands.tsv"
+    infile.write_text(GTOPDB_LIGANDS_SAMPLE + "\n")
+    outfile = tmp_path / "ids"
+
+    write_gtopdb_ids(str(infile), str(outfile))
+
+    assert outfile.read_text() == f"GTOPDB:2299\t{SMALL_MOLECULE}\n"
