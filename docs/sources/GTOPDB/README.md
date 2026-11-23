@@ -98,4 +98,5 @@ into `config.yaml: unichem_datasources` locally, run
 over the result. The changed source list is `rule filter_unichem`'s `params:`, so Snakemake
 refilters the UniChem reference file, putting GtoPdb's rows back, before rewriting the concords.
 Until that shows the two sources agreeing again, don't re-add it:
-`test_unichem_is_not_a_source_of_gtopdb_structures` fails if someone does.
+`test_unichem_is_not_a_source_of_gtopdb_structures` fails if someone does. The question to
+UniChem is [#1256](https://github.com/NCATSTranslator/Babel/issues/1256).
