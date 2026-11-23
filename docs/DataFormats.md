@@ -271,15 +271,19 @@ How the pairs are chosen:
 
 Which files are written, and how they overlap:
 
-- One file for each synonym file except the individual chemical types and `Publication`.
-  `DrugChemicalConflated.txt.gz` stands in for the chemical types.
-- `Gene.txt.gz` and `Protein.txt.gz` are written, and so is `GeneProteinConflated.txt.gz`. The
-  conflated file is built from `synonyms/GeneProteinConflated.txt.gz`, which holds every gene and
-  protein record: one merged record for each gene with the proteins it encodes, and every other
-  record unchanged. So it repeats the unconflated records of the other two. Train on `Gene` and
-  `Protein`, or on `GeneProteinConflated`, never on all three.
-- A merged gene and protein record is written with the gene's CURIE, preferred name and
-  `biolink:Gene`, and its 50 pairs are drawn from the gene's and the proteins' names together.
+- One file for each synonym file except the individual chemical types, `Publication` and
+  `GeneProteinConflated`. `DrugChemicalConflated.txt.gz` stands in for the chemical types.
+- Genes and proteins are written unconflated, as `Gene.txt.gz` and `Protein.txt.gz`.
+  `config.yaml`'s `sapbert_excluded_synonym_outputs` leaves `GeneProteinConflated` out, because
+  nearly every pair it adds contains a UniProtKB entry label
+  ([measurements](conflation/geneprotein-sapbert-pairs/README.md)).
+- Builds made before that setting, 2026jul22 among them, also have
+  `GeneProteinConflated.txt.gz`. It is built from `synonyms/GeneProteinConflated.txt.gz`, which
+  holds every gene and protein record: one merged record for each gene with the proteins it
+  encodes, and every other record unchanged. So it repeats the unconflated records of the other
+  two: train on `Gene` and `Protein`, or on `GeneProteinConflated`, never on all three. A merged
+  record is written with the gene's CURIE, preferred name and `biolink:Gene`, and its 50 pairs are
+  drawn from the gene's and the proteins' names together.
 
 ## DuckDB and Parquet exports
 

@@ -1,12 +1,15 @@
 # What GeneProtein conflation adds to the SAPBERT training pairs
 
-Babel writes three gene and protein files to `sapbert-training-data/`
+For 2026jul22, Babel wrote three gene and protein files to `sapbert-training-data/`
 ([format](../../DataFormats.md#sapbert-training-data)): `Gene.txt.gz`, `Protein.txt.gz` and
 `GeneProteinConflated.txt.gz`. The conflated file merges each gene with the proteins it encodes, so
 it alone can pair a gene name with a protein name. Should a SAPBERT model train on those pairs, or
 on gene names and protein names separately?
 [#1263](https://github.com/NCATSTranslator/Babel/issues/1263) holds the decision. This directory
 holds the measurements behind it.
+
+On those measurements, `config.yaml`'s `sapbert_excluded_synonym_outputs` now leaves
+`GeneProteinConflated` out of the export. Empty that list to write it again.
 
 [`scripts/analyze_cross_pairs.py`](scripts/analyze_cross_pairs.py) reads a finished build's Parquet
 exports and describes every pair that only the conflated record can produce. It counts the whole

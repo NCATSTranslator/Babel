@@ -126,7 +126,7 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `geneprotein_conflated_synonyms` | `geneprotein.snakefile` | 512G | 6h | Conflated synonym merge |
 | `drugchemical_conflation` | `drugchemical.snakefile` | 96G | — | Drug/chemical conflation (61.2 GB peak, was 96% of 64G) |
 | `geneprotein_conflation` | `geneprotein.snakefile` | 64G | — | Gene/protein conflation (~48G peak) |
-| `generate_sapbert_training_data` | `exports.snakefile` | 64G | 3h | Slowest wildcard instance 1.9h; estimate for the pair deduplication set, recheck against the benchmarks |
+| `generate_sapbert_training_data` | `exports.snakefile` | 64G | 3h | Sized for GeneProteinConflated (1.9h on 2026jul22), which is no longer exported; the slowest instance left was DrugChemicalConflated at 1.6h. Memory is an estimate for the pair deduplication set, recheck against the benchmarks |
 | `get_uniprotkb_labels` | `datacollect.snakefile` | 48G | — | UniProtKB label parse (~40G peak) |
 | `hmdb_labels_and_synonyms` | `datacollect.snakefile` | 48G | — | HMDB XML parse (~30G peak) |
 | `check_protein_completeness` | `protein.snakefile` | 24G | — | Loads full Protein compendium (~21G peak) |

@@ -508,6 +508,12 @@ drugbank_extract_markers: [extract]
 
 drugchemicalconflated_synonym_outputs: [DrugChemicalConflated.txt]
 geneproteinconflated_synonym_outputs:  [GeneProteinConflated.txt]
+# Synonym files that are not exported to sapbert-training-data/. GeneProteinConflated.txt repeats
+# every record of Gene.txt and Protein.txt, which are exported on their own, and on 2026jul22 at
+# least 94.6% of the name pairs it alone can produce contain a UniProtKB entry label, a string Babel
+# builds (docs/conflation/geneprotein-sapbert-pairs/, issue #1263). Its synonym file is still
+# written, since NameRes loads it. Empty this list to export it for SAPBERT again.
+sapbert_excluded_synonym_outputs: [GeneProteinConflated.txt]
 
 taxon_labels:   [NCBITaxon, MESH, UMLS]
 taxon_synonyms: [NCBITaxon, UMLS]
