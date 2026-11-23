@@ -10,10 +10,18 @@ Usage, from the repository root (a build is a local directory or an https:// URL
 
     D=docs/sources/GTOPDB/unichem-stereo
     uv run python $D/scripts/compare_gtopdb_inchikeys.py --build <build> --label 2026jul22 \\
-        --csv $D/differing-ligands-2026jul22.csv > $D/report-2026jul22.md
+        --csv $D/differing-ligands-2026jul22-top-300.csv --csv-limit 300 > $D/report-2026jul22.md
 
-A build written after #1206 has no UNICHEM_GTOPDB concord; to re-check UniChem then, write one with
-write_unichem_concords() after putting source "4" back into unichem.data_sources locally.
+The committed CSV is a ranked sample (see select_csv_rows()); leave out --csv-limit, and write to a
+file under data/, for every ligand.
+
+A build written after #1206 has no UNICHEM_GTOPDB concord. To re-check UniChem then, put source "4"
+back into unichem.data_sources and GTOPDB back into config.yaml: unichem_datasources locally, and run
+
+    uv run snakemake -c all --scheduler greedy get_chemical_unichem_relationships
+
+The changed source list re-runs rule filter_unichem (it is the rule's params), so the filtered
+reference file regains GtoPdb's rows and the concord is rewritten from them.
 """
 
 import argparse
@@ -150,12 +158,61 @@ def summarise_moves(moves):
     return outcomes, movers[::step][:8]
 
 
+# The difference between the two keys that almost every differing ligand shows (5,728 of 5,817 in
+# 2026jul22), and so the one select_csv_rows() samples rather than lists in full.
+COMMON_DIFFERENCE = "Same skeleton; UniChem stereo-less, GtoPdb specific"
+
+
+def select_csv_rows(rows, limit=None, with_cliques=True):
+    """Order the CSV rows so the ones that would change a reviewer's mind come first, then cap them.
+
+    Every row that is not the ordinary case comes first, in this order: a difference other than
+    COMMON_DIFFERENCE (two different stereo layers, a different skeleton), a ligand whose own key is
+    in no clique (it would form a new one), and a ligand in no clique now. The ordinary rows -- a
+    stereo-less UniChem key, and a ligand that joins the existing clique of its own key -- fill the
+    rest of the cap, spread evenly across them in CURIE order rather than taken from the start, so
+    the sample isn't just the lowest ligand IDs. Each group is in CURIE order.
+
+    :param rows: CSV rows as lists, in the column order main() writes.
+    :param limit: the most rows to return, or None for all of them.
+    :param with_cliques: False when the clique columns are empty (--no-cliques), so that they are
+        not read as "in no clique".
+    """
+
+    def number(row):
+        return int(row[0].split(":")[1])
+
+    def group(row):
+        _ligand, _own, _unichem, difference, now, target = row
+        if difference != COMMON_DIFFERENCE:
+            return 0
+        if not with_cliques:
+            return 3
+        if not target:
+            return 1
+        if not now:
+            return 2
+        return 3
+
+    rows = sorted(rows, key=lambda row: (group(row), number(row)))
+    unusual = [row for row in rows if group(row) < 3]
+    ordinary = [row for row in rows if group(row) == 3]
+    if limit is None or len(rows) <= limit:
+        return rows
+    room = max(0, limit - len(unusual))
+    step = len(ordinary) / room if room else 0
+    return unusual[:limit] + [ordinary[int(i * step)] for i in range(room)]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--build", required=True, help="Build directory or URL (holding intermediate/ and duckdb/).")
     parser.add_argument("--label", required=True, help="Build name to print; the location itself is never printed.")
     parser.add_argument("--no-cliques", action="store_true", help="Skip the clique analysis (no duckdb/ exports).")
     parser.add_argument("--csv", help="Write one row per ligand whose two keys differ to this file.")
+    parser.add_argument(
+        "--csv-limit", type=int, help="Write at most this many CSV rows, ranked by select_csv_rows() (default: all)."
+    )
     args = parser.parse_args()
 
     concords = ("intermediate", "chemicals", "concords")
@@ -201,21 +258,15 @@ def main():
             out.write(f"| `{ligand}` | `{now}` | `{target}` |\n")
 
     if args.csv:
+        rows = []
+        for ligand in differing:
+            now, target, _members = moves.get(ligand, ("", "", None))
+            difference = classify(own[ligand], unichem[ligand])
+            rows.append([ligand, own[ligand], unichem[ligand], difference, now or "", target or ""])
         with open(args.csv, "w", newline="") as f:
             writer = csv.writer(f, lineterminator="\n")
             writer.writerow(["ligand", "gtopdb_key", "unichem_key", "difference", "clique_now", "clique_of_gtopdb_key"])
-            for ligand in sorted(differing, key=lambda curie: int(curie.split(":")[1])):
-                now, target, _members = moves.get(ligand, ("", "", None))
-                writer.writerow(
-                    [
-                        ligand,
-                        own[ligand],
-                        unichem[ligand],
-                        classify(own[ligand], unichem[ligand]),
-                        now or "",
-                        target or "",
-                    ]
-                )
+            writer.writerows(select_csv_rows(rows, args.csv_limit, with_cliques=not args.no_cliques))
 
 
 if __name__ == "__main__":
