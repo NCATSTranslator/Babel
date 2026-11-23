@@ -144,6 +144,28 @@ def get_all_synonyms_with_drugchemicalconflated(config):
     )
 
 
+def get_sapbert_training_synonyms(config):
+    """
+    List of the synonym files exported to `sapbert-training-data/`: every file in
+    get_all_synonyms_with_drugchemicalconflated() that config["sapbert_excluded_synonym_outputs"]
+    doesn't name. See that config entry for why GeneProteinConflated.txt is excluded.
+
+    :param config: The Babel config to use.
+    :return: A list of filenames expected in the `synonyms/` directory.
+    :raises ValueError: If an excluded filename is not one of those synonym files. A misspelled
+        exclusion would otherwise export the file it was meant to leave out, without a word.
+    """
+    synonym_files = get_all_synonyms_with_drugchemicalconflated(config)
+    excluded = set(config["sapbert_excluded_synonym_outputs"])
+    unknown = sorted(excluded - set(synonym_files))
+    if unknown:
+        raise ValueError(
+            f"config.yaml: sapbert_excluded_synonym_outputs names {unknown}, which are not among the "
+            f"synonym files exported for SAPBERT: {synonym_files}"
+        )
+    return [filename for filename in synonym_files if filename not in excluded]
+
+
 def get_all_gzipped(file_list):
     """
     Helper method to add '.gz' to all the files in a list (presumably from get_all_synonyms_*()).

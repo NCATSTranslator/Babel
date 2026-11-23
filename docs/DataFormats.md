@@ -235,6 +235,56 @@ Note that this includes both biolink:Gene identifiers (such as
 [HGNC:4056](https://alliancegenome.org/gene/HGNC:4056)) and biolink:Protein identifiers (such as
 [UniProtKB:P35575](http://www.uniprot.org/uniprot/P35575)).
 
+## SAPBERT training data
+
+The `sapbert-training-data/` directory holds pairs of names for training the
+[Babel-SAPBERT](https://github.com/RENCI-NER/sapbert) model. `src/exporters/sapbert.py` writes one
+file per synonym file, each row being two names of one synonym record:
+
+```text
+biolink:Gene||NCBIGene:10554||AGPAT1||1-acylglycerol-3-phosphate o-acyltransferase 1||lysophosphatidic acid acyltransferase, alpha
+```
+
+| Column | Example           | Meaning                                                                                  |
+|--------|-------------------|------------------------------------------------------------------------------------------|
+| 1      | `biolink:Gene`    | The record's first (narrowest) Biolink type, or `biolink:NamedThing` if it has none.     |
+| 2      | `NCBIGene:10554`  | The record's `curie`. The Babel-SAPBERT training code uses this as the pair's label.     |
+| 3      | `AGPAT1`          | The record's `preferred_name`, in its original case.                                     |
+| 4, 5   | two names         | Two different entries of the record's `names`, stripped and lower-cased.                 |
+
+The columns are separated by `||`, so a run of two or more `|` inside a name is written as one.
+
+How the pairs are chosen:
+
+- A record with two or more distinct names yields pairs of those names, at most 50 per record
+  (`MAX_SYNONYM_PAIRS`). A record with more than 50 possible pairs gets a random 50.
+- The preferred name is paired with a name only when the record has a single name that differs
+  from it. A record with no names, or whose only name is its preferred name, yields nothing.
+- The random draw is not seeded, so two exports of one build differ, and each file draws its own
+  50 pairs for a record. Subtracting one file's rows from another's therefore leaves some pairs
+  that both files could have drawn. To find the pairs only one file can contain, compare the names
+  in the synonym files, as
+  [`docs/conflation/geneprotein-sapbert-pairs/`](conflation/geneprotein-sapbert-pairs/README.md)
+  does.
+- Within one file, a pair of names is written once per Biolink type, whichever name comes first.
+  Nothing is deduplicated between files.
+
+Which files are written, and how they overlap:
+
+- One file for each synonym file except the individual chemical types, `Publication` and
+  `GeneProteinConflated`. `DrugChemicalConflated.txt.gz` stands in for the chemical types.
+- Genes and proteins are written unconflated, as `Gene.txt.gz` and `Protein.txt.gz`.
+  `config.yaml`'s `sapbert_excluded_synonym_outputs` leaves `GeneProteinConflated` out, because
+  nearly every pair it adds contains a UniProtKB entry label
+  ([measurements](conflation/geneprotein-sapbert-pairs/README.md)).
+- Builds made before that setting, 2026jul22 among them, also have
+  `GeneProteinConflated.txt.gz`. It is built from `synonyms/GeneProteinConflated.txt.gz`, which
+  holds every gene and protein record: one merged record for each gene with the proteins it
+  encodes, and every other record unchanged. So it repeats the unconflated records of the other
+  two: train on `Gene` and `Protein`, or on `GeneProteinConflated`, never on all three. A merged
+  record is written with the gene's CURIE, preferred name and `biolink:Gene`, and its 50 pairs are
+  drawn from the gene's and the proteins' names together.
+
 ## DuckDB and Parquet exports
 
 The `babel_outputs/duckdb/` directory contains the same information as the JSONL files above,

@@ -11,8 +11,13 @@ from snakemake.api import SnakemakeApi
 from snakemake.exceptions import WorkflowError
 from snakemake.settings.types import ConfigSettings, OutputSettings, ResourceSettings
 
-from src.snakefiles.util import ID_PREFIX_LISTS, duckdb_memory_limit_mb
-from src.util import get_repo_root
+from src.snakefiles.util import (
+    ID_PREFIX_LISTS,
+    duckdb_memory_limit_mb,
+    get_all_synonyms_with_drugchemicalconflated,
+    get_sapbert_training_synonyms,
+)
+from src.util import get_config, get_repo_root
 
 
 @pytest.mark.unit
@@ -174,3 +179,33 @@ def test_top_level_snakefile_runs_check_after_every_rule():
         if line.strip() and not line.lstrip().startswith("#")
     ]
     assert code_lines[-1] == "check_id_prefix_rules(workflow, config)"
+
+
+# SAPBERT EXPORT FILE LIST
+
+
+@pytest.mark.unit
+def test_sapbert_export_leaves_out_geneproteinconflated():
+    """With config.yaml as shipped, the SAPBERT export should write Gene, Protein and DrugChemicalConflated
+    but not GeneProteinConflated, and should otherwise match the full synonym list in its order."""
+    config = get_config()
+    files = get_sapbert_training_synonyms(config)
+    assert "GeneProteinConflated.txt" not in files
+    assert {"Gene.txt", "Protein.txt", "DrugChemicalConflated.txt"} <= set(files)
+    all_files = get_all_synonyms_with_drugchemicalconflated(config)
+    assert files == [filename for filename in all_files if filename != "GeneProteinConflated.txt"]
+
+
+@pytest.mark.unit
+def test_sapbert_export_writes_every_file_when_nothing_is_excluded():
+    """Emptying sapbert_excluded_synonym_outputs should bring GeneProteinConflated back into the export."""
+    config = {**get_config(), "sapbert_excluded_synonym_outputs": []}
+    assert get_sapbert_training_synonyms(config) == get_all_synonyms_with_drugchemicalconflated(config)
+
+
+@pytest.mark.unit
+def test_sapbert_export_rejects_an_exclusion_that_matches_no_file():
+    """A misspelled exclusion should raise rather than export the file it was meant to leave out."""
+    config = {**get_config(), "sapbert_excluded_synonym_outputs": ["GeneProteinConflated.txt.gz"]}
+    with pytest.raises(ValueError, match="GeneProteinConflated.txt.gz"):
+        get_sapbert_training_synonyms(config)

@@ -197,6 +197,12 @@ The node output schema is in `NodeFactory.create_node()`'s docstring in `src/nod
   `docs/DataFormats.md`); its `Edge` table answers "which clique contains CURIE X" in one query
   (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`), far cheaper than re-running glom
   or scanning JSONL.
+- **SAPBERT export** — `config.yaml: sapbert_excluded_synonym_outputs` keeps `GeneProteinConflated`
+  out of `sapbert-training-data/` (#1263). Builds made before that setting, 2026jul22 among them,
+  have it, and there it repeats every record of `Gene.txt.gz` and `Protein.txt.gz`. Each file draws
+  its own unseeded random 50 pairs per record, so never compare two of these files pair by pair:
+  compare names from the `Synonyms` Parquet exports instead. Format in `docs/DataFormats.md`
+  ("SAPBERT training data"); worked example in `docs/conflation/geneprotein-sapbert-pairs/`.
 - **Chemical compendium output types** — `config.yaml: chemical_outputs` is the single fan-out list
   for chemical compendium types; adding a subtype needs an entry there *and* a matching hardcoded
   `check_*` report rule in `chemical.snakefile` or `rule chemical`'s DAG breaks. Full note in
