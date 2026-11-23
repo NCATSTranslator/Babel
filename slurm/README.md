@@ -128,7 +128,6 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `geneprotein_conflation` | `geneprotein.snakefile` | 64G | — | Gene/protein conflation (~48G peak) |
 | `generate_sapbert_training_data` | `exports.snakefile` | 64G | 3h | Slowest wildcard instance 1.9h; estimate for the pair deduplication set, recheck against the benchmarks |
 | `get_uniprotkb_labels` | `datacollect.snakefile` | 48G | — | UniProtKB label parse (~40G peak) |
-| `hmdb_labels_and_synonyms` | `datacollect.snakefile` | 48G | — | HMDB XML parse (~30G peak) |
 | `check_protein_completeness` | `protein.snakefile` | 24G | — | Loads full Protein compendium (~21G peak) |
 | `get_chemical_unichem_relationships` | `chemical.snakefile` | 32G | — | UniChem structure parse (22.4 GB peak, was 93% of 24G) |
 | `check_chemical_completeness` | `chemical.snakefile` | 24G | — | 14.7 GB peak, was 92% of the 16G default |
