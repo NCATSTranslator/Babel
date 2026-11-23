@@ -1,19 +1,21 @@
-import ftplib
 import gzip
 import json
 import os
+import urllib.error
+import urllib.request
 import warnings
 from collections import defaultdict
-from io import BytesIO
+from datetime import UTC
+from email.utils import parsedate_to_datetime
 from xml.etree import ElementTree
 
 import pyoxigraph
 
-from src.babel_utils import make_local_name
+from src.babel_utils import get_user_agent, make_local_name
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, ORGANISM_TAXON
 from src.prefixes import MESH
 from src.util import ensure_parent_dir, get_logger
-from src.utils.ftp import ftp_modified_time, list_ftp_dir, retrieve_ftp_file
+from src.utils.download import atomic_hashed_write
 
 logger = get_logger(__name__)
 
@@ -34,27 +36,33 @@ def get_mesh_id_from_iri(iri) -> str:
     return s[len(MESH_IRI_PREFIX) :]
 
 
-MESH_FTP_SITE = "ftp.nlm.nih.gov"
-MESH_RDF_DIR = "/online/mesh/rdf"
+# NLM's HTTPS download site for MeSH, the one https://www.nlm.nih.gov/databases/download/mesh.html links to.
+# It serves the same files as ftp://ftp.nlm.nih.gov/online/mesh/ (same layout, same SHA-1s), which we used
+# until 2026; HTTPS is the route NLM documents, and HTTP downloads have been more reliable for Babel than FTP.
+#
+# NLM sends its .gz files with "Content-Encoding: x-gzip", so a client that honours Content-Encoding (requests'
+# iter_content(), wget --compression=auto) saves them decompressed and the SHA-1 check below fails. urllib
+# leaves the body alone, which is why these downloads use it (_open_mesh_url()).
+MESH_BASE_URL = "https://nlmpubs.nlm.nih.gov/projects/mesh/"
 
 
 def mesh_rdf_location(mesh_year) -> tuple[str, str]:
-    """Return the (FTP directory, filename) of the MeSH RDF N-Triples dump for ``mesh_year``.
+    """Return the (directory URL, filename) of the MeSH RDF N-Triples dump for ``mesh_year``.
 
-    NLM publishes each MeSH release in its own year directory (e.g. /online/mesh/rdf/2026/mesh2026.nt.gz).
-    The top-level /online/mesh/rdf/mesh.nt.gz stopped being updated after MeSH 2024, so we never use it.
-    The per-year directory also has a mesh{year}-dups.nt, which is the same data before deduplication;
-    mesh{year}.nt is the "combined, sorted, unique" file and is all we need.
+    NLM publishes each MeSH release in its own year directory (e.g. rdf/2026/mesh2026.nt.gz). The top-level
+    rdf/mesh.nt.gz stopped being updated after MeSH 2024, so we never use it. The per-year directory also has
+    a mesh{year}-dups.nt, which is the same data before deduplication; mesh{year}.nt is the "combined, sorted,
+    unique" file and is all we need.
     """
-    return f"{MESH_RDF_DIR}/{mesh_year}", f"mesh{mesh_year}.nt.gz"
+    return f"{MESH_BASE_URL}rdf/{mesh_year}/", f"mesh{mesh_year}.nt.gz"
 
 
 # A MeSH year's XML is in one of two places. While it is the current year it lives in MESH_XML_CURRENT_DIR, which
 # NLM can update at any time and which holds no other year; once superseded, its final XML is archived in
 # MESH_XML_ARCHIVE_DIR. Filenames carry the year in both. NLM publishes no checksums for either, so pull_mesh_xml()
 # records the SHA-1 of what it downloaded instead.
-MESH_XML_CURRENT_DIR = "/online/mesh/MESH_FILES/xmlmesh"
-MESH_XML_ARCHIVE_DIR = "/online/mesh/{mesh_year}/xmlmesh"
+MESH_XML_CURRENT_DIR = f"{MESH_BASE_URL}MESH_FILES/xmlmesh/"
+MESH_XML_ARCHIVE_DIR = MESH_BASE_URL + "{mesh_year}/xmlmesh/"
 
 # (file prefix, XML record element, record UI element). Each is published as {prefix}{year}.gz and saved
 # as babel_downloads/MESH/{prefix}.xml.gz.
@@ -64,8 +72,43 @@ MESH_XML_FILES = [
 ]
 
 
+# How long, in seconds, a MeSH download waits to connect, or for the next read, before it fails and Snakemake's
+# retries take over. Without a limit, a stalled connection blocks the job until its walltime. 300 s matches the read
+# timeout pull_via_wget() uses.
+MESH_HTTP_TIMEOUT = 300
+
+
+class MeshFileMissing(RuntimeError):
+    """NLM does not serve the requested URL (see _open_mesh_url())."""
+
+
+def _open_mesh_url(url):
+    """GET ``url`` with Babel's User-Agent and return the open response, raising MeshFileMissing if NLM lacks it.
+
+    NLM does not answer a missing file with a 404: it redirects it (302) to an HTML error page that returns 200,
+    which urllib follows. So a response served from any URL but ``url`` itself raises MeshFileMissing, naming where
+    it was redirected, as does a 404. The check is made on the request that downloads the file, not on a separate
+    one beforehand, so a file that disappears in between (as at NLM's year rollover) can never be saved as that
+    error page. Any other HTTP error is raised unchanged, for Snakemake to retry.
+    """
+    request = urllib.request.Request(url, headers={"User-Agent": get_user_agent()})
+    try:
+        response = urllib.request.urlopen(request, timeout=MESH_HTTP_TIMEOUT)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            raise MeshFileMissing(f"NLM does not serve {url} (404).") from e
+        raise
+    if response.geturl() != url:
+        response.close()
+        raise MeshFileMissing(
+            f"NLM does not serve {url}: it redirects to {response.geturl()}. If that is the file rather than an "
+            "error page, NLM has moved its files and MESH_BASE_URL in src/datahandlers/mesh.py needs updating."
+        )
+    return response
+
+
 def fetch_mesh_xml_dir(mesh_year) -> str:
-    """Return the FTP directory holding desc{year}.gz and supp{year}.gz for ``mesh_year``.
+    """Return the directory URL holding desc{year}.gz and supp{year}.gz for ``mesh_year``.
 
     The year's archive (MESH_XML_ARCHIVE_DIR) is preferred over MESH_XML_CURRENT_DIR whenever it exists, because
     archived files no longer change: a build of a past year then gets the same XML whatever day it runs. Only the
@@ -74,28 +117,57 @@ def fetch_mesh_xml_dir(mesh_year) -> str:
 
     Raises RuntimeError if neither directory has both files. Besides a mesh_year NLM has not published, that
     happens at NLM's year rollover if MESH_FILES has moved on to the next year before the old one is archived.
-    Whether the archive exists is decided by list_ftp_dir() from its parents' listings, never from NLM's error
-    wording, and a failed listing is raised, so a transient error cannot quietly send a build to the current
-    directory instead.
+    A file counts as missing only if _open_mesh_url() raises MeshFileMissing for it; any other error is raised, so
+    a transient one cannot quietly send a build to the current directory instead. Each file is opened and closed
+    without reading its body; pull_mesh_xml() then downloads it with a request of its own, checked the same way.
     """
-    names = {f"{prefix}{mesh_year}.gz" for prefix, _, _ in MESH_XML_FILES}
+    names = [f"{prefix}{mesh_year}.gz" for prefix, _, _ in MESH_XML_FILES]
     archive_dir = MESH_XML_ARCHIVE_DIR.format(mesh_year=mesh_year)
-    ftp = ftplib.FTP(MESH_FTP_SITE)
-    try:
-        ftp.login()
-        for xml_dir in (archive_dir, MESH_XML_CURRENT_DIR):
-            if names <= list_ftp_dir(ftp, xml_dir):
-                ftp.quit()
-                return xml_dir
-        ftp.quit()
-    finally:
-        ftp.close()
+    missing = []
+    for xml_dir in (archive_dir, MESH_XML_CURRENT_DIR):
+        try:
+            for name in names:
+                _open_mesh_url(f"{xml_dir}{name}").close()
+        except MeshFileMissing as e:
+            missing.append(str(e))
+            continue
+        return xml_dir
     raise RuntimeError(
-        f"Neither {archive_dir} nor {MESH_XML_CURRENT_DIR} on {MESH_FTP_SITE} has all of {sorted(names)}. "
+        f"Neither {archive_dir} nor {MESH_XML_CURRENT_DIR} has all of {names}. "
         "Check that mesh_year in config.yaml names a year NLM has published. If it does, NLM may be part-way "
         f"through its year rollover, with {MESH_XML_CURRENT_DIR} moved on to the next year before this one is "
-        "archived; retry once the archive appears."
+        "archived; retry once the archive appears. " + " ".join(missing)
     )
+
+
+def _last_modified_utc(value) -> str | None:
+    """Return a Last-Modified header value as an ISO 8601 UTC string, or None if it is missing or unparseable.
+
+    It is only recorded in xml_sources.json, so a malformed header should not fail a download that is otherwise fine.
+    """
+    try:
+        return parsedate_to_datetime(value).astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except (TypeError, ValueError):
+        return None
+
+
+def _retrieve_mesh_url(url, out_path) -> tuple[str, str | None]:
+    """Download ``url`` to out_path, returning its SHA-1 hex digest and Last-Modified time (ISO 8601 UTC or None).
+
+    Raises MeshFileMissing if NLM does not serve ``url`` (see _open_mesh_url()). The body is written through
+    atomic_hashed_write(), and is kept only if its size matches the Content-Length NLM sent, so an interrupted or
+    truncated download never leaves a partial file under the name a later run checks for.
+    """
+    size = 0
+    with _open_mesh_url(url) as response, atomic_hashed_write(out_path) as (write, sha1):
+        for chunk in iter(lambda: response.read(1 << 20), b""):
+            write(chunk)
+            size += len(chunk)
+        expected_size = response.headers.get("Content-Length")
+        if expected_size is not None and size != int(expected_size):
+            raise RuntimeError(f"{url} downloaded {size:,} bytes, but NLM sent Content-Length {int(expected_size):,}.")
+        last_modified = response.headers.get("Last-Modified")
+    return sha1.hexdigest(), _last_modified_utc(last_modified)
 
 
 def parse_sha1_file(content: bytes, url) -> str:
@@ -150,47 +222,40 @@ def fetch_mesh_nt(mesh_year, out_path) -> dict:
     """Download the MeSH RDF dump for ``mesh_year``, check it against NLM's SHA-1 and normalize it into out_path.
 
     The SHA-1 is computed while the dump downloads, so the ~120 MB file is read only once more, to decompress
-    it (see normalize_mesh_nt()). Fails if NLM has no dump for that year; there is deliberately no fallback to
-    the stale top-level file. The compressed download is kept beside out_path only until it is normalized, and
-    is removed whether or not that succeeds. out_path itself only ever appears complete.
+    it (see normalize_mesh_nt()). A missing dump and a missing .sha1 beside it are reported differently: only
+    the first means mesh_year names a year NLM has not published. There is deliberately no fallback to the
+    stale top-level file. The compressed download is kept beside out_path only until it is normalized, and is
+    removed whether or not that succeeds. out_path itself only ever appears complete.
 
     Returns a record of what was downloaded ({"mesh_year", "url", "sha1"}), which pull_mesh() saves for
     mesh_registry_sources().
 
-    Raises RuntimeError, naming config.yaml's mesh_year, if NLM's listing has no dump for that year. That is
-    decided from directory listings (list_ftp_dir()) before anything is downloaded, not from the error a
-    download raises: NLM answers a missing directory with a 450 or a 550 depending on the command, and any
-    error that does reach the download is a real failure, raised as it is for Snakemake to retry.
+    Raises RuntimeError, naming config.yaml's mesh_year, if NLM does not serve a dump for that year. The .sha1 is
+    fetched first; only if it is missing (MeshFileMissing, see _open_mesh_url()) is the dump itself checked, to tell
+    an unpublished year from a moved checksum file. Any other error is raised as it is, for Snakemake to retry.
     """
-    ftpdir, ftpfile = mesh_rdf_location(mesh_year)
-    url = f"ftp://{MESH_FTP_SITE}{ftpdir}/{ftpfile}"
+    rdf_dir, rdf_file = mesh_rdf_location(mesh_year)
+    url = f"{rdf_dir}{rdf_file}"
+    try:
+        with _open_mesh_url(f"{url}.sha1") as response:
+            expected_sha1 = parse_sha1_file(response.read(), f"{url}.sha1")
+    except MeshFileMissing as sha1_missing:
+        try:
+            _open_mesh_url(url).close()
+        except MeshFileMissing as e:
+            raise RuntimeError(
+                f"Could not download MeSH {mesh_year}: {e} "
+                "Check that mesh_year in config.yaml names a year NLM has published."
+            ) from e
+        # The dump itself is there, so the year is published: NLM has moved or renamed its checksum file.
+        raise RuntimeError(f"{url} exists, but its checksum file does not. {sha1_missing}") from sha1_missing
+
     gz_path = f"{out_path}.gz"
     ensure_parent_dir(gz_path)
-    sha1_file = BytesIO()
     try:
-        ftp = ftplib.FTP(MESH_FTP_SITE)
-        try:
-            ftp.login()
-            published = list_ftp_dir(ftp, ftpdir)
-            if ftpfile not in published:
-                raise RuntimeError(
-                    f"NLM has no MeSH {mesh_year} RDF dump at {url}. "
-                    "Check that mesh_year in config.yaml names a year NLM has published."
-                )
-            if f"{ftpfile}.sha1" not in published:
-                # The dump is there, so the year is published: NLM has moved or renamed its checksum file.
-                raise RuntimeError(f"NLM publishes {url}, but not its checksum file {url}.sha1.")
-            ftp.cwd(ftpdir)
-            sha1 = retrieve_ftp_file(ftp, ftpfile, gz_path)
-            ftp.retrbinary(f"RETR {ftpfile}.sha1", sha1_file.write)
-            ftp.quit()
-        finally:
-            ftp.close()
-
-        expected_sha1 = parse_sha1_file(sha1_file.getvalue(), f"{url}.sha1")
+        sha1, _ = _retrieve_mesh_url(url, gz_path)
         if sha1 != expected_sha1:
             raise RuntimeError(f"{url} downloaded with SHA-1 {sha1}, but NLM publishes {expected_sha1}.")
-
         normalize_mesh_nt(gz_path, out_path, mesh_year)
     finally:
         if os.path.exists(gz_path):
@@ -214,38 +279,26 @@ def pull_mesh_xml(mesh_year, xml_sources_file):
     """Download the MeSH XML descriptor and SCR files for ``mesh_year`` to babel_downloads/MESH.
 
     Only needed for registry numbers (see pull_mesh_registry()). Fails if NLM has no XML for that year.
-    Writes a JSON list to xml_sources_file with each file's URL, SHA-1, size and NLM modification time, for
+    Writes a JSON list to xml_sources_file with each file's URL, SHA-1, size and NLM Last-Modified time, for
     mesh_registry_sources(). Which directory a file came from is only known at download time (see
     fetch_mesh_xml_dir()), and the SHA-1 is the only way to tell two downloads of the current year apart.
     """
     xml_dir = fetch_mesh_xml_dir(mesh_year)
     sources = []
-    ftp = ftplib.FTP(MESH_FTP_SITE)
-    try:
-        ftp.login()
-        ftp.cwd(xml_dir)
-        for prefix, _, _ in MESH_XML_FILES:
-            ftpfile = f"{prefix}{mesh_year}.gz"
-            url = f"ftp://{MESH_FTP_SITE}{xml_dir}/{ftpfile}"
-            out_path = make_local_name(f"{prefix}.xml.gz", subpath="MESH")
-            ensure_parent_dir(out_path)
-            try:
-                sha1 = retrieve_ftp_file(ftp, ftpfile, out_path)
-            except ftplib.error_perm as e:
-                # fetch_mesh_xml_dir() just listed the file, so this is not a mesh_year problem.
-                raise RuntimeError(f"Could not download MeSH {mesh_year} XML from {url} ({e}).") from e
-            sources.append(
-                {
-                    "mesh_year": str(mesh_year),
-                    "url": url,
-                    "sha1": sha1,
-                    "size": os.path.getsize(out_path),
-                    "modified": ftp_modified_time(ftp, ftpfile),
-                }
-            )
-        ftp.quit()
-    finally:
-        ftp.close()
+    for prefix, _, _ in MESH_XML_FILES:
+        url = f"{xml_dir}{prefix}{mesh_year}.gz"
+        out_path = make_local_name(f"{prefix}.xml.gz", subpath="MESH")
+        ensure_parent_dir(out_path)
+        sha1, modified = _retrieve_mesh_url(url, out_path)
+        sources.append(
+            {
+                "mesh_year": str(mesh_year),
+                "url": url,
+                "sha1": sha1,
+                "size": os.path.getsize(out_path),
+                "modified": modified,
+            }
+        )
     with open(xml_sources_file, "w", encoding="utf-8") as outf:
         json.dump(sources, outf, indent=2)
         outf.write("\n")

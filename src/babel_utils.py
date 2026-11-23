@@ -26,7 +26,7 @@ from src.node import DescriptionFactory, InformationContentFactory, NodeFactory,
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
 from src.synonyms.filter import get_synonym_filter
 from src.util import Text, curie_format_problem, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
-from src.utils.ftp import retrieve_ftp_file
+from src.utils.download import retrieve_ftp_file
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
@@ -170,7 +170,7 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
     """Retrieve data via ftp.
     Setting decompress=True will ungzip the data
     If outfilename is None (default) then the data will be returned.
-    Otherwise it will be written to the downloads directory, through src.utils.ftp.retrieve_ftp_file(), so the
+    Otherwise it will be written to the downloads directory, through src.utils.download.retrieve_ftp_file(), so the
     file only ever appears complete: an interrupted transfer or decompression leaves nothing under its name for
     a later run to mistake for a finished download."""
     ftp = FTP(ftpsite)
