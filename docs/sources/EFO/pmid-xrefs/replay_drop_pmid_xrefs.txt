@@ -1,0 +1,90 @@
+# 1. EFO concord targets by prefix (predicate, prefix, rows)
+oboInOwl:hasDbXref	PMID	6204
+skos:exactMatch	UMLS	2637
+oboInOwl:hasDbXref	uniprot	2581
+skos:exactMatch	MEDGEN	2513
+skos:exactMatch	EFO	2386
+skos:exactMatch	DOID	1893
+skos:exactMatch	NCIT	1890
+skos:exactMatch	SNOMEDCT	1799
+skos:exactMatch	MESH	1655
+skos:exactMatch	http	792
+skos:exactMatch	ICD10CM	665
+oboInOwl:hasDbXref	NCIT	556
+oboInOwl:hasDbXref	MEDDRA	504
+oboInOwl:hasDbXref	MESH	406
+oboInOwl:hasDbXref	SNOMEDCT	315
+skos:exactMatch	OMIM	232
+oboInOwl:hasDbXref	OMIM	172
+oboInOwl:hasDbXref	ICD10	166
+oboInOwl:hasDbXref	UMLS	161
+oboInOwl:hasDbXref	DOID	157
+skos:exactMatch	https	127
+skos:exactMatch	MEDDRA	103
+oboInOwl:hasDbXref	KEGG COMPOUND	99
+oboInOwl:hasDbXref	HMDB	90
+oboInOwl:hasDbXref	Wikipedia	68
+skos:exactMatch	OMIM.PS	41
+oboInOwl:hasDbXref	ICD9	40
+oboInOwl:hasDbXref	MONDO	38
+oboInOwl:hasDbXref	https	29
+oboInOwl:hasDbXref	HP	27
+oboInOwl:hasDbXref	PubChem	24
+oboInOwl:hasDbXref	MP	23
+oboInOwl:hasDbXref	CAS	20
+oboInOwl:hasDbXref	CMO	18
+oboInOwl:hasDbXref	MedGen	13
+oboInOwl:hasDbXref	Medgen	13
+oboInOwl:hasDbXref	EFO	9
+oboInOwl:hasDbXref	SCTID	9
+oboInOwl:hasDbXref	T3DB	9
+oboInOwl:hasDbXref	http	8
+oboInOwl:hasDbXref	MO	7
+oboInOwl:hasDbXref	ORCID	6
+oboInOwl:hasDbXref	MEDGEN	5
+oboInOwl:hasDbXref	NIFSTD	5
+oboInOwl:hasDbXref	OMIT	4
+oboInOwl:hasDbXref	ORDO	4
+oboInOwl:hasDbXref	RRID	4
+oboInOwl:hasDbXref	ENM	2
+oboInOwl:hasDbXref	ICD10CM	2
+oboInOwl:hasDbXref	MPATH	2
+oboInOwl:hasDbXref	OBI	2
+oboInOwl:hasDbXref	OMIMPS	2
+oboInOwl:hasDbXref	PERSON	2
+oboInOwl:hasDbXref	SYMP	2
+oboInOwl:hasDbXref	 MedDRA	1
+oboInOwl:hasDbXref	ADO	1
+oboInOwl:hasDbXref	BTO	1
+oboInOwl:hasDbXref	CHEBI	1
+oboInOwl:hasDbXref	CLO	1
+oboInOwl:hasDbXref	DI	1
+oboInOwl:hasDbXref	GO	1
+oboInOwl:hasDbXref	ICD11	1
+oboInOwl:hasDbXref	ICD9CM	1
+oboInOwl:hasDbXref	ISBN-10	1
+oboInOwl:hasDbXref	ISBN-13	1
+oboInOwl:hasDbXref	NCIm	1
+oboInOwl:hasDbXref	NPO	1
+oboInOwl:hasDbXref	OAE	1
+oboInOwl:hasDbXref	PR	1
+oboInOwl:hasDbXref	SCDO	1
+oboInOwl:hasDbXref	doi	1
+oboInOwl:hasDbXref	modelled on http	1
+
+# 2. EFO publication xrefs (PMID, PMC, doi)
+rows	6205
+distinct publications	461
+publications named by one EFO row (survive the overuse filter)	325
+publications named by 2+ EFO rows (dropped by the overuse filter, which counts rows)	136
+
+# 4. EFO publications that another disease concord also names
+shared	0
+
+# 3. Cliques changed by dropping EFO's publication rows (publication members ignored)
+publication members of cliques before	327
+publication members of cliques after	2
+cliques before	241179
+cliques after	241179
+only before	0
+only after	0

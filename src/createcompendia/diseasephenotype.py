@@ -21,6 +21,7 @@ from src.metadata.provenance import write_concord_metadata
 from src.model.compendia import write_typed_compendia
 from src.model.intermediates import read_concords
 from src.prefixes import (
+    DOI,
     DOID,
     GARD,
     HP,
@@ -36,6 +37,8 @@ from src.prefixes import (
     NCIT,
     OMIM,
     ORPHANET,
+    PMC,
+    PMID,
     SNOMEDCT,
     UMLS,
 )
@@ -101,7 +104,17 @@ MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]
 # not trust EFO->MP xrefs and remove them at the source. This is the EFO-source complement to the
 # [HP, MP] post-glom split above (HP->MP is handled there); it is applied via
 # efo.make_concords(..., excluded_target_prefixes=...). See docs/sources/MP/disjointness.md.
-EFO_EXCLUDED_XREF_PREFIXES = [MP]
+#
+# EFO's xrefs to publications (PMID, PMC, doi) are dropped too, for a different reason: no such row
+# is an equivalence. EFO cites the paper a term was curated from as a class-level hasDbXref,
+# indistinguishable in the OWL from a mapping (EFO 3.95.0: EFO_0020008 "campesterol measurement"
+# hasDbXref PMID:11432711; EFO_0011031 cites one paper as both PMID:31251335 and
+# doi:10.1111/nmo.12871), and every concord row reaches glom() as "is the same as". In 2025dec11 the
+# 6,204 PMID rows and 1 doi row changed no clique -- the overuse filter dropped the PMIDs several
+# terms cite and write_compendium() dropped the rest as unregistered -- but one paper that EFO and
+# any other disease source both cite would merge their cliques. HP already xrefs PMIDs. See
+# docs/sources/EFO/pmid-xrefs/README.md.
+EFO_EXCLUDED_XREF_PREFIXES = [MP, PMID, PMC, DOI]
 
 # Target prefixes we accept from MP's UberGraph xrefs; every other target is dropped. MP uses
 # oboInOwl:hasDbXref to mean "this phenotype is *about* that thing", not "is equivalent to it",

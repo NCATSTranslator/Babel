@@ -204,9 +204,11 @@ def make_concords(owlfile, idfilename, outfilename, provenance_metadata=None, ex
     """Given a list of identifiers, find out all of the equivalent identifiers from the owl.
 
     :param excluded_target_prefixes: xref/exactMatch targets whose CURIE prefix is in this
-        collection are dropped. The disease/phenotype build passes ``[MP]`` here so EFO's
-        (untrusted) direct xrefs to Mammalian Phenotype terms never enter the concord — see
-        diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES and docs/sources/MP/disjointness.md.
+        collection are dropped. The disease/phenotype build passes ``[MP, PMID, PMC, DOI]`` here so EFO's
+        (untrusted) direct xrefs to Mammalian Phenotype terms, and its citations of the papers a
+        term was curated from, never enter the concord — see
+        diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES, docs/sources/MP/disjointness.md and
+        docs/sources/EFO/pmid-xrefs/README.md.
     """
     m = EFOgraph(owlfile)
     skipped_malformed_xrefs = 0
