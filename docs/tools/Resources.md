@@ -277,6 +277,16 @@ it, and those two can describe different worlds.
    whole cluster's reservation upward, which is exactly the over-provisioning we lowered the default
    to escape. The known heavy rules and the current defaults are documented in
    [`slurm/README.md`](../../slurm/README.md).
+
+   That bias is for limits sized from a measurement. A rule sized from an *estimate* before its
+   first run is rounded **up** instead, because an estimate that runs out of memory leaves no
+   benchmark to size the retry from (see
+   [Turning an estimate into a rule's `mem=`](Memory.md#turning-an-estimate-into-a-rules-mem)).
+   Such a rule already has a `resources:` block, so the override list reports it as
+   `ran on default = no` and never asks you to revisit it. Find those rules by their marker
+   instead: `grep -rn "mem estimate" src/snakefiles/`. For each one the run benchmarked, replace
+   the estimate with a measured limit as above and delete the marker. A rule with no benchmark
+   (it failed, or didn't run) keeps its estimate until a run measures it.
 4. Work the **Runtime fit** section the same way: give every `at-risk` rule an explicit `runtime`
    (or raise the one it has), and trim the `over` rules that declare their own. Check each against a
    second run's benchmarks first — see the two traps above.

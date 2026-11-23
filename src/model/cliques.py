@@ -26,7 +26,7 @@ drop-in change:
 import os
 from collections.abc import Callable
 
-from src.babel_utils import glom, read_identifier_file
+from src.babel_utils import glom, read_identifier_file, validate_unique_prefixes
 from src.model.intermediates import read_concords
 from src.util import get_logger
 
@@ -38,10 +38,11 @@ logger = get_logger(__name__)
 # only trusts UMLS<->GO pairs when both terms are already present).
 ConcordPairFilter = Callable[[list[str], str, dict], bool]
 
-# An overused-xref remover receives the list of ``[curie1, curie2]`` pairs read from one
+# An overused-xref remover receives the list of ``(curie1, curie2)`` 2-tuples read from one
 # concord file (plus the file path, so it can vary behaviour per source) and returns the
-# filtered list.
-OverusedXrefRemover = Callable[[list[list[str]], str], list[list[str]]]
+# filtered list. The pairs are tuples (see read_concord_pairs() for why), so a remover must
+# build new ones rather than modify a pair in place.
+OverusedXrefRemover = Callable[[list[tuple[str, str]], str], list[tuple[str, str]]]
 
 
 def glom_from_files(
@@ -61,8 +62,9 @@ def glom_from_files(
 
     :param concordances: list of paths to concord files (tab-separated ``CURIE1 REL CURIE2``)
     :param identifiers: list of paths to ids files
-    :param unique_prefixes: passed through to :func:`glom`; prefixes for which at most one
-        identifier may appear per clique
+    :param unique_prefixes: prefixes for which at most one identifier may appear per clique;
+        validated (:func:`src.babel_utils.validate_unique_prefixes`) before any file is read and
+        passed to every :func:`glom` call as the resulting frozenset
     :param concord_pair_filter: optional ``(parts, infile, dicts) -> bool`` hook; return
         False to drop a concord pair. ``parts`` is the ``(subject, predicate, object)`` tuple
         from :func:`src.model.intermediates.read_concords`, ``dicts`` is the
@@ -76,6 +78,10 @@ def glom_from_files(
     :returns: ``(dicts, types)`` where ``dicts`` is the glom dict-of-sets and ``types``
         maps CURIE to its declared biolink type.
     """
+    # Checked here as well as in glom(), because glom() is only called once there is a file to load:
+    # with every source excluded (the impact report's "before" state) or no inputs, a malformed value
+    # would otherwise go unnoticed until some other call reached glom().
+    unique_prefixes = validate_unique_prefixes(unique_prefixes)
     excluded = set(excluded_sources)
     glom_kwargs = glom_kwargs or {}
     dicts = {}
@@ -97,9 +103,9 @@ def glom_from_files(
         for parts in read_concords(infile):
             if concord_pair_filter is not None and not concord_pair_filter(parts, infile, dicts):
                 continue
-            pairs.append([parts[0], parts[2]])
+            # A 2-tuple, handed to glom() as is: see read_concord_pairs() for why not a set or list.
+            pairs.append((parts[0], parts[2]))
         if overused_xref_remover is not None:
             pairs = overused_xref_remover(pairs, infile)
-        setpairs = [set(x) for x in pairs]
-        glom(dicts, setpairs, unique_prefixes=unique_prefixes, **glom_kwargs)
+        glom(dicts, pairs, unique_prefixes=unique_prefixes, **glom_kwargs)
     return dicts, types

@@ -11,7 +11,8 @@ def build_compendia(identifiers, metadata_yamls, icrdf_filename):
     for ifile in identifiers:
         print("loading ", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers)
+        # Ids files only, so nothing merges: see validate_unique_prefixes().
+        glom(dicts, new_identifiers, unique_prefixes=())
         types.update(new_types)
     sets = set([frozenset(x) for x in dicts.values()])
     type = MACROMOLECULAR_COMPLEX.split(":")[-1]

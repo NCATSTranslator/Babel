@@ -4,7 +4,7 @@ version = "1.17"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "apybiomart",
     "beautifulsoup4>=4.14.2",
@@ -51,6 +51,7 @@ babel-slurm-resources = "src.tools.slurm.resources:main"
 babel-clique-diff = "src.tools.clique_diff.cli:main"
 source-impact-report = "src.tools.source_impact_report.cli:main"
 babel-overused-xrefs = "src.tools.overused_xrefs.cli:main"
+babel-inchikey-audit = "src.tools.inchikey_audit.cli:main"
 babel-check-concords = "src.tools.check_concords.cli:main"
 
 [tool.uv]

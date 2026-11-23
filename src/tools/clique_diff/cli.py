@@ -21,7 +21,10 @@ Output:
   a reader never has to guess which build was before vs after, or what the diff isolates.
   ``compendia`` maps each filename to its counts: a nested ``clique_count``
   (``before``/``after``/``diff``/``diff_percent``) plus ``changed_before_cliques``,
-  ``dropped_member_count`` (the headline regression signal), ``moved_member_count``,
+  ``dropped_member_count`` (the headline regression signal), ``moved_member_count`` (members
+  that left this compendium, retyped into another), ``moved_in_member_count`` and
+  ``moved_in_clique_count`` (the mirror image: members that arrived here, and how many distinct
+  after-cliques here received them — new or existing, so not a count of gained cliques),
   ``regrouped_member_count``, and ``leader_changed_count``. ``diff_percent`` is ``null`` when
   the before build had no cliques at all but the after build has some — the percentage is
   undefined there, and reporting ``0.0`` would read as "nothing changed". NOTE: a clique that
@@ -97,7 +100,8 @@ def main(argv=None):
     for fname, s in sorted(summary.items()):
         print(
             f"  {fname}: {s['changed_before_cliques']} changed cliques, "
-            f"{s['dropped_member_count']} dropped members, {s['moved_member_count']} moved"
+            f"{s['dropped_member_count']} dropped members, {s['moved_member_count']} moved out, "
+            f"{s['moved_in_member_count']} moved in (to {s['moved_in_clique_count']} cliques)"
         )
     print(f"Total members dropped from the compared compendia: {total_dropped}")
 

@@ -144,7 +144,9 @@ def test_moved_vs_dropped_distinguished_across_files(tmp_path):
 
     A moved row should name the *destination clique* it landed in — leader, label, type, size
     and compendium file — so the row is readable without inferring anything from
-    ``example_members`` (which truncates at five members).
+    ``example_members`` (which truncates at five members). Also checks the receiving side: the
+    destination compendium's before-clique-centric stats show nothing, but ``moved_in_*`` surfaces
+    the gained clique.
     """
     bdir, adir = tmp_path / "before", tmp_path / "after"
     bdir.mkdir()
@@ -166,8 +168,14 @@ def test_moved_vs_dropped_distinguished_across_files(tmp_path):
     assert moved[0]["after_size"] == 2
     assert summary["Disease.txt"]["dropped_member_count"] == 0
     assert summary["Disease.txt"]["moved_member_count"] == 1
+    assert summary["Disease.txt"]["moved_in_member_count"] == 0  # Disease received nothing
     # clique_count is nested with a before/after/diff/diff_percent breakdown.
     assert summary["Disease.txt"]["clique_count"] == {"before": 1, "after": 1, "diff": 0, "diff_percent": 0.0}
+    # The receiving compendium has no *changed* before-clique (HP:2 is a wholly new clique), so
+    # every before-clique-centric stat is zero there; only moved_in_* reveals the gained clique.
+    assert summary["PhenotypicFeature.txt"]["changed_before_cliques"] == 0
+    assert summary["PhenotypicFeature.txt"]["moved_in_member_count"] == 1
+    assert summary["PhenotypicFeature.txt"]["moved_in_clique_count"] == 1
 
 
 @pytest.mark.unit
@@ -195,6 +203,31 @@ def test_moved_members_landing_in_different_cliques_get_a_row_each(tmp_path):
     assert sorted(r["destination"] for r in moved) == ["HP:5", "MP:7"]
     assert all(r["member_count"] == 1 for r in moved)
     assert summary["Disease.txt"]["moved_member_count"] == 2
+    # Both landed in PhenotypicFeature as two distinct new cliques.
+    assert summary["PhenotypicFeature.txt"]["moved_in_member_count"] == 2
+    assert summary["PhenotypicFeature.txt"]["moved_in_clique_count"] == 2
+
+
+@pytest.mark.unit
+def test_moved_in_clique_count_includes_existing_cliques_that_grew(tmp_path):
+    """A member moving into an *existing* clique should count as a receiving clique, not a gained one.
+
+    HP:9 leaves the disease clique and joins the pre-existing PhenotypicFeature clique HP:3.
+    ``moved_in_clique_count`` should be 1 while ``clique_count.diff`` stays 0 — the two measure
+    different things, which is why the console line and docs don't call it "cliques gained".
+    """
+    bdir, adir = tmp_path / "before", tmp_path / "after"
+    bdir.mkdir()
+    adir.mkdir()
+    _write_jsonl(bdir / "Disease.txt", [_clique("MONDO:1", "HP:9")])
+    _write_jsonl(bdir / "PhenotypicFeature.txt", [_clique("HP:3", biolink_type="biolink:PhenotypicFeature")])
+    _write_jsonl(adir / "Disease.txt", [_clique("MONDO:1")])
+    _write_jsonl(adir / "PhenotypicFeature.txt", [_clique("HP:3", "HP:9", biolink_type="biolink:PhenotypicFeature")])
+    _, summary = diff_builds(str(bdir), str(adir), ["Disease.txt", "PhenotypicFeature.txt"])
+    pheno = summary["PhenotypicFeature.txt"]
+    assert pheno["moved_in_member_count"] == 1
+    assert pheno["moved_in_clique_count"] == 1
+    assert pheno["clique_count"]["diff"] == 0
 
 
 @pytest.mark.unit

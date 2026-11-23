@@ -133,6 +133,38 @@ def read_concords(concord_path: pathlib.Path | str) -> Iterator[tuple[str, str, 
             yield parse_concord_line(line, concord_path, line_number)
 
 
+def read_concord_pairs(concord_path: pathlib.Path | str) -> Iterator[tuple[str, str]]:
+    """Yield every row of a concord file as a ``(subject, object)`` pair, in file order.
+
+    This is the shape ``glom()`` takes: it treats every row as an equivalence, so the predicate is
+    dropped. Two choices here keep a large concord's memory down, and both are worth keeping when
+    building pairs some other way:
+
+    * **A pair is a 2-tuple, not a 2-set or a 2-list.** ``glom()`` accepts any of them and
+      ``remove_overused_xrefs()`` unpacks ``for k, v``, but a 2-tuple is 64 bytes held in a list,
+      a 2-set 224, and a list of 2-lists copied into a list of 2-sets (what the readers built
+      before) 305 -- measured with ``tracemalloc`` over a million pairs on Python 3.13, CURIE
+      strings excluded. ``UNICHEM_PUBCHEM.COMPOUND`` alone has 116 million rows.
+    * **It is a generator, so a caller that needs no whole-file step can pass it straight to
+      ``glom()``** and never hold the file's pairs at all. That is safe only when nothing between
+      the read and the merge depends on the clique state: ``glom()`` mutates it pair by pair, so a
+      filter that consults it (anatomy's and process's UMLS gate) must see the file read into a
+      list first, as must ``remove_overused_xrefs()``, which counts the whole file.
+
+      Streaming gives up one thing: the file is no longer validated before any of it is merged. A
+      malformed row raises :class:`MalformedConcordRowError` partway through ``glom()``, after the
+      rows above it are already merged. That is harmless while the error aborts the build, but a
+      caller that catches it and keeps going (a replay or report tool reusing a builder) must
+      discard the clique dict, which is left half-merged with no sign of it -- or read the file into
+      a list first, which validates every row before ``glom()`` sees one.
+
+    File order is kept either way, and it matters: ``glom()``'s ``unique_prefixes`` keeps whichever
+    competing pair it sees first (#902).
+    """
+    for subject, _predicate, obj in read_concords(concord_path):
+        yield subject, obj
+
+
 @dataclass
 class ConcordRowScan:
     """What :func:`scan_concord_lines` found in one concord file."""

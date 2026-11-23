@@ -20,6 +20,12 @@ rule umls_mesh_ownership:
             config["intermediate_directory"] + "/gene/ids/UMLS",
             config["intermediate_directory"] + "/process/ids/UMLS",
         ],
+        # MeSH records with an NCBI Taxon registry number are taxon's (#1240). Recording that here means every other
+        # pipeline's compendium build skips a concord pair naming one, as it does for a CUI another pipeline owns.
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
+        # Not read: a gate. Every MeSH-owning pipeline waits for this rule, so requiring the UMLS/MeSH skew check
+        # here stops all five before they build compendia on a MeSH dump that is behind UMLS.
+        mesh_skew_checked=config["output_directory"] + "/reports/umls_mesh_skew.checked",
     output:
         outfile=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     benchmark:
@@ -31,4 +37,5 @@ rule umls_mesh_ownership:
             output.outfile,
             blocklist_files_by_pipeline={"disease": input.badumls},
             non_mesh_umls_ids_files=input.non_mesh_umls_ids,
+            mesh_registry=input.mesh_registry,
         )

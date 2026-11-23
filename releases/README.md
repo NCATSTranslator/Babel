@@ -50,6 +50,12 @@ baseline the *next* release will be compared against:
 uv run python releases/scripts/archive_build.py 2026jul22 --build-dir /path/to/a/copy/of/the/build
 ```
 
+While the archive is open, check `bad_xref_pairs_unmatched` in any chemical compendium's
+`metadata/*.yaml`: entries of `input_data/chemical_badxrefs.txt` that no concord row named in this
+build. Most were fixed upstream and can be removed. One whose source renamed an identifier has come
+back under the new one, which a `babel-inchikey-audit` run on the build shows
+([`docs/tools/InchikeyAudit.md`](../docs/tools/InchikeyAudit.md)).
+
 The remaining steps -- bumping `release_name` and `previous_release` in `config.yaml`, adding the
 index line above, and setting the previous note's `Next release:` link -- are listed in
 [`docs/RunningBabel.md`](../docs/RunningBabel.md#archiving-a-builds-reports).

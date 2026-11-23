@@ -1,7 +1,7 @@
 # Dockerfile for building a Babel image.
 
 # Let's pick up the latest Debian-based Python image.
-FROM python:3.11
+FROM python:3.12
 
 # Configuration options:
 # - ${ROOT} is where Babel source code will be copied.

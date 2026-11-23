@@ -4,10 +4,10 @@ import re
 import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
-from src.babel_utils import Text, glom, read_identifier_file, write_compendium
+from src.babel_utils import Text, glom, read_identifier_file, unique_prefixes_from_config, write_compendium
 from src.categories import PROTEIN
 from src.metadata.provenance import write_concord_metadata
-from src.model.intermediates import read_concords
+from src.model.intermediates import read_concord_pairs
 from src.prefixes import DRUGBANK, ENSEMBL, MESH, NCBITAXON, NCIT, PR, UNIPROTKB
 from src.ubergraph import UberGraph
 from src.util import get_logger, get_memory_usage_summary
@@ -58,7 +58,10 @@ def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
     )
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the protein ids/MESH. Records with an NCBI Taxon registry number in mesh_registry (rule
+    get_mesh_registry's TSV) are left to taxon, whatever tree they are in; mesh.write_ids() decides that (#1240).
+    """
     # MeSH protein trees — these are terms excluded from the chemical compendium
     # (see chemicals.write_mesh_ids) that belong in the protein compendium instead.
     #
@@ -104,6 +107,8 @@ def write_mesh_ids(outfile):
         order=[PROTEIN],
         extra_vocab={"SCR_Chemical": PROTEIN},
         scr_include_trees=list(meshmap.keys()),
+        pipeline="protein",
+        mesh_registry=mesh_registry,
     )
 
 
@@ -293,6 +298,20 @@ def build_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
     )
 
 
+def _protein_concord_pairs(infile, owned_elsewhere):
+    """Yield a protein concord's pairs, minus any naming a CUI another pipeline owns, logging progress.
+
+    The progress line is per million rows *read*, so it also tracks glom(), which consumes these
+    pairs as they are yielded.
+    """
+    for line_index, (subject, obj) in enumerate(read_concord_pairs(infile)):
+        if line_index % 1000000 == 0:
+            logger.info(f"Loading concordance file {infile}: line {line_index:,}")
+        if umls.names_cui_owned_elsewhere(subject, obj, owned_elsewhere):
+            continue
+        yield subject, obj
+
+
 def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, mesh_ownership=None):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories
@@ -301,28 +320,21 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "protein")
     dicts = {}
     types = {}
-    uniques = [UNIPROTKB, PR]
+    unique_prefixes = unique_prefixes_from_config("protein_unique_prefixes")
     logger.info(
-        f"Started building protein compendia ({concordances}, {metadata_yamls}, {identifiers}, {icrdf_filename}) with uniques {uniques}"
+        f"Started building protein compendia ({concordances}, {metadata_yamls}, {identifiers}, {icrdf_filename}) with unique prefixes {unique_prefixes}"
     )
     for ifile in identifiers:
         logger.info(f"Loading identifier file {ifile}")
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=uniques)
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
         logger.info(f"Loaded identifier file {ifile}: {get_memory_usage_summary()}")
     logger.info(f"Finished loading identifiers, memory usage: {get_memory_usage_summary()}")
     for infile in concordances:
         logger.info(f"Loading concordance file {infile}")
-        pairs = []
-        for line_index, x in enumerate(read_concords(infile)):
-            if line_index % 1000000 == 0:
-                logger.info(f"Loading concordance file {infile}: line {line_index:,}")
-            if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
-                continue
-            pairs.append(set([x[0], x[2]]))
-        # print("glomming", infile) # This takes a while, but doesn't add much to the memory
-        glom(dicts, pairs, unique_prefixes=uniques)
+        # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
+        glom(dicts, _protein_concord_pairs(infile, owned_elsewhere), unique_prefixes=unique_prefixes)
         logger.info(f"Loaded concordance file {infile}: {get_memory_usage_summary()}")
     logger.info(f"Finished loading concordances, memory usage: {get_memory_usage_summary()}")
     logger.info("Building gene sets")

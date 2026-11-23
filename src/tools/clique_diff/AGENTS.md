@@ -1,4 +1,4 @@
-# CLAUDE.md — src/tools/clique_diff/
+# AGENTS.md — src/tools/clique_diff/
 
 `babel-clique-diff` compares the finished JSONL compendia of two builds. Full reference:
 [`docs/tools/CliqueDiff.md`](../../../docs/tools/CliqueDiff.md).

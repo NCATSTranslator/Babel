@@ -23,7 +23,6 @@ import sys
 from collections import Counter
 from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import TypeVar
 
 from src.util import get_repo_root
 
@@ -105,10 +104,7 @@ def rule_for_benchmark(stem: str, rule_names: list[str]) -> str:
     return stem
 
 
-_T = TypeVar("_T")
-
-
-def group_by_rule(items: dict[str, _T], rule_names: list[str]) -> dict[str, list[_T]]:
+def group_by_rule[T](items: dict[str, T], rule_names: list[str]) -> dict[str, list[T]]:
     """Bucket per-instance artifacts (benchmarks, efficiency rows) under the rule they belong to.
 
     Everything on the *declared* side -- a snakefile's ``resources:`` block, ``slurm/README.md``,
@@ -119,7 +115,7 @@ def group_by_rule(items: dict[str, _T], rule_names: list[str]) -> dict[str, list
     :func:`detect_run_default_mem_mb`'s mode, which is enough to elect a wildcard rule's declared mem
     as "the run default".
     """
-    grouped: dict[str, list[_T]] = {}
+    grouped: dict[str, list[T]] = {}
     for key, value in items.items():
         grouped.setdefault(rule_for_benchmark(key, rule_names), []).append(value)
     return grouped

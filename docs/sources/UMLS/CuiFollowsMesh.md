@@ -3,7 +3,7 @@
 Babel types UMLS CUIs and MeSH descriptors independently: each pipeline's `write_umls_ids()`
 selects CUIs by UMLS semantic type (`umls.write_umls_ids()`, `src/datahandlers/umls.py`), and each
 pipeline's `write_mesh_ids()` selects descriptors by MeSH tree number (`mesh.write_ids()`, see
-[`MESH/Ingestion.md`](../MESH/Ingestion.md)). Each pipeline's UMLS concord (`umls.build_sets()`)
+[`MeSH/Ingestion.md`](../MeSH/Ingestion.md)). Each pipeline's UMLS concord (`umls.build_sets()`)
 then links every CUI it claims to that CUI's MeSH descriptor and DrugBank ingredient. When the two
 selections disagree about a CUI, the concord dragged another pipeline's descriptor into this
 pipeline's clique, and the same identifiers ended up in two compendia, often leading a clique in
@@ -32,9 +32,12 @@ MeSH placement is the tie-breaker. `rule umls_mesh_ownership` (`src/snakefiles/u
 reads the `ids/MESH` of every pipeline in `config.yaml`'s `umls_mesh_owning_pipelines` (anatomy,
 chemicals, disease, protein, taxon), and gene's and process's `ids/UMLS`, and writes
 `intermediate/umls/mesh_ownership.tsv`: each CUI that has an *owner*, with the owner and the
-descriptor that decided it (`umls.compute_mesh_owners()`). The five MeSH-owning pipelines read that
-one file twice. `umls.apply_mesh_ownership()` runs inside `write_umls_ids()` after the
-semantic-type blocklist, and the compendium build filters its concords:
+descriptor that decided it (`umls.compute_mesh_owners()`). It also has a row for each MeSH record
+with an NCBI Taxon registry number, owned by taxon and keyed by the MeSH ID itself, so that the
+concord filter below keeps those records out of every other compendium
+([`MeSH/Ingestion.md`](../MeSH/Ingestion.md#a-record-with-an-ncbi-taxon-registry-number-is-taxons)).
+The five MeSH-owning pipelines read that one file twice. `umls.apply_mesh_ownership()` runs inside
+`write_umls_ids()` after the semantic-type blocklist, and the compendium build filters its concords:
 
 1. A CUI is **owned** by a pipeline when that pipeline's `ids/MESH` is the only one that claims any
    of the CUI's descriptors, the pipeline does not refuse the CUI (disease's `badumls`), and
@@ -133,6 +136,17 @@ rows of `input_data/known_duplicate_clique_leaders.tsv`, awaiting a stated prior
 pipelines ([#730], [#1123]). glom() is transitive, so the prediction is confirmed with
 `babel-clique-diff` after the first build.
 
+2026jul22's `ids/MESH` came from the top-level `mesh.nt`, which NLM stopped updating after MeSH
+2024. The next build reads the MeSH year `config.yaml` names ([#1144]), so
+[`cui-follows-mesh/2026jul22-mesh2026.md`](cui-follows-mesh/2026jul22-mesh2026.md) repeats the
+replay with every MeSH-owning pipeline's `ids/MESH` rebuilt from MeSH 2026
+(`snakemake babel_outputs/intermediate/<pipeline>/ids/MESH --forcerun=get_mesh`) and 2026jul22's
+`ids/UMLS`. MeSH 2026 adds about 1,700 records to those files and removes about 4,000 that NLM has
+deleted. Six records move between chemicals and protein. The rule moves 46 more CUIs than above,
+33 of them from protein to chemicals. The records two pipelines' `ids/MESH` share are unchanged, so
+the allowlist still covers the cross-listed leaders, and the rule still resolves all 949 of the
+others.
+
 The replay needs the build's `ids/MESH` and `ids/UMLS` files and its duplicate reports, which
 `scripts/fetch_build_inputs.py` exports from a published build's `Identifier.parquet` and
 `reports/duckdb/` in under a minute; its `Concord.parquet`, read over https (see "Querying a
@@ -150,9 +164,10 @@ local UMLS download. The replay itself takes about a minute. Read `VERSION.txt` 
   into Anatomy and Protein, OMIM through Gene and Disease) are the member-level residue in
   `reports/duckdb/duplicate_curies.tsv`.
 - The 18 MeSH `SCR_Chemical` virus records (e.g.
-  [`MESH:C000719044`](https://meshb.nlm.nih.gov/record/ui?ui=C000719044) "H3N1 virus") now take
-  their T005 CUIs into chemicals, because that is where MeSH's own record class puts them. If that
-  reads as wrong in the clique diff, the fix is in `taxon.write_mesh_ids()`, not here.
+  [`MESH:C000719044`](https://meshb.nlm.nih.gov/record/ui?ui=C000719044) "H3N1 virus") follow
+  MeSH's record class into chemicals, except the 8 that NLM gives an NCBI Taxon registry number:
+  `taxon.write_mesh_ids()` claims those, so ownership gives their T005 CUIs to taxon
+  ([#1240](https://github.com/NCATSTranslator/Babel/issues/1240)). H3N1 virus is one of the 8.
 
 ## The control
 
@@ -166,3 +181,4 @@ build when `reports/duckdb/duplicate_clique_leaders.tsv` has a row that is not i
 [#730]: https://github.com/NCATSTranslator/Babel/issues/730
 [#849]: https://github.com/NCATSTranslator/Babel/issues/849
 [#1123]: https://github.com/NCATSTranslator/Babel/issues/1123
+[#1144]: https://github.com/NCATSTranslator/Babel/pull/1144
