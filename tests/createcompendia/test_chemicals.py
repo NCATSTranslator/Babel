@@ -979,6 +979,8 @@ def test_parse_smifile_raises_on_a_column_not_in_the_expected_header(tmp_path):
 
 
 # The version line, header and ethanol row (line 5302) copied verbatim from GtoPdb 2026.3.1's ligands.tsv.
+# Don't build the header from chemicals.GTOPDB_LIGANDS_COLUMNS: this copy is the only check that the constant still
+# matches the real file, and a header built from it would pass whatever the constant says.
 GTOPDB_LIGANDS_SAMPLE = (
     '"# GtoPdb Version: 2026.3.1 - published: 2026-10-12"\n'
     + "\t".join(
