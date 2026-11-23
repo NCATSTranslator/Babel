@@ -1,4 +1,3 @@
-import os
 from json import JSONDecodeError
 from string import Template
 from time import sleep
@@ -18,18 +17,6 @@ class TripleStore:
     def __init__(self, hostname):
         self.service = SPARQLWrapper2(hostname)
         self.service.addCustomHttpHeader("User-Agent", get_user_agent())
-
-    def get_template(self, query_name):
-        """Load a template given a template name"""
-        return Template(self.get_template_text(query_name))
-
-    def get_template_text(self, query_name):
-        """Get the text of a template given its name"""
-        query = None
-        fn = os.path.join(os.path.dirname(__file__), "query", f"{query_name}.sparql")
-        with open(fn) as stream:
-            query = stream.read()
-        return query
 
     def execute_query(self, query, post=False, max_attempts=None, retry_base_delay_seconds=None):
         """Execute a SPARQL query.
@@ -111,10 +98,6 @@ class TripleStore:
         logger.debug("query result: %s", result)
         return result
 
-    def query_template(self, template_text, outputs, inputs=[], post=False):
-        """Given template text, inputs, and outputs, execute a query."""
-        return self.query(Template(template_text).safe_substitute(**inputs), outputs, post=post)
-
-    def query_template_file(self, template_file, outputs, inputs=[]):
-        """Given the name of a template file, inputs, and outputs, execute a query."""
-        return self.query(self.get_template_text(template_file), inputs, outputs)
+    def query_template(self, template_text, outputs, inputs=None, post=False):
+        """Substitute `inputs` (a mapping of $placeholder names to values) into the template, then run the query."""
+        return self.query(Template(template_text).safe_substitute(**(inputs or {})), outputs, post=post)
