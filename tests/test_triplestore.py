@@ -209,6 +209,33 @@ def test_execute_query_rejects_negative_delay(monkeypatch):
         ts.execute_query("SELECT * WHERE {?s ?p ?o}", retry_base_delay_seconds=-1)
 
 
+@pytest.mark.unit
+def test_query_template_without_inputs_leaves_template_unchanged(monkeypatch):
+    """query_template() may be called without inputs; the template text is then sent as written.
+
+    Its default used to be a list, which `**inputs` rejects with a TypeError.
+    """
+    ts = _mock_triplestore(monkeypatch, [])
+    sent = []
+    monkeypatch.setattr(ts, "query", lambda text, outputs, post=False: sent.append(text) or [])
+
+    ts.query_template("SELECT ?x WHERE { ?x a $cls }", outputs=["x"])
+
+    assert sent == ["SELECT ?x WHERE { ?x a $cls }"]
+
+
+@pytest.mark.unit
+def test_query_template_substitutes_inputs(monkeypatch):
+    """query_template() substitutes each input into its $placeholder before sending the query."""
+    ts = _mock_triplestore(monkeypatch, [])
+    sent = []
+    monkeypatch.setattr(ts, "query", lambda text, outputs, post=False: sent.append(text) or [])
+
+    ts.query_template("SELECT ?x WHERE { ?x a $cls }", outputs=["x"], inputs={"cls": "owl:Class"})
+
+    assert sent == ["SELECT ?x WHERE { ?x a owl:Class }"]
+
+
 # ---------------------------------------------------------------------------
 # Network tests — skipped by default, enabled with --network or --all
 # ---------------------------------------------------------------------------

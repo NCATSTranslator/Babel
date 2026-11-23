@@ -98,6 +98,6 @@ class TripleStore:
         logger.debug("query result: %s", result)
         return result
 
-    def query_template(self, template_text, outputs, inputs=[], post=False):
-        """Given template text, inputs, and outputs, execute a query."""
-        return self.query(Template(template_text).safe_substitute(**inputs), outputs, post=post)
+    def query_template(self, template_text, outputs, inputs=None, post=False):
+        """Substitute `inputs` (a mapping of $placeholder names to values) into the template, then run the query."""
+        return self.query(Template(template_text).safe_substitute(**(inputs or {})), outputs, post=post)
