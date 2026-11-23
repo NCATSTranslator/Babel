@@ -15,7 +15,7 @@ Written by `compare_gtopdb_inchikeys.py`; do not edit by hand.
 |---|---|
 | Same skeleton; UniChem stereo-less, GtoPdb specific | 5,728 |
 | Same key | 5,358 |
-| Same skeleton; two different stereo layers | 84 |
+| Same skeleton; different stereo or isotope layers | 84 |
 | Different skeleton | 4 |
 | Same skeleton and stereo; charge flag only | 1 |
 
