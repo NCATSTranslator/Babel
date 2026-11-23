@@ -63,6 +63,14 @@ def get_repo_root():
     path works there — but the CLI entry points (the source-impact report, the clique diff) can
     be invoked from anywhere, and a module-level constant built from a relative path would then
     silently point at nothing.
+
+    Prefer this to counting ``Path(__file__).parents[n]`` in each caller, where the count is wrong
+    as soon as the caller moves. It needs no marker-file search because it counts from this file,
+    whose place in the repo is fixed. Two kinds of script compute the root themselves instead: the
+    analysis scripts under ``docs/`` that put the repo on ``sys.path`` so they can import ``src``
+    (they need the root before this function is importable), and ``releases/scripts/``, which
+    deliberately imports nothing from ``src/`` because release tooling is kept independent of
+    pipeline code.
     """
     return Path(__file__).resolve().parents[1]
 
@@ -470,7 +478,7 @@ def get_config():
     if config_yaml is not None:
         return config_yaml
 
-    cname = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
+    cname = get_repo_root() / "config.yaml"
     with open(cname) as yaml_file:
         config_yaml = yaml.safe_load(yaml_file)
     return config_yaml

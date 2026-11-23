@@ -20,16 +20,15 @@ rather than a hand-written copy, so an entry dropped there fails here.
 """
 
 import json
-from pathlib import Path
 
 import pytest
 
 from src.createcompendia.diseasephenotype import get_xref_prefix_map
 from src.datahandlers.doid import build_xrefs
 from src.prefixes import DOID, ICD9, ICD10
-from tests.conftest import assert_concordance_file_valid
+from tests.conftest import REPO_ROOT, assert_concordance_file_valid
 
-_DATA = Path(__file__).resolve().parent.parent / "data"
+_DATA = REPO_ROOT / "tests" / "data"
 ICD_FIXTURE = _DATA / "doid_icd_xref_sample.json"
 GARD_FIXTURE = _DATA / "doid_gard_xref_sample.json"
 

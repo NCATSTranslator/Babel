@@ -6,17 +6,16 @@ reader adds: an empty list and prefixes src/prefixes.py doesn't define are rejec
 
 import re
 from collections import Counter
-from pathlib import Path
 
 import pytest
 
 import src.babel_utils as babel_utils
 from src.babel_utils import unique_prefixes_from_config
-from src.util import get_config
+from src.util import get_config, get_repo_root
 
 pytestmark = pytest.mark.unit
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = get_repo_root()
 
 
 def use_config(monkeypatch, value):
