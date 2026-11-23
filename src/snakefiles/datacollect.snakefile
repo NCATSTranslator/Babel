@@ -1038,6 +1038,9 @@ rule get_HMDB:
 
 
 rule hmdb_labels_and_synonyms:
+    # No mem override: streaming the XML peaks at ~0.1 GB (204 s on a laptop, 2026-11-23), well under
+    # the 16 GB default. Parsing the whole file at once peaked at ~30 GB on babel-1.17 (16 GB, 443 s on
+    # the same laptop) and needed 48G.
     input:
         infile=config["download_directory"] + "/HMDB/hmdb_metabolites.xml",
     output:
@@ -1046,9 +1049,6 @@ rule hmdb_labels_and_synonyms:
         smifile=config["download_directory"] + "/HMDB/smiles",
     benchmark:
         config["output_directory"] + "/benchmarks/hmdb_labels_and_synonyms.tsv"
-    resources:
-        # Peaks at ~30 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
-        mem="48G",
     run:
         hmdb.make_labels_and_synonyms_and_smiles(input.infile, output.labelfile, output.synfile, output.smifile)
 
