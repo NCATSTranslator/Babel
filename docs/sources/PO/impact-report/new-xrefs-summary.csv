@@ -1,0 +1,21 @@
+pipeline,predicate,prefix_1,prefix_2,asserted_by,status,xref_count,subject,subject_label,object,object_label
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0000003,whole plant,NCIT:C79659,"Plant, Whole"
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0003024,stolon,NCIT:C79678,Stolon
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0005052,plant callus,NCIT:C79624,Plant Callus
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0009005,root,NCIT:C79664,Root
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0009032,petal,NCIT:C79652,Petal
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0009055,bract,NCIT:C79620,Bract
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0009066,anther,NCIT:C79614,Anther
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0009087,mesocarp,NCIT:C79644,Mesocarp
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0025066,stalk,NCIT:C79690,Stalk
+anatomy,label_match,NCIT,PO,PO,added,44,PO:0025407,plant fiber cell,NCIT:C1502,Fiber
+anatomy,label_match,MESH,PO,PO,added,31,PO:0000282,trichome,MESH:D064201,Trichomes
+anatomy,label_match,MESH,PO,PO,added,31,PO:0004518,bark,MESH:D024301,Plant Bark
+anatomy,label_match,MESH,PO,PO,added,31,PO:0005352,xylem,MESH:D052584,Xylem
+anatomy,label_match,MESH,PO,PO,added,31,PO:0005679,plant epidermis,MESH:D019441,Plant Epidermis
+anatomy,label_match,MESH,PO,PO,added,31,PO:0009000,pulvinus,MESH:D018516,Pulvinus
+anatomy,label_match,MESH,PO,PO,added,31,PO:0009010,seed,MESH:D012639,Seeds
+anatomy,label_match,MESH,PO,PO,added,31,PO:0009046,flower,MESH:D035264,Flowers
+anatomy,label_match,MESH,PO,PO,added,31,PO:0009089,endosperm,MESH:D056625,Endosperm
+anatomy,label_match,MESH,PO,PO,added,31,PO:0020100,hypocotyl,MESH:D018546,Hypocotyl
+anatomy,label_match,MESH,PO,PO,added,31,PO:0025094,sporangium,MESH:D058432,Sporangia

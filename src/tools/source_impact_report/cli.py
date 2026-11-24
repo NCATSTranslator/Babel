@@ -80,6 +80,9 @@ ComputeCliquesFn = Callable[..., tuple[dict, dict]]
 #   the preferred CURIE for a sample.
 # - ``biolink_types``: biolink types whose ``id_prefixes`` we look up to determine the
 #   preferred CURIE per clique.
+# - ``extra_inputs`` (optional): ``{compute_fn keyword: path under the intermediate root}`` for
+#   files the pipeline's build reads besides its ids and concords. A file that is missing is passed
+#   as None, as an intermediate directory from before the file existed would have it.
 # The biolink types anatomy cliques can carry, in the named-constant form mandated by the
 # repo conventions (never hard-code "biolink:..." strings). The compendium file names are
 # derived from these (``<BareType>.txt``) so the two lists can never drift apart. They must
@@ -98,6 +101,7 @@ PIPELINE_CONFIG: dict[str, dict] = {
         "compendium_prefixes": get_config()["anatomy_prefixes"],
         "clique_classifier": anatomy.classify_anatomy_clique,
         "biolink_types": _ANATOMY_BIOLINK_TYPES,
+        "extra_inputs": {"mesh_plant_structures": "anatomy/mesh_plant_structures.tsv"},
     },
     "disease": {
         "compute_fn": diseasephenotype.compute_cliques_for_impact_report,
@@ -141,9 +145,13 @@ def _compute_synthetic_diff(
     # intermediate directory from before the umls_mesh_ownership rule has no such file and skips nothing.
     mesh_ownership = intermediate_root / "umls" / "mesh_ownership.tsv"
     mesh_ownership = str(mesh_ownership) if mesh_ownership.exists() else None
-    after_dicts, after_types = compute_fn(concordances, identifiers, mesh_ownership=mesh_ownership)
+    extra_inputs = {}
+    for keyword, relative_path in cfg.get("extra_inputs", {}).items():
+        path = intermediate_root / relative_path
+        extra_inputs[keyword] = str(path) if path.exists() else None
+    after_dicts, after_types = compute_fn(concordances, identifiers, mesh_ownership=mesh_ownership, **extra_inputs)
     before_dicts, _ = compute_fn(
-        concordances, identifiers, excluded_sources={source_name}, mesh_ownership=mesh_ownership
+        concordances, identifiers, excluded_sources={source_name}, mesh_ownership=mesh_ownership, **extra_inputs
     )
 
     diff = diff_cliques(before_dicts, after_dicts, source_curies, babel_pipeline=pipeline)

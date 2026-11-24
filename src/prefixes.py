@@ -42,6 +42,7 @@ ORPHANET = "orphanet"
 GARD = "GARD"  # NCATS Genetic and Rare Diseases rare-disease registry from https://rarediseases.info.nih.gov/
 HP = "HP"
 EMAPA = "EMAPA"
+PO = "PO"
 MP = "MP"
 MEDDRA = "MEDDRA"
 EFO = "EFO"

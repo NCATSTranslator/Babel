@@ -1,0 +1,26 @@
+{
+  "synonyms": 5606,
+  "no_trailing_parenthetical": 1,
+  "dropped_by_clean_po_synonym": 2793,
+  "by_shape": {
+    "(<Language>, exact)": 2709,
+    "(related)": 1402,
+    "(exact)": 722,
+    "(narrow)": 334,
+    "(broad)": 211,
+    "(exact, plural)": 97,
+    "(exact, <Language>)": 52,
+    "(<Language>, related)": 25,
+    "(narrow, plural)": 23,
+    "(broad, plural)": 13,
+    "(related, plural)": 10,
+    "(<Language>, broad)": 6,
+    "(broad, <Language>)": 1
+  },
+  "languages": {
+    "Spanish": 1395,
+    "Japanese": 1372,
+    "German": 26
+  },
+  "unrecognized": {}
+}

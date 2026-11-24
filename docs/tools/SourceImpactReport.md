@@ -95,6 +95,7 @@ An entry needs **more than just `compute_fn`**:
 | `compendium_prefixes` | The prefixes whose `labels` files are loaded to enrich clique samples. |
 | `clique_classifier` | A `classify_*_clique` callable returning a clique's Biolink type. |
 | `biolink_types` | The types whose `id_prefixes` order decides the preferred CURIE. |
+| `extra_inputs` | Optional. `{compute_fn keyword: path under the intermediate root}` for files the build reads besides ids and concords (anatomy's `mesh_plant_structures.tsv`). A missing file is passed as `None`. |
 
 Omit `clique_classifier` / `biolink_types` and every clique renders with a blank `biolink_type`,
 while `preferred_curie()` silently falls back to the lexicographically-smallest CURIE — a `DOID`

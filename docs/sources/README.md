@@ -23,6 +23,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
 
 ## Sources documented so far
 
+- **PO** ([PO/README.md](./PO/README.md)) — the Plant Ontology's anatomy branch as an anatomy
+  source: which branches are taken and how they are typed, the rule that picks NCIt's plant parts
+  out of its natural-product branch, the name-match concord to MeSH and NCIt (validated against a
+  curated set, since no source maps PO to anything), and the cleaning of PO's tagged synonyms.
 - **PubMed** ([PubMed/README.md](./PubMed/README.md)) — the Publication compendium is built from
   the [pubmed2db](https://github.com/TranslatorSRI/pubmed2db) NDJSON export pinned by
   `config.yaml: pubmed2db_version` (check for a newer export whenever you touch the PubMed code):

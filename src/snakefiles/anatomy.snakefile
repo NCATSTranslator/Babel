@@ -33,6 +33,16 @@ rule anatomy_emapa_ids:
         anatomy.write_emapa_ids(output.outfile)
 
 
+rule anatomy_po_ids:
+    output:
+        outfile=config["intermediate_directory"] + "/anatomy/ids/PO",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_po_ids.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
+    run:
+        anatomy.write_po_ids(output.outfile)
+
+
 rule anatomy_go_ids:
     output:
         outfile=config["intermediate_directory"] + "/anatomy/ids/GO",
@@ -47,6 +57,7 @@ rule anatomy_ncit_ids:
         outfile=config["intermediate_directory"] + "/anatomy/ids/NCIT",
     benchmark:
         config["output_directory"] + "/benchmarks/anatomy_ncit_ids.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     run:
         anatomy.write_ncit_ids(output.outfile)
 
@@ -101,6 +112,31 @@ rule get_anatomy_obo_relationships:
         )
 
 
+rule get_anatomy_po_label_relationships:
+    input:
+        po_ids=config["intermediate_directory"] + "/anatomy/ids/PO",
+        mesh_ids=config["intermediate_directory"] + "/anatomy/ids/MESH",
+        ncit_ids=config["intermediate_directory"] + "/anatomy/ids/NCIT",
+        mesh_nt=config["download_directory"] + "/MESH/mesh.nt",
+    output:
+        outfile=config["intermediate_directory"] + "/anatomy/concords/PO",
+        po_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-PO.yaml",
+        mesh_plant_structures=config["intermediate_directory"] + "/anatomy/mesh_plant_structures.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_anatomy_po_label_relationships.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
+    run:
+        anatomy.build_po_label_relationships(
+            input.po_ids,
+            input.mesh_ids,
+            input.ncit_ids,
+            output.outfile,
+            output.po_metadata,
+            output.mesh_plant_structures,
+            mesh_nt=input.mesh_nt,
+        )
+
+
 rule get_wikidata_cell_relationships:
     output:
         config["intermediate_directory"] + "/anatomy/concords/WIKIDATA",
@@ -145,6 +181,8 @@ rule anatomy_compendia:
         badxrefs=anatomy.ANATOMY_BAD_XREFS,
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
+        # MeSH plant structures, which no UBERON or EMAPA term may be merged with.
+        mesh_plant_structures=config["intermediate_directory"] + "/anatomy/mesh_plant_structures.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["anatomy_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["anatomy_outputs"])),
@@ -162,6 +200,7 @@ rule anatomy_compendia:
             input.icrdf_filename,
             badxrefs=input.badxrefs,
             mesh_ownership=input.mesh_ownership,
+            mesh_plant_structures=input.mesh_plant_structures,
         )
 
 

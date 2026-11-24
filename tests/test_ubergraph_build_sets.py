@@ -134,3 +134,12 @@ def test_build_sets_rejects_custom_hierarchy_predicate_for_non_xref():
     for set_type in ("exact", "close"):
         with pytest.raises(ValueError, match="hierarchy_predicate"):
             build_sets("EMAPA:0", {}, set_type=set_type, hierarchy_predicate=HIERARCHY_PART_OF)
+
+
+def test_get_subclass_annotations_rejects_an_unknown_predicate():
+    """get_subclass_annotations() interpolates its predicates into the SPARQL text, so it should refuse
+    anything that is not one of the module's ANNOTATION_* constants, before sending a query."""
+    from src.ubergraph import ANNOTATION_LABEL, UberGraph
+
+    with pytest.raises(ValueError, match="ANNOTATION_"):
+        UberGraph().get_subclass_annotations("NCIT:C79611", [ANNOTATION_LABEL, "<http://example.org/p> } DROP"])

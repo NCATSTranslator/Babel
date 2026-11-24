@@ -1,0 +1,79 @@
+{
+  "about": {
+    "after": "the same intermediates with the Plant Ontology ingest",
+    "before": "local anatomy build of this branch's intermediates without PO: no ids/PO, no concords/PO, no NCIt plant parts in ids/NCIT, no animal-vs-plant rule",
+    "files": [
+      "AnatomicalEntity.txt",
+      "Cell.txt",
+      "CellularComponent.txt",
+      "GrossAnatomicalStructure.txt"
+    ],
+    "note": "isolates the PO addition: PO ids, NCIt plant parts, the name-match concord, PO-trusted typing and the animal-anatomy-vs-plant-structure rule"
+  },
+  "compendia": {
+    "AnatomicalEntity.txt": {
+      "changed_before_cliques": 28,
+      "clique_count": {
+        "after": 146205,
+        "before": 146207,
+        "diff": -2,
+        "diff_percent": -0.0
+      },
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
+      "leader_changed_count": 0,
+      "moved_in_clique_count": 0,
+      "moved_in_member_count": 0,
+      "moved_member_count": 66,
+      "regrouped_member_count": 0
+    },
+    "Cell.txt": {
+      "changed_before_cliques": 1,
+      "clique_count": {
+        "after": 9397,
+        "before": 9192,
+        "diff": 205,
+        "diff_percent": 2.23
+      },
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
+      "leader_changed_count": 0,
+      "moved_in_clique_count": 0,
+      "moved_in_member_count": 0,
+      "moved_member_count": 0,
+      "regrouped_member_count": 2
+    },
+    "CellularComponent.txt": {
+      "changed_before_cliques": 1,
+      "clique_count": {
+        "after": 9355,
+        "before": 9356,
+        "diff": -1,
+        "diff_percent": -0.01
+      },
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
+      "leader_changed_count": 0,
+      "moved_in_clique_count": 0,
+      "moved_in_member_count": 0,
+      "moved_member_count": 2,
+      "regrouped_member_count": 0
+    },
+    "GrossAnatomicalStructure.txt": {
+      "changed_before_cliques": 1,
+      "clique_count": {
+        "after": 13799,
+        "before": 12693,
+        "diff": 1106,
+        "diff_percent": 8.71
+      },
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
+      "leader_changed_count": 0,
+      "moved_in_clique_count": 29,
+      "moved_in_member_count": 68,
+      "moved_member_count": 0,
+      "regrouped_member_count": 2
+    }
+  }
+}

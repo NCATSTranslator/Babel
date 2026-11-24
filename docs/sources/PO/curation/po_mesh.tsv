@@ -1,0 +1,42 @@
+mesh	mesh_label	po	po_label
+MESH:D000090342	Plant Cone	PO:0025083	strobilus
+MESH:D002523	Edible Grain		
+MESH:D005638	Fruit	PO:0009001	fruit
+MESH:D009754	Nuts	PO:0030102	nut fruit
+MESH:D011058	Pollen	PO:0025281	pollen
+MESH:D012639	Seeds	PO:0009010	seed
+MESH:D014934	Wood	PO:0005848	secondary xylem
+MESH:D018514	Plant Structures	PO:0009011	plant structure
+MESH:D018515	Plant Leaves	PO:0025034	leaf
+MESH:D018516	Pulvinus	PO:0009000	pulvinus
+MESH:D018517	Plant Roots	PO:0009005	root
+MESH:D018518	Plant Root Cap	PO:0020123	root cap
+MESH:D018519	Meristem	PO:0009013	portion of meristem tissue
+MESH:D018520	Plant Shoots		
+MESH:D018546	Hypocotyl	PO:0020100	hypocotyl
+MESH:D018547	Plant Stems	PO:0009047	stem
+MESH:D018548	Cotyledon	PO:0020030	cotyledon
+MESH:D019441	Plant Epidermis	PO:0005679	plant epidermis
+MESH:D024301	Plant Bark	PO:0004518	bark
+MESH:D027343	Rhizome	PO:0004542	rhizome
+MESH:D032461	Chromosomes, Plant		
+MESH:D035261	Plant Components, Aerial		
+MESH:D035263	Flowering Tops		
+MESH:D035264	Flowers	PO:0009046	flower
+MESH:D035281	Plant Tubers	PO:0025522	tuber
+MESH:D036226	Seedlings	PO:0008037	seedling
+MESH:D038821	Mycorrhizae		
+MESH:D052584	Xylem	PO:0005352	xylem
+MESH:D052585	Phloem	PO:0005417	phloem
+MESH:D053204	Root Nodules, Plant	PO:0003023	root nodule
+MESH:D053205	Pollen Tube		
+MESH:D054046	Plant Stomata	PO:0002000	stomatal complex
+MESH:D055993	Germ Cells, Plant	PO:0025006	plant gamete
+MESH:D056625	Endosperm	PO:0009089	endosperm
+MESH:D056626	Inflorescence	PO:0009049	inflorescence
+MESH:D056771	Ovule	PO:0020003	plant ovule
+MESH:D058432	Sporangia	PO:0025094	sporangium
+MESH:D058503	Mesophyll Cells	PO:0004006	mesophyll cell
+MESH:D058506	Cambium	PO:0005597	cambium
+MESH:D058526	Plant Vascular Bundle	PO:0005020	vascular bundle
+MESH:D064201	Trichomes	PO:0000282	trichome
