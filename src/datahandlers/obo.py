@@ -131,7 +131,14 @@ def pull_uber_synonyms(jsonloutputfile, prefix_synonyms_files_to_generate):
                 outf.write(f"{curie}\t{predicate}\t{synonym}\n")
 
 
-def write_obo_ids(irisandtypes, outfile, order, exclude=[]):
+def write_obo_ids(irisandtypes, outfile, order, exclude=()):
+    """Write every UberGraph subclass of each root in ``irisandtypes`` to ``outfile`` with its type.
+
+    A term under several roots takes the type that comes first in ``order``. Every subclass of a
+    CURIE in ``exclude`` (the CURIE itself included) is left out. The per-pipeline wrappers
+    (``anatomy.write_obo_ids`` and its siblings) must forward ``exclude``: they used to pass
+    ``exclude=[]`` here, so the NCIT anatomy exclusions in ``anatomy.write_ncit_ids`` never applied.
+    """
     uber = UberGraph()
     iris_to_types = defaultdict(set)
     for iri, ntype in irisandtypes:
