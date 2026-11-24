@@ -82,9 +82,13 @@ activity" and [`GO:0090483`](http://purl.obolibrary.org/obo/GO_0090483)
 "phosphatidylglycerol-phosphatidylethanolamine phosphatidyltransferase activity". A CUI with no GO
 preferred term, like `C2249862`, keeps all its GO atoms, since those are its own names.
 
-Against 2026jul22, this drops 163 strings that are names of a different GO term from CUIs that join
-a GO clique (of 206 such strings), and 18 strings from CUIs that don't. The rule is
-`umls.is_other_go_term_atom()`, which the report script imports.
+Against 2026jul22, this drops 168 strings from CUIs that join a GO clique, and 18 from CUIs that
+don't. Of the 168, 163 are names of a different GO term (of 206 such strings), 4 already name the
+clique's own GO term (see below), and 1 is no GO term's name any more: `C1622121` joins
+[`GO:0071685`](http://purl.obolibrary.org/obo/GO_0071685) "NADH dehydrogenase complex
+(plastoquinone)" and loses the `MTH_ET` "NADH:plastoquinone reductase complex location", which UMLS
+files under [`GO:0030964`](http://purl.obolibrary.org/obo/GO_0030964) "NADH dehydrogenase complex".
+The rule is `umls.is_other_go_term_atom()`, which the report script imports.
 
 It keeps the other 43, because MRCONSO alone can't identify them:
 
