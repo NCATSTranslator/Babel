@@ -88,3 +88,56 @@ def test_pull_uber_synonyms_raises_for_missing_prefix(tmp_path, monkeypatch):
         obo.pull_uber_synonyms(str(common_file), [str(mp_synonyms_file)])
 
     assert not mp_synonyms_file.exists()
+
+
+# ---------------------------------------------------------------------------
+# Plant Ontology synonym tags
+# ---------------------------------------------------------------------------
+
+# Synonym strings copied verbatim from UberGraph, with the PO term each one is on.
+PO_SYNONYM_CASES = [
+    ("wood (exact)", "wood"),  # PO:0005848 "secondary xylem"
+    ("portion of secondary xylem tissue (exact)", "portion of secondary xylem tissue"),  # PO:0005848
+    ("macrostrobili (related, plural)", "macrostrobili"),  # PO:0005032 "megasporangiate strobilus"
+    ("megastrobili  (related, plural)", "megastrobili"),  # PO:0005032; two spaces before the tag
+    ("xilema secundario (Spanish, exact)", None),  # PO:0005848
+    ("二次木部 (Japanese, exact)", None),  # PO:0005848
+    ("frucht (exact, German)", None),  # PO:0009001 "fruit"; language second
+    ("PO:0025265", "PO:0025265"),  # PO:0025265; the one PO synonym with no tag at all
+]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(("synonym", "expected"), PO_SYNONYM_CASES)
+def test_clean_po_synonym(synonym, expected):
+    """clean_po_synonym() should strip a scope tag, return None for a translation, and leave an untagged
+    string alone."""
+    assert obo.clean_po_synonym(synonym) == expected
+
+
+@pytest.mark.unit
+def test_clean_po_synonym_keeps_a_parenthetical_that_is_not_a_tag():
+    """A trailing parenthetical with any word outside PO's tag vocabulary is part of the name, so it should
+    be kept. PO has no such synonym today (docs/sources/PO/synonyms/tag_counts.json: "unrecognized" is
+    empty), so this string is made up to pin the behaviour for the day one appears."""
+    assert obo.clean_po_synonym("leaf (sensu Poaceae)") == "leaf (sensu Poaceae)"
+
+
+@pytest.mark.unit
+def test_pull_uber_synonyms_cleans_po_and_only_po(tmp_path, monkeypatch):
+    """pull_uber_synonyms() should write PO synonyms without their tags and without translations, in both
+    the common file and the per-prefix file, and should leave another ontology's parentheticals alone."""
+    synonyms = [
+        ("PO:0005848", "hasExactSynonym", "wood (exact)"),
+        ("PO:0005848", "hasExactSynonym", "xilema secundario (Spanish, exact)"),
+        ("GO:0000001", "hasExactSynonym", "mitochondrial inheritance (exact)"),
+    ]
+    monkeypatch.setattr(obo, "UberGraph", lambda: _FakeUberGraph(synonyms))
+    common_file = tmp_path / "common_synonyms.jsonl"
+    po_synonyms_file = tmp_path / "PO" / "synonyms"
+
+    obo.pull_uber_synonyms(str(common_file), [str(po_synonyms_file)])
+
+    common = {(row["curie"], row["synonym"]) for row in map(json.loads, common_file.read_text().splitlines())}
+    assert common == {("PO:0005848", "wood"), ("GO:0000001", "mitochondrial inheritance (exact)")}
+    assert po_synonyms_file.read_text() == "PO:0005848\thasExactSynonym\twood\n"

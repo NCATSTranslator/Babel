@@ -174,10 +174,10 @@ ncbi_files:
   - gene_refseq_uniprotkb_collab.gz
   - mim2gene_medgen
 
-generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, EMAPA, CHEBI, HP, MP, MONDO, PR]
+generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, EMAPA, PO, CHEBI, HP, MP, MONDO, PR]
 
 # TODO: This doesn't appear to be used anywhere -- but it might be neat to use this list to make sure we got all of them.
-ubergraph_ontologies: [UBERON, CL, EMAPA, GO, NCIT, ECO, ECTO, ENVO, HP, MP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
+ubergraph_ontologies: [UBERON, CL, EMAPA, PO, GO, NCIT, ECO, ECTO, ENVO, HP, MP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
 
 mods: [WormBase, FB, MGI, ZFIN, RGD, SGD]
 
@@ -186,9 +186,12 @@ common:
   synonyms: [ubergraph/synonyms.jsonl]
   descriptions: [ubergraph/descriptions.jsonl]
 
-anatomy_prefixes:  [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT, SNOMEDCT]
-anatomy_ids:       [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT]
-anatomy_concords:  [UBERON, GO, CL, EMAPA, UMLS, WIKIDATA]
+# PO is the Plant Ontology's anatomy branch. Its concord is not PO's xrefs (those are citations and
+# image links) but name matches against MeSH's Plant Structures tree and NCIt's plant parts, which no
+# source maps PO to: docs/sources/PO/README.md.
+anatomy_prefixes:  [UBERON, GO, CL, EMAPA, PO, UMLS, MESH, NCIT, SNOMEDCT]
+anatomy_ids:       [UBERON, GO, CL, EMAPA, PO, UMLS, MESH, NCIT]
+anatomy_concords:  [UBERON, GO, CL, EMAPA, PO, UMLS, WIKIDATA]
 anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, GrossAnatomicalStructure.txt]
 # Prefixes whose identifiers are treated as globally unique within a clique: if merging two
 # cliques would produce a clique containing more than one identifier with one of these prefixes,

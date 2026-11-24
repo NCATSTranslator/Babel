@@ -20,9 +20,9 @@ from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
 
 
-def write_obo_ids(irisandtypes, outfile, exclude=[]):
+def write_obo_ids(irisandtypes, outfile, exclude=()):
     order = [PATHWAY, BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY]
-    obo.write_obo_ids(irisandtypes, outfile, order, exclude=[])
+    obo.write_obo_ids(irisandtypes, outfile, order, exclude=exclude)
 
 
 def write_go_ids(outfile):

@@ -78,3 +78,21 @@ def test_get_sub_exact_no_exact(ubergraph):
     assert k in subs
     assert len(subs[k]) == 0
     print(subs)
+
+
+def test_get_subclass_annotations_reads_ncit_plant_part_annotations(ubergraph):
+    """get_subclass_annotations() should return every subclass with the requested annotations: NCIT:C79615
+    "Bark" has Semantic_Type "Plant" and no FDA UNII, and NCIT:C29250 "Psyllium Husk" has a UNII."""
+    from src.ubergraph import ANNOTATION_LABEL, ANNOTATION_NCIT_FDA_UNII_CODE, ANNOTATION_NCIT_SEMANTIC_TYPE
+
+    with _server_errors_are_xfail():
+        annotations = ubergraph.get_subclass_annotations(
+            "NCIT:C79611", [ANNOTATION_LABEL, ANNOTATION_NCIT_SEMANTIC_TYPE, ANNOTATION_NCIT_FDA_UNII_CODE]
+        )
+
+    assert annotations["NCIT:C79615"] == {
+        ANNOTATION_LABEL: {"Bark"},
+        ANNOTATION_NCIT_SEMANTIC_TYPE: {"Plant"},
+        ANNOTATION_NCIT_FDA_UNII_CODE: set(),
+    }
+    assert annotations["NCIT:C29250"][ANNOTATION_NCIT_FDA_UNII_CODE]

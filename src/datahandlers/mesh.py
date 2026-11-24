@@ -303,6 +303,21 @@ class Mesh:
             meshes.append(f"{MESH}:{get_mesh_id_from_iri(row['term'])}")
         return meshes
 
+    def get_labels_in_tree(self, top_treenum):
+        """Return ``{CURIE: preferred label}`` for every descriptor at or below a tree number such as "A18"."""
+        s = f"""PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
+                PREFIX mesh: <http://id.nlm.nih.gov/mesh/>
+
+                SELECT DISTINCT ?term ?label
+                WHERE {{ ?term meshv:treeNumber ?treenum .
+                         ?treenum meshv:parentTreeNumber* mesh:{top_treenum} .
+                         ?term rdfs:label ?label
+                }}
+                ORDER BY ?term
+        """
+        return {f"{MESH}:{get_mesh_id_from_iri(row['term'])}": row["label"].value for row in self.m.query(s)}
+
     def get_scr_terms_mapped_to_trees(self, top_treenums):
         """Get Supplementary Concept Record terms that are mapped to descriptors under any of the given tree numbers.
 

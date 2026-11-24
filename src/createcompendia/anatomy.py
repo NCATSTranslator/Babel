@@ -1,4 +1,5 @@
-from collections import defaultdict
+import re
+from collections import Counter, defaultdict
 
 import requests
 
@@ -15,8 +16,16 @@ from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_AN
 from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
 from src.model.compendia import write_typed_compendia
-from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
-from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
+from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, PO, SNOMEDCT, UBERON, UMLS, WIKIDATA
+from src.ubergraph import (
+    ANNOTATION_EXACT_SYNONYM,
+    ANNOTATION_LABEL,
+    ANNOTATION_NCIT_FDA_UNII_CODE,
+    ANNOTATION_NCIT_SEMANTIC_TYPE,
+    HIERARCHY_PART_OF,
+    UberGraph,
+    build_sets,
+)
 from src.util import Text, get_logger, get_repo_root
 
 logger = get_logger(__name__)
@@ -41,6 +50,7 @@ ANATOMY_BAD_XREFS = str(get_repo_root() / "input_data/anatomy_badxrefs.txt")
 # the type every term below it gets by default. "subtype_roots" names the subtrees that override
 # that default — UBERON's dedicated gross-anatomy branch, EMAPA's organ and tissue branches. A term
 # at or below a subtype root takes the subtype's type; the subtype root itself is included.
+# "exclude_roots" (optional) names subtrees left out altogether, each with the reason.
 #
 # This is meant to be the one place to look for "which parts of this ontology does anatomy take,
 # and as what". MESH and UMLS are not here: they span many Biolink types and are keyed by tree
@@ -62,7 +72,35 @@ ANATOMY_OBO_SOURCES = {
             f"{EMAPA}:35868": GROSS_ANATOMICAL_STRUCTURE,  # "tissue"
         },
     },
+    # The Plant Ontology's anatomy branch. Its other branch, PO:0009012 "plant structure development
+    # stage", is not anatomy and is not taken. The default type is GrossAnatomicalStructure rather than
+    # AnatomicalEntity because 1,311 of the root's 1,363 terms sit under PO:0009011 "plant structure"
+    # (tissues, organs, whole plants), and because Biolink does not yet register PO for
+    # AnatomicalEntity.
+    PO: {
+        "root": f"{PO}:0025131",  # "plant anatomical entity"
+        "type": GROSS_ANATOMICAL_STRUCTURE,
+        "subtype_roots": {f"{PO}:0009002": CELL},  # "plant cell"
+        # Spaces and substances are neither gross structures nor cells, so their only correct type is
+        # AnatomicalEntity, which Biolink does not register PO for: write_compendium() would drop
+        # them. Left out until https://github.com/biolink/biolink-model/pull/1862 is in the Biolink
+        # version config.yaml pins; then type them AnatomicalEntity through subtype_roots instead.
+        "exclude_roots": [
+            f"{PO}:0025117",  # "plant anatomical space" (35 terms)
+            f"{PO}:0025161",  # "portion of plant substance" (16 terms)
+        ],
+    },
 }
+
+# Which NCIt terms are plant anatomy. NCIt files plant parts under "Plant Part", a branch of
+# "Plant-based Natural Product" that holds FDA's vocabulary for naming the part of a plant a botanical
+# drug is made from. It mixes 576 terms of two kinds: structures ("Bark", "Sepal", "Flower Bud") and
+# materials ("Acer rubrum Pollen", "Oat", "Psyllium Husk"). No sub-branch separates them, but two of
+# NCIt's own annotations do: a material carries an FDA UNII (FDA has registered it as a substance),
+# and a structure has Semantic_Type "Plant". Taking the terms with no UNII and type "Plant" selects
+# 71. docs/sources/PO/mappings.md compares that with a term-by-term curation of the branch.
+NCIT_PLANT_PART_ROOT = f"{NCIT}:C79611"  # "Plant Part"
+NCIT_PLANT_SEMANTIC_TYPE = "Plant"
 
 
 def _obo_id_roots(prefix):
@@ -91,9 +129,9 @@ def remove_overused_xrefs_dict(kv):
         kv[k] = list(set(v).difference(overused_xrefs))
 
 
-def write_obo_ids(irisandtypes, outfile, exclude=[]):
+def write_obo_ids(irisandtypes, outfile, exclude=()):
     order = [CELLULAR_COMPONENT, CELL, GROSS_ANATOMICAL_STRUCTURE, ANATOMICAL_ENTITY]
-    obo.write_obo_ids(irisandtypes, outfile, order, exclude=[])
+    obo.write_obo_ids(irisandtypes, outfile, order, exclude=exclude)
 
 
 def write_ncit_ids(outfile):
@@ -119,6 +157,49 @@ def write_ncit_ids(outfile):
             anatomic_site_id,
         ],
     )
+
+    # Plant parts are a separate branch, selected by annotation rather than by subtree. They are typed
+    # AnatomicalEntity, like the rest of NCIt's anatomy: a term that joins a PO clique takes PO's
+    # more specific type there (classify_anatomy_clique()).
+    with open(outfile) as inf:
+        already_written = {line.split("\t")[0] for line in inf}
+    with open(outfile, "a") as outf:
+        for curie in sorted(set(fetch_ncit_plant_parts()) - already_written):
+            outf.write(f"{curie}\t{ANATOMICAL_ENTITY}\n")
+
+
+def fetch_ncit_plant_parts():
+    """Return ``{curie: label}`` for the NCIt "Plant Part" terms that are plant structures.
+
+    A term qualifies when NCIt gives it Semantic_Type "Plant" and no FDA UNII code; see the comment on
+    NCIT_PLANT_PART_ROOT for why those two annotations separate structures from materials. Queries
+    UberGraph.
+    """
+    annotations = UberGraph().get_subclass_annotations(
+        NCIT_PLANT_PART_ROOT, [ANNOTATION_LABEL, ANNOTATION_NCIT_SEMANTIC_TYPE, ANNOTATION_NCIT_FDA_UNII_CODE]
+    )
+    plant_parts = {}
+    for curie, values in annotations.items():
+        if (
+            values[ANNOTATION_NCIT_FDA_UNII_CODE]
+            or NCIT_PLANT_SEMANTIC_TYPE not in values[ANNOTATION_NCIT_SEMANTIC_TYPE]
+        ):
+            continue
+        labels = sorted(values[ANNOTATION_LABEL])
+        if len(labels) != 1:
+            raise RuntimeError(f"Expected exactly one label for NCIt plant part {curie}, got {labels}.")
+        plant_parts[curie] = labels[0]
+    if not plant_parts:
+        raise RuntimeError(
+            f"No plant parts found under {NCIT_PLANT_PART_ROOT}: has UberGraph dropped NCIt's annotations?"
+        )
+    return plant_parts
+
+
+def write_po_ids(outfile):
+    """Write the Plant Ontology's anatomy terms: plant cells as biolink:Cell, every other plant structure
+    as biolink:GrossAnatomicalStructure. ANATOMY_OBO_SOURCES says which branches are left out and why."""
+    write_obo_ids(_obo_id_roots(PO), outfile, exclude=ANATOMY_OBO_SOURCES[PO]["exclude_roots"])
 
 
 def write_uberon_ids(outfile):
@@ -319,6 +400,181 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
         )
 
 
+# How normalize_plant_part_name() turns a plural word into its singular: the first suffix that matches
+# is replaced. Crude on purpose. It only has to send a name and its plural to the same key
+# ("Plant Leaves" and "leaf", "Seeds" and "seed", "Plant Stomata" and "stoma"); "epidermis" becoming
+# "epidermi" is harmless because both vocabularies get the same treatment.
+PLANT_PART_SINGULAR_SUFFIXES = (("leaves", "leaf"), ("ies", "y"), ("ata", "a"), ("ae", "a"), ("es", "e"), ("s", ""))
+_PLANT_WORD = re.compile(r"\bplants?\b")
+_NOT_A_LETTER = re.compile(r"[^a-z]+")
+
+# Anatomy ontologies that describe animals only. Neither has a plant term, so a cross-reference from
+# one of them to a MeSH Plant Structures descriptor is a homonym, not an equivalence: UBERON:0010008
+# "placental cotyledon" cites MESH:D018548 "Cotyledon" (the seed leaf), and UBERON:0000312 "inner
+# cambium layer of periosteum" cites MESH:D058506 "Cambium". Those two merged a plant structure into an
+# animal clique, and the PO term for it followed (#1272). GO and CL are not listed: a cellular component
+# such as GO:0090406 "pollen tube" really is the MeSH plant structure.
+ANIMAL_ANATOMY_PREFIXES = frozenset({UBERON, EMAPA})
+
+# The predicate written to concords/PO, so the provenance metadata says how each pair was found.
+PO_LABEL_MATCH_PREDICATE = "label_match"
+# The MeSH tree whose descriptor names are matched against PO.
+MESH_PLANT_STRUCTURES_TREE = "A18"  # "Plant Structures"
+
+
+def normalize_plant_part_name(name):
+    """Reduce a plant-part name to the key match_plant_part_names() compares.
+
+    Lower-cases, drops the word "plant" (MeSH and NCIt say "Plant Leaves", "Bulb, Plant" where PO says
+    "leaf", "bulb"), drops punctuation, and singularizes each word longer than three letters with
+    PLANT_PART_SINGULAR_SUFFIXES. Word order is kept.
+    """
+    words = []
+    for word in _NOT_A_LETTER.sub(" ", _PLANT_WORD.sub(" ", name.lower())).split():
+        if len(word) > 3:
+            for suffix, singular in PLANT_PART_SINGULAR_SUFFIXES:
+                if word.endswith(suffix):
+                    word = word[: -len(suffix)] + singular
+                    break
+        words.append(word)
+    return " ".join(words)
+
+
+def match_plant_part_names(po_names, vocabulary_names):
+    """Pair terms of one plant-part vocabulary with Plant Ontology terms of the same name.
+
+    :param po_names: ``{PO CURIE: iterable of names}``, each term's label and exact synonyms
+    :param vocabulary_names: ``{CURIE: preferred name}`` for one vocabulary (MeSH A18, or NCIt plant parts)
+    :returns: ``{vocabulary CURIE: PO CURIE}``, one-to-one
+
+    Names are compared after normalize_plant_part_name(). A pair is kept only when it is unambiguous
+    both ways: a vocabulary term whose name fits two PO terms is left unmatched, and so is every
+    vocabulary term claiming a PO term that another one claims too. Nothing picks a winner.
+
+    Only a vocabulary's preferred name is used, never its entry terms or synonyms: MeSH lists parts as
+    entry terms of the whole ("Anther, Plant" and "Petal, Plant" under "Flowers"), so matching them
+    would map the whole to its parts.
+
+    This is safe only because both sides are plant vocabularies. Against all of anatomy the same
+    comparison pairs PO "root" with "tooth root" and PO "placenta" with the animal organ, which is why
+    the callers pass MeSH's Plant Structures tree and NCIt's plant parts and nothing wider.
+    """
+    po_by_name = defaultdict(set)
+    for po_curie, names in po_names.items():
+        for name in names:
+            key = normalize_plant_part_name(name)
+            if key:
+                po_by_name[key].add(po_curie)
+    candidates = {}
+    for curie, name in vocabulary_names.items():
+        matches = po_by_name.get(normalize_plant_part_name(name), ())
+        if len(matches) == 1:
+            candidates[curie] = next(iter(matches))
+    claims = Counter(candidates.values())
+    return {curie: po_curie for curie, po_curie in candidates.items() if claims[po_curie] == 1}
+
+
+def fetch_po_names(po_curies):
+    """Return ``{PO CURIE: set of names}`` (label plus English exact synonyms) for ``po_curies``, from UberGraph."""
+    annotations = UberGraph().get_subclass_annotations(
+        ANATOMY_OBO_SOURCES[PO]["root"], [ANNOTATION_LABEL, ANNOTATION_EXACT_SYNONYM]
+    )
+    po_names = {}
+    for curie in po_curies:
+        synonyms = {obo.clean_po_synonym(synonym) for synonym in annotations[curie][ANNOTATION_EXACT_SYNONYM]}
+        po_names[curie] = annotations[curie][ANNOTATION_LABEL] | (synonyms - {None})
+    return po_names
+
+
+def _read_id_column(idfile):
+    with open(idfile) as inf:
+        return {line.split("\t")[0] for line in inf if line.strip()}
+
+
+def read_plant_structure_ids(mesh_plant_structures, mesh_ownership):
+    """Return the MeSH Plant Structures descriptors anatomy holds, plus the UMLS CUIs that follow them.
+
+    :param mesh_plant_structures: the file build_po_label_relationships() writes, or None (an empty set)
+    :param mesh_ownership: the umls_mesh_ownership rule's file, which says which CUI follows which
+        descriptor; None adds no CUIs
+    """
+    if mesh_plant_structures is None:
+        return frozenset()
+    descriptors = _read_id_column(mesh_plant_structures)
+    cuis = set()
+    if mesh_ownership is not None:
+        cuis = {
+            cui
+            for cui, (_, descriptor, _) in umls.read_mesh_ownership(mesh_ownership).items()
+            if descriptor in descriptors
+        }
+    return frozenset(descriptors | cuis)
+
+
+def joins_animal_anatomy_to_plant_structure(subject, obj, plant_structure_ids):
+    """True for a concord pair linking an ANIMAL_ANATOMY_PREFIXES term to a plant structure, which the
+    anatomy build skips; see the comment on ANIMAL_ANATOMY_PREFIXES."""
+    for curie, other in ((subject, obj), (obj, subject)):
+        if other in plant_structure_ids and curie.split(":")[0] in ANIMAL_ANATOMY_PREFIXES:
+            return True
+    return False
+
+
+def build_po_label_relationships(
+    po_ids, mesh_ids, ncit_ids, outfile, metadata_yaml, mesh_plant_structures, mesh_nt=None
+):
+    """Write concords/PO: Plant Ontology terms paired by name with MeSH plant structures and NCIt plant parts.
+
+    No source Babel reads maps PO to anything: PO's own xrefs are citations and image links, NCIt's
+    plant parts have no xrefs at all, and UMLS has no PO source (docs/sources/PO/mappings.md has the
+    search). Without this concord PO would sit beside the MeSH and NCIt cliques for "Xylem", "Pollen"
+    and "Bark" instead of joining them. match_plant_part_names() is the rule and says why it is safe.
+
+    Each side is limited to what the anatomy ids files hold (``po_ids``, ``mesh_ids``, ``ncit_ids``), so
+    the concord cannot bring in a term another rule left out: a PO branch excluded in
+    ANATOMY_OBO_SOURCES, or a MeSH record taxon owns.
+
+    Also writes ``mesh_plant_structures``, the anatomy MeSH descriptors in the Plant Structures tree
+    (``CURIE<tab>name``), for read_plant_structure_ids(). It is written here because this is the one
+    anatomy rule that already has mesh.nt loaded to ask which descriptors those are.
+
+    :param mesh_nt: path to mesh.nt; None reads babel_downloads/MESH/mesh.nt
+    """
+    po_names = fetch_po_names(_read_id_column(po_ids))
+    anatomy_mesh = _read_id_column(mesh_ids)
+    anatomy_ncit = _read_id_column(ncit_ids)
+    mesh_names = {
+        curie: name
+        for curie, name in mesh.Mesh(mesh_nt).get_labels_in_tree(MESH_PLANT_STRUCTURES_TREE).items()
+        if curie in anatomy_mesh
+    }
+    with open(mesh_plant_structures, "w") as outf:
+        for curie, name in sorted(mesh_names.items()):
+            outf.write(f"{curie}\t{name}\n")
+    ncit_names = {curie: name for curie, name in fetch_ncit_plant_parts().items() if curie in anatomy_ncit}
+    pairs = []
+    for vocabulary_names in (mesh_names, ncit_names):
+        pairs += [(po_curie, curie) for curie, po_curie in match_plant_part_names(po_names, vocabulary_names).items()]
+    with open(outfile, "w") as outf:
+        for po_curie, curie in sorted(pairs):
+            outf.write(f"{po_curie}\t{PO_LABEL_MATCH_PREDICATE}\t{curie}\n")
+    write_concord_metadata(
+        metadata_yaml,
+        name="build_po_label_relationships()",
+        sources=[
+            {"type": "UberGraph", "name": "PO"},
+            {"type": "UberGraph", "name": "NCIT"},
+            {"type": "MESH", "name": f"MeSH tree {MESH_PLANT_STRUCTURES_TREE}"},
+        ],
+        description=(
+            f"Name matches between the label and exact synonyms of PO terms under {ANATOMY_OBO_SOURCES[PO]['root']} "
+            f"and the preferred names of MeSH tree {MESH_PLANT_STRUCTURES_TREE} descriptors and of NCIt plant parts "
+            f"under {NCIT_PLANT_PART_ROOT}; see match_plant_part_names()."
+        ),
+        concord_filename=outfile,
+    )
+
+
 def build_wikidata_cell_relationships(outdir, metadata_yaml):
     # This sparql returns all the wikidata items that have a UMLS identifier and a CL identifier
     sparql = """PREFIX wdt: <http://www.wikidata.org/prop/direct/>
@@ -378,17 +634,22 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     )
 
 
-def _make_anatomy_concord_pair_filter(bad_pairs, owned_elsewhere=frozenset()):
+def _make_anatomy_concord_pair_filter(bad_pairs, owned_elsewhere=frozenset(), plant_structure_ids=frozenset()):
     """Build the ``(parts, infile, dicts) -> bool`` hook glom_from_files applies to every pair.
 
     ``bad_pairs`` is a set of frozensets, so a listed pair is dropped whichever way round the
     concord happens to write it. It is captured in a closure because the hook runs once per
     concord row and the file must not be re-read that many times. ``owned_elsewhere`` is
     umls.read_cuis_owned_elsewhere(): a pair naming one of those CUIs is dropped too.
+    ``plant_structure_ids`` is read_plant_structure_ids(): a pair linking one of those to an
+    animal-only ontology is dropped (joins_animal_anatomy_to_plant_structure()).
     """
 
     def _filter(parts, infile, dicts):
         if umls.names_cui_owned_elsewhere(parts[0], parts[2], owned_elsewhere):
+            return False
+        if joins_animal_anatomy_to_plant_structure(parts[0], parts[2], plant_structure_ids):
+            logger.info("Skipping %s from %s: an animal anatomy term cannot be a plant structure", parts, infile)
             return False
         if frozenset((parts[0], parts[2])) in bad_pairs:
             logger.debug("Skipping bad xref pair %s from %s (see %s)", parts, infile, ANATOMY_BAD_XREFS)
@@ -422,7 +683,7 @@ def _anatomy_concord_pair_filter(parts, infile, dicts):
 
 
 def compute_cliques_for_impact_report(
-    concordances, identifiers, excluded_sources=(), badxrefs=None, *, mesh_ownership=None
+    concordances, identifiers, excluded_sources=(), badxrefs=None, *, mesh_ownership=None, mesh_plant_structures=None
 ):
     """Load anatomy identifier and concord files and return the union-find clique state
     without writing compendia.
@@ -443,6 +704,8 @@ def compute_cliques_for_impact_report(
         empty string to disable the filter (used by tests).
     :param mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another
         pipeline owns are skipped (umls.read_cuis_owned_elsewhere). None skips nothing.
+    :param mesh_plant_structures: build_po_label_relationships()'s list of MeSH plant structures;
+        concord pairs linking one (or its CUI) to an animal-only ontology are skipped. None skips nothing.
     :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE
         to its declared biolink type
     """
@@ -455,20 +718,35 @@ def compute_cliques_for_impact_report(
         identifiers,
         unique_prefixes=unique_prefixes_from_config("anatomy_unique_prefixes"),
         concord_pair_filter=_make_anatomy_concord_pair_filter(
-            bad_pairs, umls.read_cuis_owned_elsewhere(mesh_ownership, "anatomy")
+            bad_pairs,
+            umls.read_cuis_owned_elsewhere(mesh_ownership, "anatomy"),
+            read_plant_structure_ids(mesh_plant_structures, mesh_ownership),
         ),
         overused_xref_remover=lambda pairs, infile: remove_overused_xrefs(pairs),
         excluded_sources=excluded_sources,
     )
 
 
-def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, badxrefs=None, mesh_ownership=None):
+def build_compendia(
+    concordances,
+    metadata_yamls,
+    identifiers,
+    icrdf_filename,
+    badxrefs=None,
+    mesh_ownership=None,
+    mesh_plant_structures=None,
+):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories
     :badxrefs: path to a bad-xrefs file; defaults to ``ANATOMY_BAD_XREFS``
-    :mesh_ownership: the umls_mesh_ownership rule's file (see compute_cliques_for_impact_report)"""
+    :mesh_ownership: the umls_mesh_ownership rule's file (see compute_cliques_for_impact_report)
+    :mesh_plant_structures: build_po_label_relationships()'s file (see compute_cliques_for_impact_report)"""
     dicts, types = compute_cliques_for_impact_report(
-        concordances, identifiers, badxrefs=badxrefs, mesh_ownership=mesh_ownership
+        concordances,
+        identifiers,
+        badxrefs=badxrefs,
+        mesh_ownership=mesh_ownership,
+        mesh_plant_structures=mesh_plant_structures,
     )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     write_typed_compendia(metadata_yamls, typed_sets, icrdf_filename)
@@ -476,7 +754,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, b
 
 def classify_anatomy_clique(equivalent_ids, types):
     """Pick a biolink type for one anatomy clique using the same precedence as
-    ``create_typed_sets``: trust GO/CL/UBERON/EMAPA in that order, then fall back to a
+    ``create_typed_sets``: trust GO/CL/UBERON/EMAPA/PO in that order, then fall back to a
     majority vote over the declared types of the clique's members, breaking ties by
     most-specific type.
 
@@ -485,7 +763,7 @@ def classify_anatomy_clique(equivalent_ids, types):
     """
     order = [CELLULAR_COMPONENT, CELL, GROSS_ANATOMICAL_STRUCTURE, ANATOMICAL_ENTITY]
     prefixes = get_prefixes(equivalent_ids)
-    for prefix in [GO, CL, UBERON, EMAPA]:
+    for prefix in [GO, CL, UBERON, EMAPA, PO]:
         if prefix in prefixes and prefixes[prefix][0] in types:
             return types[prefixes[prefix][0]]
     typecounts = defaultdict(int)

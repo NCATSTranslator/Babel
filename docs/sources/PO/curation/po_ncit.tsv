@@ -1,0 +1,75 @@
+ncit	ncit_label	in_anatomy	po	po_label
+NCIT:C1045	Chamomile	no		
+NCIT:C1502	Fiber	no		
+NCIT:C29250	Psyllium Husk	no		
+NCIT:C71769	Equisetum arvense Branch	no		
+NCIT:C71832	Black Walnut Shell	no		
+NCIT:C71972	Fruit	yes	PO:0009001	fruit
+NCIT:C72481	Elymus repens Top	no		
+NCIT:C73872	Clove	no		
+NCIT:C73913	Seed	yes	PO:0009010	seed
+NCIT:C79219	Leaf	yes	PO:0025034	leaf
+NCIT:C79611	Plant Part	yes	PO:0009011	plant structure
+NCIT:C79614	Anther	yes	PO:0009066	anther
+NCIT:C79615	Bark	yes	PO:0004518	bark
+NCIT:C79616	Bark, Root	yes		
+NCIT:C79617	Bark, Stem	yes		
+NCIT:C79619	Blade	yes	PO:0020039	leaf lamina
+NCIT:C79620	Bract	yes	PO:0009055	bract
+NCIT:C79622	Bud	yes	PO:0000055	bud
+NCIT:C79624	Plant Callus	yes	PO:0005052	plant callus
+NCIT:C79625	Calyx	yes	PO:0009060	calyx
+NCIT:C79627	Cane	yes		
+NCIT:C79628	Corm	yes	PO:0025355	corm
+NCIT:C79629	Corolla	yes	PO:0009059	corolla
+NCIT:C79630	Crown	yes		
+NCIT:C79631	Cuticle	yes	PO:0000022	plant cuticle
+NCIT:C79632	Endocarp	yes	PO:0009086	endocarp
+NCIT:C79633	Exocarp	yes	PO:0009085	exocarp
+NCIT:C79636	Flower	yes	PO:0009046	flower
+NCIT:C79637	Flower Bud	yes	PO:0000056	flower bud
+NCIT:C79641	Gall	yes	PO:0025626	plant gall
+NCIT:C79642	Inflorescence	yes	PO:0009049	inflorescence
+NCIT:C79643	Leaf Bud	yes	PO:0000058	vegetative bud
+NCIT:C79644	Mesocarp	yes	PO:0009087	mesocarp
+NCIT:C79645	Mycelium	no		
+NCIT:C79650	Peduncle	yes	PO:0009053	peduncle
+NCIT:C79651	Pericarp	yes	PO:0009084	pericarp
+NCIT:C79652	Petal	yes	PO:0009032	petal
+NCIT:C79653	Petiole	yes	PO:0020038	petiole
+NCIT:C79654	Pistil	yes		
+NCIT:C79655	Pith	yes	PO:0006109	pith
+NCIT:C79656	Pith, Root	yes		
+NCIT:C79657	Pith, Stem	yes		
+NCIT:C79658	Plant, Aerial Part	yes		
+NCIT:C79659	Plant, Whole	yes	PO:0000003	whole plant
+NCIT:C79660	Pollen	yes	PO:0025281	pollen
+NCIT:C79661	Receptacle	yes	PO:0009064	receptacle
+NCIT:C79662	Resin	yes	PO:0025603	plant resin
+NCIT:C79663	Rhizome	yes	PO:0004542	rhizome
+NCIT:C79664	Root	yes	PO:0009005	root
+NCIT:C79665	Sap	yes	PO:0025538	plant sap
+NCIT:C79666	Sclerotium	no		
+NCIT:C79669	Sepal	yes	PO:0009031	sepal
+NCIT:C79671	Silk	yes	PO:0006488	silk
+NCIT:C79672	Spore	yes	PO:0025017	plant spore
+NCIT:C79673	Spur	yes	PO:0004701	short shoot
+NCIT:C79675	Stamen	yes	PO:0009029	stamen
+NCIT:C79676	Stem	yes	PO:0009047	stem
+NCIT:C79678	Stolon	yes	PO:0003024	stolon
+NCIT:C79679	Thallus	yes	PO:0030027	thallus
+NCIT:C79681	Tuber	yes	PO:0025522	tuber
+NCIT:C79682	Twig	yes		
+NCIT:C79685	Branch Stem	yes	PO:0025073	branch
+NCIT:C79686	Bulb	yes	PO:0025356	bulb
+NCIT:C79687	Node	yes	PO:0005004	shoot axis node
+NCIT:C79689	Shoot	yes		
+NCIT:C79690	Stalk	yes		
+NCIT:C79691	Plant Trunk	yes		
+NCIT:C79692	Fascicle	yes		
+NCIT:C79693	Root Nodule	yes	PO:0003023	root nodule
+NCIT:C80932	Guar Gum	no		
+NCIT:C84406	Alfalfa Top	no		
+NCIT:C86076	Hypha	no		
+NCIT:C891	Tobacco	no		
+NCIT:C93062	Wood	yes	PO:0005848	secondary xylem

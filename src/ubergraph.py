@@ -26,6 +26,19 @@ HIERARCHY_PART_OF = "<http://purl.obolibrary.org/obo/BFO_0000050>"
 
 HIERARCHY_PREDICATES = frozenset({HIERARCHY_SUBCLASS_OF, HIERARCHY_PART_OF})
 
+# Annotation properties get_subclass_annotations() can read. Like the hierarchy predicates they are
+# interpolated into the SPARQL text, so a caller picks from these constants and nothing else.
+ANNOTATION_LABEL = "<http://www.w3.org/2000/01/rdf-schema#label>"
+ANNOTATION_EXACT_SYNONYM = "<http://www.geneontology.org/formats/oboInOwl#hasExactSynonym>"
+# NCIt's own Semantic_Type (P106), e.g. "Plant" or "Organic Chemical".
+ANNOTATION_NCIT_SEMANTIC_TYPE = "<http://purl.obolibrary.org/obo/NCIT_P106>"
+# NCIt's FDA_UNII_Code (P319): present when FDA has registered the term as a substance.
+ANNOTATION_NCIT_FDA_UNII_CODE = "<http://purl.obolibrary.org/obo/NCIT_P319>"
+
+ANNOTATION_PREDICATES = frozenset(
+    {ANNOTATION_LABEL, ANNOTATION_EXACT_SYNONYM, ANNOTATION_NCIT_SEMANTIC_TYPE, ANNOTATION_NCIT_FDA_UNII_CODE}
+)
+
 
 def _assert_known_hierarchy_predicate(hierarchy_predicate):
     """Reject any hierarchy predicate that is not one of the module's constants.
@@ -306,6 +319,7 @@ class UberGraph:
         prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
         prefix PR: <http://purl.obolibrary.org/obo/PR_>
         prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
+        prefix PO: <http://purl.obolibrary.org/obo/PO_>
         select distinct ?descendent ?descendentLabel
         from <http://reasoner.renci.org/ontology>
         where {
@@ -334,6 +348,53 @@ class UberGraph:
                 y["descendent"] = x["descendent"]
             y["descendentLabel"] = x["descendentLabel"]
             results.append(y)
+        return results
+
+    def get_subclass_annotations(self, iri, annotation_predicates):
+        """Return ``{curie: {predicate: set of values}}`` for every subclass of ``iri``, itself included.
+
+        ``annotation_predicates`` are ANNOTATION_* constants from this module. Every subclass gets an
+        entry, with an empty set for a predicate it has no value for, so a caller can tell "no value"
+        from "not a subclass". ``iri`` is a full IRI in angle brackets or a CURIE whose prefix the
+        query declares (PO, NCIT).
+        """
+        unknown = set(annotation_predicates) - ANNOTATION_PREDICATES
+        if unknown:
+            raise ValueError(
+                f"annotation_predicates must be ANNOTATION_* constants from src/ubergraph.py, got {sorted(unknown)}. "
+                "They are interpolated into the SPARQL query verbatim."
+            )
+        values = " ".join(sorted(annotation_predicates))
+        text = (
+            """
+        prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
+        prefix PO: <http://purl.obolibrary.org/obo/PO_>
+        select distinct ?descendent ?predicate ?value
+        from <http://reasoner.renci.org/ontology>
+        where {
+            graph <http://reasoner.renci.org/redundant> {
+                ?descendent rdfs:subClassOf $sourcedefclass .
+            }
+            OPTIONAL {
+                VALUES ?predicate { """
+            + values
+            + """ }
+                ?descendent ?predicate ?value .
+            }
+        }
+        """
+        )
+        rows = self.triplestore.query_template(
+            inputs={"sourcedefclass": iri}, outputs=["descendent", "predicate", "value"], template_text=text
+        )
+        results = {}
+        for row in rows:
+            annotations = results.setdefault(
+                Text.opt_to_curie(row["descendent"]), {predicate: set() for predicate in annotation_predicates}
+            )
+            if row["predicate"] is not None:
+                annotations[f"<{row['predicate']}>"].add(row["value"])
         return results
 
     def get_direct_superclasses_of(self, curies):

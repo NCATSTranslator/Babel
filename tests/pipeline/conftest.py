@@ -657,6 +657,35 @@ def _write_emapa_concord(concord_path: str) -> None:
 
 
 @pytest.fixture(scope="session")
+def po_pipeline_outputs(ubergraph_connection, mesh_nt, mesh_pipeline_outputs, ncit_pipeline_outputs, regenerate):
+    """Run Plant Ontology anatomy ID extraction and build its name-match concord against MeSH and NCIt.
+
+    The concord reads the anatomy ids/MESH and ids/NCIT, so those fixtures run first. It is built with
+    anatomy.build_po_label_relationships(), the function the Snakemake rule calls, because it writes to
+    the same intermediate path the real build uses.
+    """
+    id_path = _intermediate_id_path("anatomy", "PO")
+    concord_path = _intermediate_concord_path("anatomy", "PO")
+    inputs = [id_path, mesh_pipeline_outputs["anatomy"], ncit_pipeline_outputs["anatomy"]]
+
+    _maybe_run(id_path, lambda: anatomy.write_po_ids(id_path), regenerate)
+    _maybe_run(
+        concord_path,
+        lambda: anatomy.build_po_label_relationships(
+            *inputs,
+            concord_path,
+            os.path.join(os.path.dirname(concord_path), "metadata-PO.yaml"),
+            os.path.join(os.path.dirname(os.path.dirname(concord_path)), "mesh_plant_structures.tsv"),
+            mesh_nt=mesh_nt,
+        ),
+        regenerate,
+        inputs=inputs,
+    )
+
+    return {"anatomy": id_path}
+
+
+@pytest.fixture(scope="session")
 def mp_pipeline_outputs(ubergraph_connection, regenerate):
     """Run MP disease/phenotype ID extraction and ensure MP concord generation is available."""
 
@@ -706,6 +735,7 @@ VOCABULARY_REGISTRY = {
     "NCIT": "ncit_pipeline_outputs",
     "GO": "go_pipeline_outputs",
     "EMAPA": "emapa_pipeline_outputs",
+    "PO": "po_pipeline_outputs",
     "MP": "mp_pipeline_outputs",
     "EC": "ec_ids_outputs",
     "CLO": "clo_ids_outputs",
