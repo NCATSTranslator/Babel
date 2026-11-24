@@ -191,9 +191,9 @@ DEFAULT_BAD_XREFS = {
 MONDO_CLOSE_BASENAME = "MONDO_close"
 
 
-def write_obo_ids(irisandtypes, outfile, exclude=[]):
+def write_obo_ids(irisandtypes, outfile, exclude=()):
     order = [DISEASE, PHENOTYPIC_FEATURE]
-    obo.write_obo_ids(irisandtypes, outfile, order, exclude=[])
+    obo.write_obo_ids(irisandtypes, outfile, order, exclude=exclude)
 
 
 def write_ncit_ids(outfile):

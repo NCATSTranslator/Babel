@@ -82,3 +82,22 @@ def test_write_emapa_ids_collects_partonomy(tmp_path):
     assert len(rows) > 1000, f"expected thousands of EMAPA terms, got {len(rows)}"
     assert all(row[0].startswith("EMAPA:") for row in rows)
     assert {row[1] for row in rows} == {ANATOMICAL_ENTITY, GROSS_ANATOMICAL_STRUCTURE}
+
+
+def test_write_ncit_ids_applies_exclusions(tmp_path):
+    """write_ncit_ids() should leave out the NCIT branches it lists in ``exclude``.
+
+    anatomy.write_obo_ids() used to call obo.write_obo_ids() with ``exclude=[]``, so the exclusions
+    were silently ignored and NCIT's genomic coordinates were written as anatomical entities.
+    NCIT:C41631 "7: 86987215-86777599" sits under NCIT:C64389 "Genomic Location"; NCIT:C122640
+    "Colostomy Site" under NCIT:C122638 "Ostomy Site". NCIT:C12219 "Anatomic Structure, System, or
+    Substance", the anatomy root itself, should still be written.
+    """
+    outfile = tmp_path / "NCIT.ids.tsv"
+    with _server_errors_are_xfail():
+        anatomy.write_ncit_ids(str(outfile))
+
+    curies = {line.split("\t", 1)[0] for line in outfile.read_text().splitlines() if line.strip()}
+    assert "NCIT:C12219" in curies
+    assert "NCIT:C41631" not in curies
+    assert "NCIT:C122640" not in curies

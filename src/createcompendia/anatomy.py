@@ -91,9 +91,9 @@ def remove_overused_xrefs_dict(kv):
         kv[k] = list(set(v).difference(overused_xrefs))
 
 
-def write_obo_ids(irisandtypes, outfile, exclude=[]):
+def write_obo_ids(irisandtypes, outfile, exclude=()):
     order = [CELLULAR_COMPONENT, CELL, GROSS_ANATOMICAL_STRUCTURE, ANATOMICAL_ENTITY]
-    obo.write_obo_ids(irisandtypes, outfile, order, exclude=[])
+    obo.write_obo_ids(irisandtypes, outfile, order, exclude=exclude)
 
 
 def write_ncit_ids(outfile):
