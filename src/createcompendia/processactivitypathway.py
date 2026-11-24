@@ -95,10 +95,16 @@ def build_process_rhea_relationships(infile, outfile, metadata_yaml):
     rhea.make_concord(infile, outfile, metadata_yaml)
 
 
-# Concord pairs that cause problems and are dropped before glom.
-# GO:0034227/EC:2.8.1.4 is because that go term is a biological process, but EC is not a valid prefix for that,
-#  leading to a loss of the EC term (and a unified RHEA) on output.
-# A set *of* frozensets: set(frozenset([...])) would be a set of the two CURIE strings, which no pair matches.
+# Concord pairs that cause problems and are dropped before glom, each a frozenset of the two CURIEs so either order
+# matches. A set *of* frozensets: set(frozenset([...])) would be a set of the two CURIE strings, which no pair matches.
+#
+# GO:0034227/EC:2.8.1.4 is a guard, not a live fix. In 2021 GO xref'd GO:0034227 "tRNA thio-modification", a
+# biological process, to EC:2.8.1.4; EC is not a valid prefix for a process, so the merge lost the EC term (and its
+# RHEA reaction) on output. GO has since moved that xref: in 2026jul22 no process concord names the pair (GO's concord
+# takes EC:2.8.1.4 from GO:0140741, RHEA's from RHEA:24176, and GO:0034227 appears only in the UMLS concord), and
+# EC:2.8.1.4 normalizes with RHEA:24176. The entry stays so the merge can't return if GO restores the xref (#1136).
+# Before adding a pair, find it in a current build's intermediate/process/concords/: an entry for a pair no concord
+# writes changes nothing.
 BAD_CONCORDS = {frozenset(["GO:0034227", "EC:2.8.1.4"])}
 
 

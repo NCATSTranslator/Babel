@@ -11,6 +11,11 @@ from src.createcompendia.processactivitypathway import (
 
 # CONCORD PAIR FILTER
 
+# GO:0034227/EC:2.8.1.4 is the pair BAD_CONCORDS guards against. No current concord holds it (see the comment on
+# BAD_CONCORDS), so the rows below are reconstructions: the xref GO's concord wrote before GO moved it, in the shape of
+# 2026jul22's real intermediate/process/concords/GO row "GO:0140741\txref\tEC:2.8.1.4" with the GO ID swapped.
+# The UMLS rows are copied verbatim from 2026jul22's intermediate/process/concords/UMLS.
+
 
 @pytest.mark.unit
 @pytest.mark.parametrize("pair", [("GO:0034227", "EC:2.8.1.4"), ("EC:2.8.1.4", "GO:0034227")])
@@ -21,7 +26,8 @@ def test_concord_pair_filter_drops_bad_concords(pair):
 
 @pytest.mark.unit
 def test_concord_pair_filter_keeps_other_pairs():
-    """Any other non-UMLS pair should be kept, even when neither CURIE is in the clique state yet."""
+    """Any other non-UMLS pair should be kept, even when neither CURIE is in the clique state yet. This is 2026jul22's
+    real GO concord row for EC:2.8.1.4, which shares a CURIE with the BAD_CONCORDS pair."""
     assert _process_concord_pair_drop_reason(["GO:0140741", "xref", "EC:2.8.1.4"], "concords/GO", {}) is None
 
 
@@ -46,18 +52,18 @@ def test_compute_cliques_logs_dropped_pairs_and_skips_them(tmp_path, caplog):
     ids.write_text(f"GO:0034227\t{BIOLOGICAL_PROCESS}\nGO:0045943\t{BIOLOGICAL_PROCESS}\nUMLS:C1158785\n")
     concords = tmp_path / "concords"
     concords.mkdir()
-    (concords / "RHEA").write_text("GO:0034227\txref\tEC:2.8.1.4\n")
+    (concords / "GO").write_text("GO:0034227\txref\tEC:2.8.1.4\n")  # reconstructed; see the CONCORD PAIR FILTER note
     (concords / "UMLS").write_text("UMLS:C1158785\teq\tGO:0045943\nUMLS:C2249862\teq\tGO:0045943\n")
 
     with caplog.at_level("INFO", logger="src.createcompendia.processactivitypathway"):
         dicts, _ = compute_cliques_for_impact_report(
-            [str(concords / "RHEA"), str(concords / "UMLS")], [str(ids)], mesh_ownership="ignored"
+            [str(concords / "GO"), str(concords / "UMLS")], [str(ids)], mesh_ownership="ignored"
         )
 
     assert dicts["UMLS:C1158785"] == {"UMLS:C1158785", "GO:0045943"}
     assert "UMLS:C2249862" not in dicts
     assert "EC:2.8.1.4" not in dicts
-    assert f"dropped 1 concord pairs from {concords / 'RHEA'}: listed in BAD_CONCORDS" in caplog.text
+    assert f"dropped 1 concord pairs from {concords / 'GO'}: listed in BAD_CONCORDS" in caplog.text
     assert f"dropped 1 concord pairs from {concords / 'UMLS'}: UMLS pair" in caplog.text
 
 
