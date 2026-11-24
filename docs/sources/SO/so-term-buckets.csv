@@ -1,0 +1,24 @@
+nearest_biolink_class,so_branch,terms,no_spaced_synonym,examples
+(none below the root),biological_region,996,76,sequence_secondary_structure; G_quartet; satellite_DNA; INR_motif; DPE_motif; BREu_motif; PSE_motif; linkage_group
+biolink:SequenceVariant (close),sequence_variant,238,21,silent_mutation; sequence_variant; functional_effect_variant; structural_variant; transcript_function_variant; translational_product_function_variant; level_of_transcript_variant; decreased_transcript_level_variant
+(none below the root),sequence_attribute,233,8,protein_coding; non_protein_coding; gene_to_gene_feature; overlapping; inside_intron; inside_intron_antiparallel; inside_intron_parallel; five_prime_three_prime_overlap
+biolink:RegulatoryRegion (exact),regulatory_region,147,15,locus_control_region; operator; methylated_cytosine; attenuator; terminator; methylated_adenine; enhancer; enhancer_bound_by_factor
+(none below the root),sequence_feature,140,14,region; read_pair; match_part; expressed_sequence_match; sequence_feature; assembly_component; supercontig; contig
+biolink:Gene (exact),gene,138,15,nuclear_gene; mt_gene; kinetoplast_gene; plastid_gene; apicoplast_gene; ct_gene; chromoplast_gene; cyanelle_gene
+biolink:NoncodingRNAProduct (exact),ncRNA,116,2,scRNA; rRNA; tRNA; alanyl_tRNA; asparaginyl_tRNA; aspartyl_tRNA; cysteinyl_tRNA; glutaminyl_tRNA
+biolink:Transcript (exact),transcript,104,3,scRNA_primary_transcript; polycistronic_transcript; dicistronic_transcript; mRNA_with_frameshift; transcript_with_translational_frameshift; protein_coding_primary_transcript; primary_transcript; rRNA_primary_transcript
+(none below the root),sequence_collection,82,4,aneuploid; hyperploid; hypoploid; compound_chromosome_arm; deficient_intrachromosomal_transposition; deficient_interchromosomal_transposition; free_chromosome_arm; chromosome_variation
+(none below the root),biomaterial_region,79,5,PCR_product; aptamer; DNA_aptamer; RNA_aptamer; morpholino_oligo; genomic_clone; probe; sequencing_primer
+(none below the root),sequence_alteration,40,4,deletion; translocation; simple_sequence_length_variation; sequence_length_alteration; insertion; MNP; copy_number_variation; sequence_alteration
+(none below the root),junction,27,5,clone_insert_end; clone_insert_start; exon_junction; insertion_site; transposable_element_insertion_site; polyA_site; deletion_junction; junction
+biolink:Snv (exact),SNV,22,0,SNP; SNV; point_mutation; transition; pyrimidine_transition; C_to_T_transition; C_to_T_transition_at_pCpG_site; T_to_C_transition
+biolink:CodingSequence (exact),CDS,14,1,CDS; edited_CDS; CDS_fragment; transposable_element_CDS; CDS_supported_by_peptide_spectrum_match; CDS_extension; CDS_five_prime_extension; CDS_three_prime_extension
+biolink:Exon (exact),exon,10,0,interior_coding_exon; exon; coding_exon; noncoding_exon; five_prime_coding_exon; interior_exon; three_prime_coding_exon; three_prime_noncoding_exon
+biolink:TranscriptionFactorBindingSite (exact),TF_binding_site,7,0,TF_binding_site; retinoic_acid_responsive_element; ISRE; GATA_box; iron_repressed_GATA_element; pheromone_response_element; transcription_factor_regulatory_site
+biolink:Genome (exact),genome,5,3,kinetoplast; genome; reference_genome; variant_genome; chromosomally_aberrant_genome
+(none below the root),experimental_feature,4,0,experimental_result_region; overlapping_feature_set; overlapping_EST_set; no_output
+biolink:MicroRNA (exact),miRNA,3,0,miRNA; ref_miRNA; isomiR
+biolink:AccessibleDnaRegion (exact),self_cleaving_ribozyme,1,0,self_cleaving_ribozyme
+biolink:Haplotype (exact),haplotype,1,0,haplotype
+biolink:Polypeptide (narrow),polypeptide,1,0,polypeptide
+biolink:SiRNA (exact),siRNA,1,0,siRNA

@@ -84,6 +84,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   term as `biolink:PhenotypicFeature`, tagging each with the taxon
   [`NCBITaxon:40674`](http://purl.obolibrary.org/obo/NCBITaxon_40674) "Mammalia", exporting xref
   concords, and routing them into the disease compendia.
+- **SO** ([SO/README.md](./SO/README.md)) — why the Sequence Ontology is *not* ingested: the
+  Biolink Model uses SO terms to define its own classes and predicates, and the other ~2,400 terms
+  are finer types, properties and lab artefacts that would join nothing. Includes the script that
+  buckets every SO term against Biolink's mappings, and what would change the decision.
 - **UMLS** ([UMLS/Leftover.md](./UMLS/Leftover.md)) — the "leftover UMLS" compendium: how
   unclaimed UMLS concepts are swept up and typed, the manual STY→Biolink override tables and the
   drift test that keeps them honest, and the coverage report under `reports/umls/`.

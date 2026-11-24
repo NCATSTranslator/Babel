@@ -49,7 +49,9 @@ EMAPA = "EMAPA"
 
 If your prefix does not yet appear in the Biolink Model's `id_prefixes` for the target
 Biolink class, raise that with the Biolink team — the model determines preferred-identifier
-ordering inside `NodeFactory`.
+ordering inside `NodeFactory`. If *no* Biolink class registers it, first check whether the source
+names entities at all: the Sequence Ontology's terms are what Biolink uses to define its own
+classes, which is why Babel does not ingest it ([`sources/SO/README.md`](sources/SO/README.md)).
 
 ### 2. Add a data handler (if needed)
 
