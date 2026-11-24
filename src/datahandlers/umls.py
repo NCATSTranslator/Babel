@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import shutil
@@ -738,7 +737,7 @@ def download_umls(umls_version, umls_subset, download_dir):
         raise RuntimeError(f"Unable to download UMLS from {umls_full_url}: {req}")
 
     # Write file to {download_dir}/umls-{umls_version}-metathesaurus-full.zip
-    logging.info(f"Downloading {filename} to {download_dir}")
+    logger.info("Downloading %s to %s", filename, download_dir)
     os.makedirs(download_dir, exist_ok=True)
     umls_download_zip = os.path.join(download_dir, filename)
     with open(umls_download_zip, "wb") as fd:
@@ -746,7 +745,7 @@ def download_umls(umls_version, umls_subset, download_dir):
             fd.write(chunk)
 
     # Unzip file.
-    logging.info(f"Uncompressing {umls_download_zip}")
+    logger.info("Uncompressing %s", umls_download_zip)
     with ZipFile(umls_download_zip, "r") as zipObj:
         zipObj.extractall(download_dir)
 
@@ -806,7 +805,7 @@ def download_rxnorm(rxnorm_version, download_dir):
         raise RuntimeError(f"Unable to download RxNorm from {rxnorm_url}: {req}")
 
     # Write file to {download_dir}/RxNorm_full_{rxnorm_version}.zip
-    logging.info(f"Downloading RxNorm_full_{rxnorm_version}.zip to {download_dir}")
+    logger.info("Downloading RxNorm_full_%s.zip to %s", rxnorm_version, download_dir)
     os.makedirs(download_dir, exist_ok=True)
     rxnorm_download_zip = os.path.join(download_dir, f"RxNorm_full_{rxnorm_version}.zip")
     with open(rxnorm_download_zip, "wb") as fd:
@@ -814,7 +813,7 @@ def download_rxnorm(rxnorm_version, download_dir):
             fd.write(chunk)
 
     # Unzip file.
-    logging.info(f"Uncompressing {rxnorm_download_zip}")
+    logger.info("Uncompressing %s", rxnorm_download_zip)
     with ZipFile(rxnorm_download_zip, "r") as zipObj:
         zipObj.extractall(download_dir)
 
