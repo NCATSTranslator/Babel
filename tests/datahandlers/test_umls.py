@@ -551,6 +551,45 @@ def test_build_sets_go_term_type_restriction(tmp_path):
     }
 
 
+@pytest.mark.unit
+def test_build_sets_metadata_names_only_non_default_term_types(tmp_path):
+    """The concord metadata should name a term-type restriction only when it differs from DEFAULT_ACCEPTABLE_TTYS, so
+    pipelines on the defaults keep the description they had before acceptable_ttys existed."""
+    mrconso = write_mrconso(tmp_path, GO_0045943_ROWS)
+    idfile = tmp_path / "ids"
+    idfile.write_text(f"UMLS:C1158785\t{BIOLOGICAL_PROCESS}\n")
+
+    def description(**kwargs):
+        metadata = tmp_path / "metadata.yaml"
+        build_sets(
+            mrconso,
+            str(idfile),
+            str(tmp_path / "concord"),
+            {"GO": "GO"},
+            provenance_metadata_yaml=str(metadata),
+            **kwargs,
+        )
+        return yaml.safe_load(metadata.read_text())["description"]
+
+    assert "term types" not in description()
+    assert "term types" not in description(acceptable_ttys=dict(DEFAULT_ACCEPTABLE_TTYS))
+    restricted = description(acceptable_ttys={**DEFAULT_ACCEPTABLE_TTYS, "GO": GO_PREFERRED_TTYS})
+    assert f"taking only these term types from these sources: {{'GO': {sorted(GO_PREFERRED_TTYS)}}}" in restricted
+    assert "MSH" not in restricted
+
+
+@pytest.mark.unit
+def test_default_acceptable_ttys_cannot_be_changed_in_place():
+    """build_sets() uses DEFAULT_ACCEPTABLE_TTYS as its default, so neither the mapping nor its sets may be mutable:
+    a change made by one caller would otherwise leak into every later build_sets() call."""
+    with pytest.raises(TypeError):
+        DEFAULT_ACCEPTABLE_TTYS["GO"] = GO_PREFERRED_TTYS
+    with pytest.raises(AttributeError):
+        DEFAULT_ACCEPTABLE_TTYS["MSH"].add("ET")
+    with pytest.raises(AttributeError):
+        GO_PREFERRED_TTYS.add("SY")
+
+
 # PULL_UMLS
 
 
@@ -579,18 +618,6 @@ def test_pull_umls_skips_go_atoms_of_other_go_terms(tmp_path, monkeypatch):
         ("UMLS:C1152464", "diphosphatidylglycerol synthase activity"),
         ("UMLS:C2249862", "activation of transcription from RNA polymerase I promoter"),
     ]
-
-
-@pytest.mark.unit
-def test_default_acceptable_ttys_cannot_be_changed_in_place():
-    """build_sets() uses DEFAULT_ACCEPTABLE_TTYS as its default, so neither the mapping nor its sets may be mutable:
-    a change made by one caller would otherwise leak into every later build_sets() call."""
-    with pytest.raises(TypeError):
-        DEFAULT_ACCEPTABLE_TTYS["GO"] = GO_PREFERRED_TTYS
-    with pytest.raises(AttributeError):
-        DEFAULT_ACCEPTABLE_TTYS["MSH"].add("ET")
-    with pytest.raises(AttributeError):
-        GO_PREFERRED_TTYS.add("SY")
 
 
 # MESH RECORDS WITH AN NCBI TAXON REGISTRY NUMBER (#1240)
@@ -656,30 +683,3 @@ def test_mesh_rows_never_reach_an_ids_umls_file(rrf):
     as a UMLS identifier, and no other pipeline loses anything for it."""
     path = ownership_with_registry(rrf, {"taxon": [(MAIZE_VIRUS, ORGANISM_TAXON)]})
     assert MAIZE_VIRUS not in run(rrf, TAXON_MAP, path, "taxon")
-
-
-@pytest.mark.unit
-def test_build_sets_metadata_names_only_non_default_term_types(tmp_path):
-    """The concord metadata should name a term-type restriction only when it differs from DEFAULT_ACCEPTABLE_TTYS, so
-    pipelines on the defaults keep the description they had before acceptable_ttys existed."""
-    mrconso = write_mrconso(tmp_path, GO_0045943_ROWS)
-    idfile = tmp_path / "ids"
-    idfile.write_text(f"UMLS:C1158785\t{BIOLOGICAL_PROCESS}\n")
-
-    def description(**kwargs):
-        metadata = tmp_path / "metadata.yaml"
-        build_sets(
-            mrconso,
-            str(idfile),
-            str(tmp_path / "concord"),
-            {"GO": "GO"},
-            provenance_metadata_yaml=str(metadata),
-            **kwargs,
-        )
-        return yaml.safe_load(metadata.read_text())["description"]
-
-    assert "term types" not in description()
-    assert "term types" not in description(acceptable_ttys=dict(DEFAULT_ACCEPTABLE_TTYS))
-    restricted = description(acceptable_ttys={**DEFAULT_ACCEPTABLE_TTYS, "GO": GO_PREFERRED_TTYS})
-    assert f"taking only these term types from these sources: {{'GO': {sorted(GO_PREFERRED_TTYS)}}}" in restricted
-    assert "MSH" not in restricted
