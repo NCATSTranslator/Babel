@@ -185,7 +185,9 @@ def test_convert_synonyms_to_sapbert_deduplicates_pairs_within_biolink_type(tmp_
 def test_sample_name_pairs_returns_every_pair_when_under_the_cap():
     """A clique with fewer pairs than the cap should contribute all of them."""
     names = ["a", "b", "c", "d"]
-    assert sorted(sapbert.sample_name_pairs(names, 50, "Disease", set())) == sorted(itertools.combinations(names, 2))
+    assert sorted(sapbert.sample_name_pairs(names, 50, "Disease", set(), seed=None)) == sorted(
+        itertools.combinations(names, 2)
+    )
 
 
 @pytest.mark.unit
@@ -193,7 +195,7 @@ def test_sample_name_pairs_returns_every_pair_when_under_the_cap():
 def test_sample_name_pairs_samples_distinct_pairs_over_the_cap(count_names):
     """Above the cap, both the enumerating and the rejection-sampling branch return distinct real pairs."""
     names = [f"name {i}" for i in range(count_names)]
-    name_pairs = sapbert.sample_name_pairs(names, 50, "Disease", set())
+    name_pairs = sapbert.sample_name_pairs(names, 50, "Disease", set(), seed=None)
 
     assert len(name_pairs) == 50
     assert len({tuple(sorted(name_pair)) for name_pair in name_pairs}) == 50
@@ -212,7 +214,9 @@ def test_sample_name_pairs_keeps_drawing_past_already_written_pairs(count_names)
     all_pairs = list(itertools.combinations(names, 2))
     seen_pairs = {sapbert.pair_key("Disease", pair) for pair in all_pairs[: len(all_pairs) * 4 // 5]}
 
-    name_pairs = sapbert.sample_name_pairs(names, 50, "Disease", seen_pairs)
+    # Unseeded on purpose: at 40 names this falls short of the cap in ~0.9% of draws (issue #1087),
+    # and a seed would hide that rather than fix it. Seed it once #1087 is fixed.
+    name_pairs = sapbert.sample_name_pairs(names, 50, "Disease", seen_pairs, seed=None)
 
     # A 12-name clique has only 14 unwritten pairs left to give; the larger two can fill the cap.
     assert len(name_pairs) == min(50, len(all_pairs) - len(seen_pairs))
@@ -227,6 +231,62 @@ def test_sample_name_pairs_gives_up_when_almost_every_pair_is_written():
     # Leave a single pair undrawn: 8 * 50 draws out of 124,750 pairs will almost never find it.
     seen_pairs = {sapbert.pair_key("Disease", pair) for pair in all_pairs[1:]}
 
-    name_pairs = sapbert.sample_name_pairs(names, 50, "Disease", seen_pairs)
+    name_pairs = sapbert.sample_name_pairs(names, 50, "Disease", seen_pairs, seed=None)
 
     assert len(name_pairs) < 50
+
+
+# REPRODUCIBILITY (issue #1266)
+
+
+def _sampled_entry(curie, biolink_type, count_names):
+    """A synthetic record with enough names that its 50 pairs must be sampled."""
+    return {
+        "curie": curie,
+        "preferred_name": f"{curie} name",
+        "names": [f"{curie} synonym {i}" for i in range(count_names)],
+        "types": [biolink_type],
+    }
+
+
+@pytest.mark.unit
+def test_convert_synonyms_to_sapbert_is_byte_identical_across_runs(tmp_path):
+    """Two exports of one synonyms file should write the same bytes, through both sampling branches."""
+    synonym_file = tmp_path / "Disease.txt.gz"
+    # 12 names (66 pairs) take the enumerate-then-sample branch, 40 names (780) the rejection one.
+    _write_synonyms(synonym_file, [_sampled_entry("MONDO:1", "Disease", 12), _sampled_entry("MONDO:2", "Disease", 40)])
+
+    sapbert_files = [tmp_path / run / "Disease.txt.gz" for run in ("first", "second")]
+    for sapbert_file in sapbert_files:
+        convert_synonyms_to_sapbert(str(synonym_file), str(sapbert_file))
+
+    assert len(_read_sapbert_rows(sapbert_files[0])) == 100
+    assert sapbert_files[0].read_bytes() == sapbert_files[1].read_bytes()
+    # Both runs finish within the same second, so the comparison above can't see a write time in the
+    # gzip header; check its MTIME field (bytes 4-7, RFC 1952) is zero directly.
+    assert sapbert_files[0].read_bytes()[4:8] == bytes(4)
+
+
+@pytest.mark.unit
+def test_convert_synonyms_to_sapbert_draws_the_same_pairs_wherever_a_record_sits(tmp_path):
+    """A record's sampled pairs should not depend on which records come before it in the file."""
+    first, second = _sampled_entry("MONDO:1", "Disease", 40), _sampled_entry("HP:1", "PhenotypicFeature", 40)
+    rows_by_order = []
+    for order, entries in (("forward", [first, second]), ("reversed", [second, first])):
+        synonym_file = tmp_path / order / "Mixed.txt.gz"
+        synonym_file.parent.mkdir()
+        _write_synonyms(synonym_file, entries)
+        sapbert_file = tmp_path / order / "sapbert.txt.gz"
+        convert_synonyms_to_sapbert(str(synonym_file), str(sapbert_file))
+        rows_by_order.append(sorted(row for row in _read_sapbert_rows(sapbert_file) if row[1] == "MONDO:1"))
+
+    assert len(rows_by_order[0]) == 50
+    assert rows_by_order[0] == rows_by_order[1]
+
+
+@pytest.mark.unit
+def test_pair_key_is_stable_across_processes():
+    """pair_key() should give a fixed digest, so it cannot be the per-process salted built-in hash()."""
+    assert sapbert.pair_key("Disease", ("heart attack", "myocardial infarction")) == 4398428746030831938
+    assert sapbert.pair_key("Disease", ("myocardial infarction", "heart attack")) == 4398428746030831938
+    assert sapbert.pair_key("PhenotypicFeature", ("heart attack", "myocardial infarction")) != 4398428746030831938

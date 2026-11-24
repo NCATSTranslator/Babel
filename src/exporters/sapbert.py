@@ -8,6 +8,8 @@
 # This file provides code for doing that, based on the code from
 # https://github.com/TranslatorSRI/babel-validation/blob/f21b1b308e54ec0af616f2c24f7e2738ac4c261c/src/main/scala/org/renci/babel/utils/converter/Converter.scala#L107-L207
 import gzip
+import hashlib
+import io
 import itertools
 import json
 import logging
@@ -49,14 +51,23 @@ def pair_key(biolink_type, name_pair):
     a fifth of that. At 64 bits, the chance of even a single collision across a billion pairs is
     around 3%, and a collision costs us one correct training row.
 
+    The digest is BLAKE2b, not the built-in hash(): Python salts hash() on strings per process, so
+    which pairs collided would change from run to run and the export could not be byte-identical
+    (issue #1266). The NUL separator could only be ambiguous for names containing NUL, which costs
+    a collision at worst.
+
     :param biolink_type: The Biolink type the pair was generated for (without the `biolink:` prefix).
     :param name_pair: The two names making up this synonym pair.
     :return: A hash of the type and the two names, in a canonical order.
     """
-    return hash((biolink_type, *sorted(name_pair)))
+    # Ordering the two names by hand rather than with sorted() is ~20% faster, which matters at the
+    # several million calls a large compendium makes.
+    first, second = name_pair if name_pair[0] <= name_pair[1] else (name_pair[1], name_pair[0])
+    key = f"{biolink_type}\0{first}\0{second}".encode()
+    return int.from_bytes(hashlib.blake2b(key, digest_size=8).digest())
 
 
-def sample_name_pairs(names, max_pairs, biolink_type, seen_pairs):
+def sample_name_pairs(names, max_pairs, biolink_type, seen_pairs, seed):
     """
     Return up to max_pairs distinct pairs of names that have not already been written out, without
     building the full list of pairs unless it is small.
@@ -76,6 +87,9 @@ def sample_name_pairs(names, max_pairs, biolink_type, seen_pairs):
     :param max_pairs: The largest number of pairs to return.
     :param biolink_type: The Biolink type this clique is being written out as.
     :param seen_pairs: Digests (see pair_key()) of the pairs already written out, which are skipped.
+    :param seed: Seeds the draw (convert_synonyms_to_sapbert() passes the CURIE; None is unseeded). Only
+        a clique with more than max_pairs pairs draws at all, so only then is a random.Random seeded, which
+        costs ~6 us: seeding every record made the Disease export ~20% slower.
     :return: A list of up to max_pairs (name, name) tuples, each pair appearing at most once.
     """
     count_names = len(names)
@@ -91,15 +105,16 @@ def sample_name_pairs(names, max_pairs, biolink_type, seen_pairs):
             if pair_key(biolink_type, name_pair) not in seen_pairs
         ]
         if len(name_pairs) > max_pairs:
-            name_pairs = random.sample(name_pairs, max_pairs)
+            name_pairs = random.Random(seed).sample(name_pairs, max_pairs)
         return name_pairs
 
+    rng = random.Random(seed)
     drawn_indices = set()
     name_pairs = []
     for _ in range(SYNONYM_PAIR_DRAWS_PER_PAIR * max_pairs):
         if len(name_pairs) >= max_pairs:
             break
-        index_pair = tuple(sorted(random.sample(range(count_names), 2)))
+        index_pair = tuple(sorted(rng.sample(range(count_names), 2)))
         if index_pair in drawn_indices:
             continue
         drawn_indices.add(index_pair)
@@ -134,7 +149,8 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
     seen_pairs = set()
     with (
         gzip.open(synonym_filename_gz, "rt", encoding="utf-8") as synonymf,
-        gzip.open(sapbert_filename_gzipped, "wt", encoding="utf-8") as sapbertf,
+        # mtime=0 keeps the time of writing out of the gzip header, so a rerun is byte-identical.
+        io.TextIOWrapper(gzip.GzipFile(sapbert_filename_gzipped, "wb", mtime=0), encoding="utf-8") as sapbertf,
     ):
         for input_line in synonymf:
             count_entry += 1
@@ -188,7 +204,11 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
                 name_pairs = [] if pair_key(biolink_type, name_pair) in seen_pairs else [name_pair]
             else:
                 # sample_name_pairs() applies the same already-written check as it draws.
-                name_pairs = sample_name_pairs(sorted(set(names)), MAX_SYNONYM_PAIRS, biolink_type, seen_pairs)
+                # Seeded from the CURIE, so a rerun writes the same bytes and a record draws the same pairs
+                # wherever it sits in the file (issue #1266). A str seed goes through SHA-512, so unlike
+                # hash() it does not depend on PYTHONHASHSEED. The Rust port in PR #1091 also seeds per
+                # CURIE, from an FNV-1a digest.
+                name_pairs = sample_name_pairs(sorted(set(names)), MAX_SYNONYM_PAIRS, biolink_type, seen_pairs, curie)
 
             for name_pair in name_pairs:
                 seen_pairs.add(pair_key(biolink_type, name_pair))
