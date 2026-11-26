@@ -982,6 +982,10 @@ def create_typed_sets(eqsets, types):
     return typed_sets
 
 
+# Kept as a record of the old disease/phenotype pipeline, not as code to revive: it calls helpers
+# that no longer exist (build_exact_sets, read_meddra, filter_umls, combine_id_sets,
+# filter_secondaries, get_close_matches, and the dump_sets()/dump_dicts() removed in #1260), and
+# create_typed_sets() now takes different arguments. Today's pipeline is build_compendium() above.
 # def load_diseases_and_phenotypes(concords, idlists, badhpos, badhpoxrefs, icrdf_filename):
 #     metadata_yamls = []
 #     # print('disease/phenotype')

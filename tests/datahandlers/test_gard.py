@@ -31,9 +31,9 @@ from src.datahandlers.gard import (
 from src.node import NodeFactory
 from src.prefixes import GARD, OIO
 from src.util import get_biolink_model_toolkit, get_config
-from tests.conftest import assert_labels_file_valid, assert_synonyms_file_valid
+from tests.conftest import REPO_ROOT, assert_labels_file_valid, assert_synonyms_file_valid
 
-FIXTURE = Path(__file__).resolve().parent.parent / "data" / "gard_sample.csv"
+FIXTURE = REPO_ROOT / "tests" / "data" / "gard_sample.csv"
 
 # Verbatim rows from the GARD distribution CSV. The distribution zero-pads local ids to seven
 # digits; Babel emits the unpadded form (what DOID's xrefs use), so the expected output ids drop
@@ -272,6 +272,11 @@ def test_disease_node_factory_keeps_gard_only_with_extra_prefixes():
     extra_prefixes=[GARD] escape hatch is passed; without it the identifier is dropped and the
     clique disappears entirely. This is the behavior the disease build depends on."""
     factory = NodeFactory(label_dir=None, biolink_version=get_config()["biolink_version"])
+    # apply_labels() loads config["common"]["labels"] from babel_downloads/ on first use and raises
+    # FileNotFoundError when that pipeline output is absent, which is every machine without a build.
+    # Pre-seeding the cache is the same thing the shared `node_factory` fixture does (tests/conftest.py);
+    # it costs nothing here because the label below is passed explicitly rather than looked up.
+    factory.common_labels = {}
     # GARD:6038 "Chikungunya fever" -- the registry term DOID:0050012 "chikungunya" xrefs. The
     # label is passed explicitly, as the build does; NodeFactory(label_dir=None) cannot read one.
     curie = "GARD:6038"
@@ -289,7 +294,7 @@ def test_disease_node_factory_keeps_gard_only_with_extra_prefixes():
 def test_labels_and_synonyms_are_written_utf8_under_a_c_locale(tmp_path, monkeypatch):
     """Non-ASCII rare-disease names must survive the write whatever the process locale is.
 
-    ``open(..., "w")`` inherits the locale encoding on Python < 3.14 (this repo pins >=3.11,<3.14),
+    ``open(..., "w")`` inherits the locale encoding on Python < 3.14 (this repo pins >=3.12,<3.14),
     so on an HPC batch node running under LC_ALL=C an unqualified open() raises UnicodeEncodeError
     partway through and leaves a truncated labels file. GARD is full of names like these, so the
     writers pass encoding="utf-8" explicitly.

@@ -215,31 +215,6 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
     return ofilename
 
 
-def dump_dict(outdict, outfname):
-    config = get_config()
-    oname = os.path.join(os.path.dirname(__file__), config["download_directory"], outfname)
-    with open(oname, "w") as outf:
-        for k, v in outdict.items():
-            outf.write(f"{k}\t{v}\n")
-
-
-def dump_dicts(dicts, fname):
-    config = get_config()
-    oname = os.path.join(os.path.dirname(__file__), config["download_directory"], fname)
-    with open(oname, "w") as outf:
-        for k in dicts:
-            outf.write(f"{k}\t{dicts[k]}\n")
-
-
-def dump_sets(sets, fname):
-    config = get_config()
-    oname = os.path.join(os.path.dirname(__file__), config["download_directory"], fname)
-    print("dumping: ", oname)
-    with open(oname, "w") as outf:
-        for s in sets:
-            outf.write(f"{s}\n")
-
-
 class ThrottledRequester:
     """Make sure that the time from the last call to the current call is greater than or equal to
     a configurable delta.   Wait before making request to ensure this. Used to make sure eutils

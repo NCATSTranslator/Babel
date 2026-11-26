@@ -1,6 +1,4 @@
-import copy
 import gzip
-import json
 import logging
 import os
 import re
@@ -63,6 +61,14 @@ def get_repo_root():
     path works there — but the CLI entry points (the source-impact report, the clique diff) can
     be invoked from anywhere, and a module-level constant built from a relative path would then
     silently point at nothing.
+
+    Prefer this to counting ``Path(__file__).parents[n]`` in each caller, where the count is wrong
+    as soon as the caller moves. It needs no marker-file search because it counts from this file,
+    whose place in the repo is fixed. Two kinds of script compute the root themselves instead: the
+    analysis scripts under ``docs/`` that put the repo on ``sys.path`` so they can import ``src``
+    (they need the root before this function is importable), and ``releases/scripts/``, which
+    deliberately imports nothing from ``src/`` because release tooling is kept independent of
+    pipeline code.
     """
     return Path(__file__).resolve().parents[1]
 
@@ -341,87 +347,6 @@ def curie_format_problem(curie):
     return None
 
 
-class Resource:
-    @staticmethod
-    def get_resource_path(resource_name):
-        """Given a string resolve it to a module relative file path unless it is already an absolute path."""
-        resource_path = resource_name
-        if not resource_path.startswith(os.sep):
-            resource_path = os.path.join(os.path.dirname(__file__), resource_path)
-        return resource_path
-
-    @staticmethod
-    def load_json(path):
-        result = None
-        with open(path) as stream:
-            result = json.loads(stream.read())
-        return result
-
-    @staticmethod
-    def load_yaml(path):
-        result = None
-        with open(path) as stream:
-            result = yaml.load(stream.read())
-        return result
-
-    def get_resource_obj(resource_name, format="json"):
-        result = None
-        path = Resource.get_resource_path(resource_name)
-        if os.path.exists(path):
-            m = {"json": Resource.load_json, "yaml": Resource.load_yaml}
-            if format in m:
-                result = m[format](path)
-        return result
-
-    @staticmethod
-    # Modified from:
-    # Copyright Ferry Boender, released under the MIT license.
-    def deepupdate(target, src, overwrite_keys=[]):
-        """Deep update target dict with src
-        For each k,v in src: if k doesn't exist in target, it is deep copied from
-        src to target. Otherwise, if v is a list, target[k] is extended with
-        src[k]. If v is a set, target[k] is updated with v, If v is a dict,
-        recursively deep-update it.
-
-        Updated to deal with yaml structure: if you have a list of yaml dicts,
-        want to merge them by "name"
-
-        If there are particular keys you want to overwrite instead of merge, send in overwrite_keys
-        """
-        if isinstance(src, dict):
-            for k, v in src.items():
-                if k in overwrite_keys:
-                    target[k] = copy.deepcopy(v)
-                elif isinstance(v, list):
-                    if k not in target:
-                        target[k] = copy.deepcopy(v)
-                    elif isinstance(v[0], dict):
-                        Resource.deepupdate(target[k], v, overwrite_keys)
-                    else:
-                        target[k].extend(v)
-                elif isinstance(v, dict):
-                    if k not in target:
-                        target[k] = copy.deepcopy(v)
-                    else:
-                        Resource.deepupdate(target[k], v, overwrite_keys)
-                elif isinstance(v, set):
-                    if k not in target:
-                        target[k] = v.copy()
-                    else:
-                        target[k].update(v.copy())
-                else:
-                    target[k] = copy.copy(v)
-        else:
-            # src is a list of dicts, target is a list of dicts, want to merge by name (yikes)
-            src_elements = {x["name"]: x for x in src}
-            target_elements = {x["name"]: x for x in target}
-            for name in src_elements:
-                if name in target_elements:
-                    Resource.deepupdate(target_elements[name], src_elements[name], overwrite_keys)
-                else:
-                    target.append(src_elements[name])
-
-
 class DataStructure:
     @staticmethod
     def to_named_tuple(type_name, d):
@@ -470,7 +395,7 @@ def get_config():
     if config_yaml is not None:
         return config_yaml
 
-    cname = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
+    cname = get_repo_root() / "config.yaml"
     with open(cname) as yaml_file:
         config_yaml = yaml.safe_load(yaml_file)
     return config_yaml

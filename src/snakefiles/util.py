@@ -2,6 +2,8 @@
 import gzip
 import shutil
 
+from snakemake.exceptions import WorkflowError
+
 import src.util
 
 logger = src.util.LoggingUtil.init_logging(__name__, level="INFO")
@@ -150,3 +152,77 @@ def get_all_gzipped(file_list):
     :return: List of filenames with '.gz' appended.
     """
     return list(map(lambda x: x + ".gz", file_list))
+
+
+# Each config.yaml list of identifier prefixes, mapped to the directory (under intermediate_directory) that holds one
+# ids file per prefix. The compendium rules read `<intermediate_directory>/<dir>/ids/<prefix>` for every prefix in
+# the list, so each one needs a rule that writes it. The directory names differ from the config key in places
+# (chemical_ids → chemicals); see also compendium_directories in config.yaml.
+ID_PREFIX_LISTS = {
+    "anatomy_ids": "anatomy",
+    "chemical_ids": "chemicals",
+    "disease_ids": "disease",
+    "gene_ids": "gene",
+    "genefamily_ids": "genefamily",
+    "process_ids": "process",
+    "protein_ids": "protein",
+    "taxon_ids": "taxon",
+}
+
+
+def find_missing_id_prefixes(workflow, ids_dir, config_key, prefixes):
+    """Return the sorted prefixes in `prefixes` that no rule in `workflow` can produce as `ids_dir/<prefix>`.
+
+    Each path is checked the way Snakemake itself resolves a target: it is passed through the workflow's path
+    modifier (so a `--prefix`/`replace_prefix` or a default storage provider is applied, as it is to rule outputs)
+    and then matched against every rule's outputs with `Rule.is_producer()`, so a wildcard output such as
+    `ids/{prefix}` counts as covering every prefix it matches.
+
+    :param workflow: The Snakemake `workflow` object of a fully parsed Snakefile.
+    :param ids_dir: The ids directory, e.g. `config["intermediate_directory"] + "/gene/ids"`.
+    :param config_key: The config.yaml key the prefixes came from; only used in error messages.
+    :param prefixes: The list of prefixes from config.yaml.
+    :raises WorkflowError: If `prefixes` is a string rather than a list (e.g. from `--config gene_ids=HGNC`), which
+        would otherwise be checked one character at a time.
+    """
+    if not isinstance(prefixes, (list, tuple)):
+        message = f"config {config_key} must be a list of prefixes, not {type(prefixes).__name__} {prefixes!r}."
+        if isinstance(prefixes, str):
+            message += f" On the command line, write it as a YAML list: --config '{config_key}=[\"{prefixes}\"]'."
+        raise WorkflowError(message)
+
+    path_modifier = workflow.modifier.path_modifier
+    ids_dir = ids_dir.rstrip("/")
+    missing = set()
+    for prefix in prefixes:
+        target = path_modifier.modify(f"{ids_dir}/{prefix}", "output")
+        if not any(rule.is_producer(target) for rule in workflow.rules):
+            missing.add(prefix)
+    return sorted(missing)
+
+
+def check_id_prefix_rules(workflow, config):
+    """Raise WorkflowError if any prefix in a config.yaml `*_ids` list has no rule producing its ids file.
+
+    This catches drift between config.yaml and the snakefiles when Snakemake loads the workflow, instead of hours
+    into a run when a compendium rule finally asks for the missing file.
+
+    Call this from the top-level Snakefile *after every `include:`*. It can only see rules that have already been
+    defined, so calling it from an individual snakefile would report a false error for any ids rule that lives in a
+    snakefile included later.
+
+    :param workflow: The Snakemake `workflow` object.
+    :param config: The Snakemake `config` dictionary.
+    """
+    problems = []
+    for config_key, directory in ID_PREFIX_LISTS.items():
+        ids_dir = f"{config['intermediate_directory']}/{directory}/ids"
+        missing = find_missing_id_prefixes(workflow, ids_dir, config_key, config[config_key])
+        if missing:
+            problems.append(f"  {config_key}: no rule produces {ids_dir}/<prefix> for {', '.join(missing)}")
+    if problems:
+        raise WorkflowError(
+            "config.yaml lists identifier prefixes that no Snakemake rule produces an ids file for:\n"
+            + "\n".join(problems)
+            + "\nEither add a rule that writes each of these files or remove the prefix from config.yaml."
+        )

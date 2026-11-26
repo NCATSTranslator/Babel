@@ -34,6 +34,7 @@ from __future__ import annotations
 import heapq
 import json
 import pathlib
+from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
@@ -224,6 +225,10 @@ def diff_builds(before_dir, after_dir, filenames):
     a ``compendium`` key), and ``summary`` is a per-compendium counts dict. "Dropped" is
     judged against the union of all compared after compendia, so a CURIE retyped into one
     of the other ``filenames`` counts as ``moved``, not ``dropped``.
+
+    Every summary stat is before-clique-centric except ``moved_in_member_count`` and
+    ``moved_in_clique_count``, the incoming side of moves: members that arrived in this file
+    from another file's before-cliques, and how many distinct after-cliques here received them.
     """
     # First pass: load everything and locate every after-CURIE as (filename, leader), so a
     # member retyped into another compendium can still name the after-clique it landed in.
@@ -277,4 +282,21 @@ def diff_builds(before_dir, after_dir, filenames):
             "regrouped_member_count": sum(r["member_count"] for r in records if r["destination_kind"] == "regrouped"),
             "leader_changed_count": sum(1 for r in records if r["destination_kind"] == "leader_changed"),
         }
+
+    # Second pass for the incoming side of moves. A `moved` row is filed under its *source*
+    # compendium (the before-clique's file), so a receiving compendium's own before-clique-centric
+    # stats never see it. Computed here, after `rows` is complete, because a moved row's
+    # destination file may have been summarised before its source file was processed. One pass
+    # over `rows`, bucketing by destination file, so a wide diff doesn't rescan every row per file.
+    incoming_by_file = defaultdict(list)
+    for r in rows:
+        if r["destination_kind"] == "moved":
+            incoming_by_file[r["destination_compendium"]].append(r)
+    for fname in summary:
+        incoming = incoming_by_file.get(fname, [])
+        summary[fname]["moved_in_member_count"] = sum(r["member_count"] for r in incoming)
+        # Distinct after-cliques here that received at least one moved member. A receiving clique
+        # may be wholly new *or* an existing clique that just grew, so this is not a count of
+        # gained cliques — compare it with clique_count.diff for that.
+        summary[fname]["moved_in_clique_count"] = len({r["destination"] for r in incoming})
     return rows, summary
