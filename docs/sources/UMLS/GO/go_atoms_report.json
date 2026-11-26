@@ -1,0 +1,59 @@
+{
+  "CUIs with GO atoms": 59071,
+  "all: process UMLS-GO concord pairs": 53274,
+  "all: CUIs with GO atoms that end up in a clique with GO": 26407,
+  "preferred: process UMLS-GO concord pairs": 34987,
+  "preferred: CUIs with GO atoms that end up in a clique with GO": 35846,
+  "fallback: process UMLS-GO concord pairs": 35159,
+  "fallback: CUIs with GO atoms that end up in a clique with GO": 35902,
+  "fallback: pairs added to preferred": 172,
+  "fallback: added pairs whose CUI ends up in a process clique with that GO term": 61,
+  "fallback: examples of added joins": [
+    "UMLS:C0031845 GO:0008150 SY 'physiological process'",
+    "UMLS:C1327633 GO:0019068 ET 'phage assembly'; ET 'bacteriophage assembly'",
+    "UMLS:C1660772 GO:0051658 ET 'maintenance of nucleus localization'",
+    "UMLS:C1819163 GO:0032257 ET 'maintenance of dense core granule localization'",
+    "UMLS:C2253591 GO:0048086 ET 'inhibition of pigmentation'",
+    "UMLS:C2752664 GO:0002540 ET 'leukotriene production involved in acute inflammatory response'",
+    "UMLS:C3269281 GO:1900017 ET 'positive regulation of cytokine production involved in acute inflammatory response'; ET 'up regulation of cytokine production involved in acute inflammatory response'",
+    "UMLS:C3548920 GO:0007610 ET 'single-organism behavior'",
+    "UMLS:C4690339 GO:0099175 ET 'regulation of postsynapse organization and biogenesis'",
+    "UMLS:C5887942 GO:1902436 ET 'inhibition of male mating behavior'"
+  ],
+  "synonyms, drop every GO atom": {
+    "dropped from CUIs in a GO clique, a name of a different GO term": 206,
+    "dropped from CUIs in a GO clique, already a name of that GO term": 102642,
+    "dropped from CUIs in a GO clique, not a current GO name": 2860,
+    "dropped from CUIs not in a GO clique (names lost)": 40399
+  },
+  "synonyms, drop GO atoms of other GO terms": {
+    "dropped from CUIs in a GO clique, a name of a different GO term": 163,
+    "dropped from CUIs in a GO clique, already a name of that GO term": 4,
+    "dropped from CUIs in a GO clique, not a current GO name": 1,
+    "dropped from CUIs not in a GO clique (names lost)": 18
+  },
+  "synonyms, CUIs in a GO clique with none of their GO preferred terms": [],
+  "synonyms, drop GO atoms of other GO terms: dropped names of the clique's own GO term": [
+    "UMLS:C1150820 (in a clique with GO:0036468): 'L-DOPA decarboxylase activity'",
+    "UMLS:C1159794 (in a clique with GO:0015879): 'Carnitine transport'",
+    "UMLS:C1159794 (in a clique with GO:0015879): 'Vitamin BT transport'",
+    "UMLS:C1325725 (in a clique with GO:0000943): 'virus-like particle'"
+  ],
+  "synonyms, drop GO atoms of other GO terms: kept on CUIs in a GO clique, a name of a different GO term": {
+    "on CUIs with several GO preferred terms": 21,
+    "on CUIs with one GO preferred term (GO has since moved the name)": 22
+  },
+  "synonyms, examples of those kept strings": [
+    "UMLS:C0021721 (in a clique with GO:0030054): 'cell-cell junction'",
+    "UMLS:C0597295 (in a clique with GO:0006412): 'protein biosynthetic process'",
+    "UMLS:C0887883 (in a clique with GO:0005769): 'endocytotic transport vesicle'",
+    "UMLS:C1149852 (in a clique with GO:0004621): 'glycosylphosphatidylinositol phospholipase D activity'",
+    "UMLS:C1151365 (in a clique with GO:0004128): 'NADH-cytochrome-b5 reductase activity'",
+    "UMLS:C1151365 (in a clique with GO:0004128): 'reduced nicotinamide adeninedinucleotide-cytochrome b5 reductase activity'",
+    "UMLS:C1156885 (in a clique with GO:0006041): 'glucosamines metabolism'",
+    "UMLS:C1324882 (in a clique with GO:0035251): 'UDP glucosyltransferase activity'",
+    "UMLS:C1324882 (in a clique with GO:0035251): 'UDPglucosyltransferase activity'",
+    "UMLS:C1523425 (in a clique with GO:0030944): 'DDEL sequence binding'"
+  ],
+  "labels: CUIs whose UMLS label comes from a GO atom the shipped rule skips": 0
+}

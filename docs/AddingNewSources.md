@@ -238,8 +238,8 @@ Preferred labels are in `babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\
 
 ### 8. Register the source for the impact report (optional, recommended)
 
-The synthetic comparison mode needs a per-pipeline compute hook. Anatomy is wired via
-`anatomy.compute_cliques_for_impact_report`. For other pipelines, split that pipeline's
+The synthetic comparison mode needs a per-pipeline compute hook. Anatomy, disease and process are
+wired via their `compute_cliques_for_impact_report`. For other pipelines, split that pipeline's
 `build_compendia()` into a "compute cliques in memory" helper and a "write compendia" wrapper, then
 register the helper in `PIPELINE_CONFIG` in `src/tools/source_impact_report/cli.py` (see
 [docs/tools/SourceImpactReport.md](tools/SourceImpactReport.md)).
@@ -698,9 +698,10 @@ these in the `dropped` column is expected; a large number suggests an extraction
 
 ## Known limitations
 
-- **Only anatomy has a synthetic-mode hook.** Other pipelines produce empty section 4 unless
-  you first extract a `compute_cliques_for_impact_report` helper from that pipeline's
-  `build_compendia` and register it in `PIPELINE_CONFIG` (see `anatomy.py` for the template).
+- **Only anatomy, disease and process have a synthetic-mode hook.** Other pipelines produce empty
+  section 4 unless you first extract a `compute_cliques_for_impact_report` helper from that
+  pipeline's `build_compendia` and register it in `PIPELINE_CONFIG` (see `anatomy.py` for the
+  template).
 - **Synthetic mode needs the full intermediate set.** If only your new source's files are on
   disk, every after-clique is classified as pure-new. Build or download the full pipeline's
   intermediates first.

@@ -28,13 +28,8 @@ METADATA_YAMLS = ["metadata.yaml"]
 
 
 def _stub_cliques_from_impact_report(module, monkeypatch):
-    """anatomy and diseasephenotype build their cliques in compute_cliques_for_impact_report()."""
+    """anatomy, diseasephenotype and processactivitypathway build their cliques in compute_cliques_for_impact_report()."""
     monkeypatch.setattr(module, "compute_cliques_for_impact_report", lambda *args, **kwargs: ({}, {}))
-
-
-def _stub_process_cliques(module, monkeypatch):
-    """processactivitypathway builds its cliques inline; with no input files, only the config lookup runs."""
-    monkeypatch.setattr(module, "unique_prefixes_from_config", lambda *args: {})
 
 
 # DELEGATING TO write_typed_compendia
@@ -60,7 +55,7 @@ def _stub_process_cliques(module, monkeypatch):
         ),
         pytest.param(
             processactivitypathway,
-            _stub_process_cliques,
+            _stub_cliques_from_impact_report,
             lambda: processactivitypathway.build_compendia([], METADATA_YAMLS, [], ICRDF),
             {BIOLOGICAL_PROCESS: [["GO:1"]], MOLECULAR_ACTIVITY: [["GO:2"]]},
             id="processactivitypathway",
